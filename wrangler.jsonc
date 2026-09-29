@@ -2,7 +2,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": ".open-next/worker.js",
 	"name": "mentifylabs",
-	"compatibility_date": "2026-09-28",
+	"compatibility_date": "2026-09-28", // CI/CD smoke test: verifying Workers Builds triggers on push.
 	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
 	"vars": {
 		// Used in emailed links in production, so they never depend on the request's Host header.
