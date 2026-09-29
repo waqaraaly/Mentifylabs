@@ -9,6 +9,7 @@ import { ReachOutCard } from "@/components/practitioner/ReachOutCard";
 import { AreasOfExpertise } from "@/components/practitioner/AreasOfExpertise";
 import { ServicesOffered } from "@/components/practitioner/ServicesOffered";
 import { ProfessionalJourney } from "@/components/practitioner/ProfessionalJourney";
+import { NoteForClients } from "@/components/practitioner/NoteForClients";
 import { ProfileFooter } from "@/components/practitioner/ProfileFooter";
 import { StickyBookingBar } from "@/components/practitioner/StickyBookingBar";
 import { BookSessionButton } from "@/components/practitioner/BookSessionButton";
@@ -140,6 +141,8 @@ export default async function PractitionerProfilePage({ params }: Props) {
           <ServicesOffered practitioner={practitioner} />
 
           <ProfessionalJourney practitioner={practitioner} />
+
+          <NoteForClients practitioner={practitioner} />
 
           <div className="h-16 sm:h-24" />
         </div>
