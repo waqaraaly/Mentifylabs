@@ -12,5 +12,7 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-// Gives `next dev` the same Cloudflare bindings (the D1 database) as production, backed by local files in .wrangler/.
-initOpenNextCloudflareForDev();
+// Gives `next dev` (and `next build`'s page-data collection) the same Cloudflare bindings as the
+// target deploy environment, backed by local files in .wrangler/. CLOUDFLARE_ENV is set as a build
+// variable on the staging Workers Build so it resolves the env.staging block instead of the default.
+initOpenNextCloudflareForDev({ environment: process.env.CLOUDFLARE_ENV });
