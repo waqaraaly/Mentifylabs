@@ -1,0 +1,427 @@
+@import "tailwindcss";
+
+:root {
+  /* "Midnight Sidebar" — dark navy sidebar, light workspace, cyan-teal brand, one coral accent. */
+  --background: #f4f7fa;
+  --surface: #ffffff;
+  --foreground: #0e1b29;
+  --muted: #5a6b7d;
+  --border: #dce4ec;
+
+  --primary: #0e7490;
+  /* The far end of the brand gradient (spotlight card, active nav). */
+  --primary-2: #22a6c4;
+  --primary-foreground: #ffffff;
+
+  /* Warm accent for anything that needs attention but isn't an error
+     (pending requests, items to close out). --accent-strong is the readable
+     text/icon shade of it. */
+  --accent: #f97362;
+  --accent-strong: #b4341f;
+
+  --success: #2e7d5b;
+  --success-foreground: #ffffff;
+  --alert: #b3261e;
+  --alert-foreground: #ffffff;
+
+  /* The "not shared with client" tint — for practitioner-private notes. */
+  --private-surface: #fff3e8;
+
+  /* The dark navigation rail — stays dark in both light and dark mode. */
+  --sidebar: #0f2233;
+  --sidebar-foreground: #9fb3c6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-2: var(--primary-2);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-fg: var(--sidebar-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-alert: var(--alert);
+  --color-alert-foreground: var(--alert-foreground);
+
+  --color-private-surface: var(--private-surface);
+
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-inter);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a1420;
+    --surface: #101e2d;
+    --foreground: #e6eef5;
+    --muted: #93a5b7;
+    --border: #1d2e40;
+
+    --primary: #3cc4e0;
+    --primary-2: #7dd8ec;
+    --primary-foreground: #04212b;
+
+    --accent: #ff8e7c;
+    --accent-strong: #ffa595;
+
+    --success: #5fb088;
+    --success-foreground: #0e1f14;
+    --alert: #f0786e;
+    --alert-foreground: #2b0b08;
+
+    --private-surface: #2a2015;
+
+    --sidebar: #08111b;
+  }
+}
+
+/* Brand surfaces: the primary blending into its brighter teal, and the page
+   backdrop — a soft glow of the brand colour fading into the paper. */
+.bg-brand-gradient {
+  background-color: var(--primary);
+  background-image: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+}
+
+.app-backdrop {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(900px 420px at 78% -8%, color-mix(in srgb, var(--primary-2) 14%, transparent), transparent 70%),
+    radial-gradient(700px 380px at 6% 4%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%);
+  background-repeat: no-repeat;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* On the public profile the highlight follows the page's own theme instead of
+   the dashboard's teal --primary (which read as green on the blue theme). It
+   uses the theme's frame color, with dark ink text on top; a solid accent
+   highlight would vanish when selecting text inside the accent-filled tiles. */
+[data-pt-theme]::selection,
+[data-pt-theme] ::selection {
+  background: var(--pt-outer);
+  color: var(--pt-text);
+}
+
+/* A colored scrollbar for internally-scrolling panels (tables, request queues)
+   instead of the browser's flat gray default. */
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+.themed-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.themed-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  border: 2.5px solid var(--surface);
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary);
+}
+
+/* Public practitioner-profile theming (/[username]) — independent of the
+   dashboard's own --primary/--surface tokens above. Scoped by a
+   data-pt-theme attribute set once on the page's root element; every
+   practitioner component reads these via Tailwind's bg-(--pt-…) /
+   text-(--pt-…) arbitrary-property syntax, so adding a new theme here is
+   the only change needed to make it available everywhere on the profile. */
+[data-pt-theme="sage"] {
+  --pt-outer: #bfe0b8;
+  --pt-bg: #f7f5ee;
+  --pt-text: #20221f;
+  --pt-tagline: #4a4d45;
+  --pt-muted: #686b64;
+  /* Label text inside the (dark) Reach Out card. */
+  --pt-muted-light: #c4d8c6;
+  --pt-accent: #607568;
+  --pt-accent-hover: #4c5f54;
+  /* Icon glyphs inside the Reach Out card. */
+  --pt-accent-light: #ffffff;
+  --pt-accent-foreground: #ffffff;
+  --pt-tint2: #ede8de;
+  --pt-border: #dddcd5;
+  /* Reach Out card: a filled deep-green panel with white text and
+     translucent-white dividers and icon outlines (unlike Golden Hour, which
+     uses a transparent card with a dark outline). */
+  --pt-dark-card: #435749;
+  --pt-dark-divider: rgba(255, 255, 255, 0.16);
+  --pt-dark-card-foreground: #ffffff;
+  --pt-dark-card-border: #435749;
+  --pt-dark-card-shadow: rgba(67, 87, 73, 0.4);
+  --pt-icon-fill: rgba(255, 255, 255, 0.08);
+  --pt-icon-border: rgba(255, 255, 255, 0.38);
+  --pt-tile-border: #607568;
+  --pt-modal-sidebar: #607568;
+  /* Matches the Reach Out card's transparent + dark-outline treatment
+     instead of a filled --pt-tint2 pill. */
+  --pt-toggle-track: transparent;
+  --pt-toggle-border: #20221f;
+  --pt-input-bg: #ede8de;
+  --pt-input-border: #dddcd5;
+  --pt-tile-text-size: 19px;
+  --pt-tile-text-size-sm: 19px;
+  --pt-tile-text-weight: 500;
+
+  /* All tiles match --pt-accent, the same color as the "Book a Session"
+     button, instead of a per-tile color set. */
+  --pt-tile-1: #607568;
+  --pt-tile-1-hover: #4c5f54;
+  --pt-tile-2: #607568;
+  --pt-tile-2-hover: #4c5f54;
+  --pt-tile-3: #607568;
+  --pt-tile-3-hover: #4c5f54;
+  --pt-tile-4: #607568;
+  --pt-tile-4-hover: #4c5f54;
+  --pt-tile-5: #607568;
+  --pt-tile-5-hover: #4c5f54;
+}
+
+[data-pt-theme="ink-blue"] {
+  --pt-outer: #cbdce8;
+  --pt-bg: #ffffff;
+  --pt-text: #1b2430;
+  --pt-tagline: #38404c;
+  --pt-muted: #6e7580;
+  /* Label text inside the (dark) Reach Out card. */
+  --pt-muted-light: #b9cde0;
+  --pt-accent: #2f4c6b;
+  --pt-accent-hover: #263d56;
+  /* Icon glyphs inside the Reach Out card. */
+  --pt-accent-light: #ffffff;
+  --pt-accent-foreground: #ffffff;
+  --pt-tint2: #e7e4dc;
+  --pt-border: #deddd6;
+  /* Reach Out card: a filled panel in this theme's navy accent, with white
+     text and translucent-white dividers and icon outlines (unlike Sage and
+     Golden Hour, which use a transparent card with a dark outline). */
+  --pt-dark-card: #2f4c6b;
+  --pt-dark-divider: rgba(255, 255, 255, 0.16);
+  --pt-dark-card-foreground: #ffffff;
+  --pt-dark-card-border: #2f4c6b;
+  --pt-dark-card-shadow: rgba(47, 76, 107, 0.4);
+  --pt-icon-fill: rgba(255, 255, 255, 0.08);
+  --pt-icon-border: rgba(255, 255, 255, 0.38);
+  --pt-tile-border: #2f4c6b;
+  --pt-modal-sidebar: #2f4c6b;
+  /* Matches the Reach Out card's transparent + dark-outline treatment
+     instead of the filled --pt-tint2 pill Sage uses. */
+  --pt-toggle-track: transparent;
+  --pt-toggle-border: #1b2430;
+  /* Cool light blue-gray, not the warm beige --pt-tint2 the other two
+     themes' input fields use — that warm tint read as out of place next
+     to this theme's crisp white/blue palette. */
+  --pt-input-bg: #eaf1f6;
+  --pt-input-border: #cfdce6;
+  --pt-tile-text-size: 19px;
+  --pt-tile-text-size-sm: 19px;
+  --pt-tile-text-weight: 500;
+
+  /* All tiles match --pt-accent, the same color as the "Book a Session"
+     button, instead of a per-tile color set. */
+  --pt-tile-1: #2f4c6b;
+  --pt-tile-1-hover: #263d56;
+  --pt-tile-2: #2f4c6b;
+  --pt-tile-2-hover: #263d56;
+  --pt-tile-3: #2f4c6b;
+  --pt-tile-3-hover: #263d56;
+  --pt-tile-4: #2f4c6b;
+  --pt-tile-4-hover: #263d56;
+  --pt-tile-5: #2f4c6b;
+  --pt-tile-5-hover: #263d56;
+}
+
+/* Golden Hour — a bright white surface with a warm golden-yellow accent.
+   --pt-accent is pale, so --pt-accent-foreground (dark ink, not white) is
+   used for any text/icon that sits directly on an accent-filled surface —
+   every other theme's accent is dark enough for white to read fine there,
+   this one isn't. --pt-tagline/--pt-muted are reused from Harbor Blue
+   (specified to match it exactly). Unlike the other two themes, the
+   "Reach out" card is fully transparent with a dark 1.5px outline here
+   instead of a filled dark panel (--pt-dark-card and friends, despite the
+   "dark" name, are only ever used inside ReachOutCard, so repurposing
+   their values per theme — including "transparent" as a literal value —
+   is safe): --pt-dark-card-border/--pt-dark-card-shadow give the outline
+   and drop shadow, --pt-icon-fill/--pt-icon-border make the icon circles
+   outlined instead of filled, and --pt-dark-card-foreground/--pt-muted-light
+   keep all its text dark ink instead of the white the other two themes use
+   on their actually-dark panel. */
+[data-pt-theme="golden-hour"] {
+  --pt-outer: #ffd74d;
+  --pt-bg: #ffffff;
+  --pt-text: #1b2430;
+  --pt-tagline: #38404c;
+  --pt-muted: #6e7580;
+  --pt-muted-light: #1b2430;
+  --pt-accent: #ffd74d;
+  --pt-accent-hover: #f5c526;
+  --pt-accent-light: #1b2430;
+  --pt-accent-foreground: #1b2430;
+  --pt-tint2: #ddeef6;
+  --pt-border: #deddd6;
+  --pt-dark-card: transparent;
+  --pt-dark-divider: #e4e2da;
+  --pt-dark-card-foreground: #1b2430;
+  --pt-dark-card-border: #1b2430;
+  --pt-dark-card-shadow: rgba(27, 36, 48, 0.12);
+  --pt-icon-fill: transparent;
+  --pt-icon-border: #1b2430;
+  --pt-tile-border: #5b9bd5;
+  /* The booking modal's sidebar specifically, faded/desaturated from
+     --pt-accent so the solid yellow isn't overwhelming across a whole
+     panel — the accent stays full-strength everywhere else (buttons,
+     tiles, pills). */
+  --pt-modal-sidebar: #f7dd88;
+  /* The Professional Journey toggle track matches the Reach Out card's
+     look here: transparent fill with a dark outline, instead of the
+     filled --pt-tint2 pill the other two themes use. */
+  --pt-toggle-track: transparent;
+  --pt-toggle-border: #1b2430;
+  /* Booking modal step-2 inputs also match the outlined look instead of
+     the sky-blue --pt-tint2 fill the other two themes use — a filled blue
+     box read as out of place next to this theme's yellow accent. */
+  --pt-input-bg: transparent;
+  --pt-input-border: #1b2430;
+  /* "Areas of expertise" tile text: 19px/500, unified across all three
+     themes — only the color (--pt-accent-foreground) differs. */
+  --pt-tile-text-size: 19px;
+  --pt-tile-text-size-sm: 19px;
+  --pt-tile-text-weight: 500;
+
+  /* Unlike the other two themes, tiles use the sky-blue tint (matching
+     --pt-tint2/--pt-dark-card) instead of --pt-accent — specified
+     separately for this theme's "expertise" tiles, so their hover border
+     (--pt-tile-border) is a matching blue instead of the yellow accent. */
+  --pt-tile-1: #ddeef6;
+  --pt-tile-1-hover: #c7e3f0;
+  --pt-tile-2: #ddeef6;
+  --pt-tile-2-hover: #c7e3f0;
+  --pt-tile-3: #ddeef6;
+  --pt-tile-3-hover: #c7e3f0;
+  --pt-tile-4: #ddeef6;
+  --pt-tile-4-hover: #c7e3f0;
+  --pt-tile-5: #ddeef6;
+  --pt-tile-5-hover: #c7e3f0;
+}
+
+/* Juniper & Brick — warm paper, deep juniper green, brick-red underlines. */
+[data-pt-theme="juniper-brick"] {
+  --pt-outer: #e9ded3;
+  --pt-bg: #faf8f3;
+  --pt-text: #22271f;
+  --pt-tagline: #4b5248;
+  --pt-muted: #71786b;
+  /* Label text inside the (dark) Reach Out card. */
+  --pt-muted-light: #cfdcd3;
+  --pt-accent: #2e4f44;
+  --pt-accent-hover: #233e35;
+  /* Icon glyphs inside the Reach Out card. */
+  --pt-accent-light: #ffffff;
+  --pt-accent-foreground: #ffffff;
+  --pt-tint2: #edebe0;
+  --pt-border: #e7e1d5;
+  /* The wavy heading underlines are brick red, the theme's warm note. */
+  --pt-wave: #b0432f;
+  /* Reach Out card: a filled panel in this theme's deep accent, white text. */
+  --pt-dark-card: #2e4f44;
+  --pt-dark-divider: rgba(255, 255, 255, 0.16);
+  --pt-dark-card-foreground: #ffffff;
+  --pt-dark-card-border: #2e4f44;
+  --pt-dark-card-shadow: rgba(46, 79, 68, 0.4);
+  --pt-icon-fill: rgba(255, 255, 255, 0.08);
+  --pt-icon-border: rgba(255, 255, 255, 0.38);
+  --pt-tile-border: #2e4f44;
+  --pt-modal-sidebar: #2e4f44;
+  --pt-toggle-track: transparent;
+  --pt-toggle-border: #22271f;
+  --pt-input-bg: #edebe0;
+  --pt-input-border: #e7e1d5;
+  --pt-tile-text-size: 19px;
+  --pt-tile-text-size-sm: 19px;
+  --pt-tile-text-weight: 500;
+
+  /* All tiles match --pt-accent, like the Book a Session button. */
+  --pt-tile-1: #2e4f44;
+  --pt-tile-1-hover: #233e35;
+  --pt-tile-2: #2e4f44;
+  --pt-tile-2-hover: #233e35;
+  --pt-tile-3: #2e4f44;
+  --pt-tile-3-hover: #233e35;
+  --pt-tile-4: #2e4f44;
+  --pt-tile-4-hover: #233e35;
+  --pt-tile-5: #2e4f44;
+  --pt-tile-5-hover: #233e35;
+}
+
+/* Ocean Mist — crisp white, pale aqua frame, deep ocean-teal accent. */
+[data-pt-theme="ocean-mist"] {
+  --pt-outer: #cfe8ee;
+  --pt-bg: #f8fcfd;
+  --pt-text: #0f2a33;
+  --pt-tagline: #3c5560;
+  --pt-muted: #5f7883;
+  /* Label text inside the (dark) Reach Out card. */
+  --pt-muted-light: #cfe6ec;
+  --pt-accent: #1e7a8c;
+  --pt-accent-hover: #186a7a;
+  /* Icon glyphs inside the Reach Out card. */
+  --pt-accent-light: #ffffff;
+  --pt-accent-foreground: #ffffff;
+  --pt-tint2: #e2f1f4;
+  --pt-border: #dcebef;
+  /* Reach Out card: a filled panel in this theme's deep accent, white text. */
+  --pt-dark-card: #14586a;
+  --pt-dark-divider: rgba(255, 255, 255, 0.16);
+  --pt-dark-card-foreground: #ffffff;
+  --pt-dark-card-border: #14586a;
+  --pt-dark-card-shadow: rgba(20, 88, 106, 0.4);
+  --pt-icon-fill: rgba(255, 255, 255, 0.08);
+  --pt-icon-border: rgba(255, 255, 255, 0.38);
+  --pt-tile-border: #1e7a8c;
+  --pt-modal-sidebar: #1e7a8c;
+  --pt-toggle-track: transparent;
+  --pt-toggle-border: #0f2a33;
+  --pt-input-bg: #e6f2f5;
+  --pt-input-border: #cfe3e8;
+  --pt-tile-text-size: 19px;
+  --pt-tile-text-size-sm: 19px;
+  --pt-tile-text-weight: 500;
+
+  /* All tiles match --pt-accent, like the Book a Session button. */
+  --pt-tile-1: #1e7a8c;
+  --pt-tile-1-hover: #186a7a;
+  --pt-tile-2: #1e7a8c;
+  --pt-tile-2-hover: #186a7a;
+  --pt-tile-3: #1e7a8c;
+  --pt-tile-3-hover: #186a7a;
+  --pt-tile-4: #1e7a8c;
+  --pt-tile-4-hover: #186a7a;
+  --pt-tile-5: #1e7a8c;
+  --pt-tile-5-hover: #186a7a;
+}

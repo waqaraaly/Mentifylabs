@@ -1,0 +1,44 @@
+{
+  "name": "therapy-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "db:migrate:local": "wrangler d1 migrations apply mentifylabs-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply mentifylabs-db --remote",
+    "db:seed:local": "wrangler d1 execute mentifylabs-db --local --file seed/demo-data.sql",
+    "db:seed:remote": "wrangler d1 execute mentifylabs-db --remote --file seed/demo-data.sql",
+    "db:backup:local": "node scripts/backup-db.ts",
+    "db:backup:remote": "node scripts/backup-db.ts --remote",
+    "user:create": "node scripts/create-user.ts"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.6",
+    "lucide-react": "^1.46.0",
+    "next": "16.3.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2",
+    "wrangler": "^4.142.0"
+  }
+}

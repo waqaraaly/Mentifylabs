@@ -1,0 +1,30 @@
+import { getAllPractitioners } from "@/data/practitioners";
+import { getAllAppointments } from "@/data/appointments";
+import { todayIsoDate } from "@/lib/format";
+import { TopBar } from "@/components/admin/TopBar";
+import { DashboardView } from "@/components/admin/DashboardView";
+
+export const metadata = { title: "Super Admin Dashboard" };
+
+export default async function AdminDashboardPage() {
+  const [practitioners, appointments] = await Promise.all([
+    getAllPractitioners(),
+    getAllAppointments(),
+  ]);
+  const today = todayIsoDate();
+
+
+  return (
+    <div>
+      <TopBar
+        title="Dashboard"
+        subtitle={`Platform health at a glance · ${new Date().toDateString()}`}
+      />
+      <DashboardView
+        practitioners={practitioners}
+        appointments={appointments}
+        today={today}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,83 @@
+// Creates a sign-in account, or resets its password if the email already exists.
+//
+//   npm run user:create -- --email you@example.com --role admin [--remote]
+//   npm run user:create -- --email you@example.com --role practitioner --practitioner dr-ali [--remote]
+//
+// A strong password is generated and appended to credentials.local.txt (git-ignored),
+// never printed, so it doesn't end up in terminal logs or chat transcripts.
+import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { parseArgs } from "node:util";
+import { hashPassword } from "../src/lib/password.ts";
+
+const { values } = parseArgs({
+  options: {
+    email: { type: "string" },
+    role: { type: "string" },
+    practitioner: { type: "string" },
+    name: { type: "string" },
+    remote: { type: "boolean", default: false },
+  },
+});
+
+function fail(message: string): never {
+  console.error(message);
+  process.exit(1);
+}
+
+const email = values.email?.trim().toLowerCase();
+const role = values.role;
+if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail("Pass a valid --email.");
+if (role !== "admin" && role !== "practitioner") fail("Pass --role admin or --role practitioner.");
+if (role === "practitioner" && !values.practitioner) fail("Pass --practitioner <slug> for a practitioner account.");
+
+const sql = (v: string) => `'${v.replace(/'/g, "''")}'`;
+
+const bytes = crypto.getRandomValues(new Uint8Array(15));
+const password = Buffer.from(bytes).toString("base64url");
+const hash = await hashPassword(password);
+
+const practitionerId =
+  role === "practitioner" ? `(SELECT id FROM practitioners WHERE slug = ${sql(values.practitioner!)})` : "NULL";
+const name = values.name
+  ? sql(values.name)
+  : role === "practitioner"
+    ? `COALESCE((SELECT full_name FROM practitioners WHERE slug = ${sql(values.practitioner!)}), '')`
+    : "'Super Admin'";
+
+const statement = `
+INSERT INTO users (email, name, password_hash, role, practitioner_id)
+VALUES (${sql(email)}, ${name}, ${sql(hash)}, ${sql(role)}, ${practitionerId})
+ON CONFLICT (email) DO UPDATE SET
+  password_hash = excluded.password_hash,
+  role = excluded.role,
+  practitioner_id = excluded.practitioner_id;
+DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE email = ${sql(email)});
+DELETE FROM login_attempts WHERE email = ${sql(email)};
+`;
+
+const dir = mkdtempSync(join(tmpdir(), "mentifylabs-user-"));
+const file = join(dir, "user.sql");
+writeFileSync(file, statement);
+const target = values.remote ? "--remote" : "--local";
+const result = spawnSync("npx", ["wrangler", "d1", "execute", "mentifylabs-db", target, "--file", file], {
+  shell: true,
+  encoding: "utf8",
+  env: { ...process.env, CI: "1" },
+});
+rmSync(dir, { recursive: true, force: true });
+
+if (result.status !== 0) {
+  const output = `${result.stdout}\n${result.stderr}`;
+  if (output.includes("CHECK constraint failed")) fail(`No practitioner with slug "${values.practitioner}".`);
+  fail(`Could not save the account:\n${output.slice(-1500)}`);
+}
+
+const where = values.remote ? "production" : "local";
+appendFileSync(
+  "credentials.local.txt",
+  `${new Date().toISOString()}  ${where.padEnd(10)}  ${role.padEnd(12)}  ${email}  ${password}\n`,
+);
+console.log(`Saved the ${where} ${role} account ${email}. Its password is in credentials.local.txt.`);

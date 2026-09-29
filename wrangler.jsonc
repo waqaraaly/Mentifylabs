@@ -1,0 +1,52 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	"name": "mentifylabs",
+	"compatibility_date": "2026-09-28",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"vars": {
+		// Used in emailed links in production, so they never depend on the request's Host header.
+		"SITE_URL": "https://mentifylabs.com",
+		"MAIL_FROM": "MentifyLabs <no-reply@mentifylabs.com>"
+		// RESEND_API_KEY is a secret: npx wrangler secret put RESEND_API_KEY
+	},
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"services": [
+		{
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "mentifylabs"
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "mentifylabs-db",
+			// Production database (APAC). Local development ignores it and uses a SQLite file under .wrangler/.
+			"database_id": "aa0d64a2-f415-4b88-94f3-36cdcac515a6",
+			"migrations_dir": "migrations"
+		},
+		{
+			// OpenNext tag cache: records when revalidatePath() marks a page as changed.
+			"binding": "NEXT_TAG_CACHE_D1",
+			"database_name": "mentifylabs-cache",
+			"database_id": "054b48f9-3a01-4624-9067-56ee0d00bc08"
+		}
+	],
+	"r2_buckets": [
+		{
+			// Profile photos (public, served at /media/...) and verification documents (private, /documents/<id>).
+			"binding": "UPLOADS",
+			"bucket_name": "mentifylabs-uploads"
+		}
+	],
+	"kv_namespaces": [
+		{
+			// OpenNext incremental cache: the rendered HTML of pre-rendered pages (public profiles).
+			"binding": "NEXT_INC_CACHE_KV",
+			"id": "105305efb09244c1b5f51f134cba3fc1"
+		}
+	]
+}
