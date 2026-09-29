@@ -161,6 +161,7 @@ export function PractitionerDetail({
               <h2 style={{ fontSize: 22, fontWeight: 650, letterSpacing: "-0.02em" }}>{p.fullName}</h2>
               <Badge kind={p.status} />
               <Badge kind={p.profileStatus} />
+              <Badge kind={p.verificationStatus} />
             </div>
             <div style={{ color: "var(--ml-ink-muted)", fontSize: 14, marginTop: 4 }}>{p.professionalTitle}</div>
             <div className="mono" style={{ color: "var(--ml-ink-subtle)", fontSize: 12, marginTop: 6 }}>{publicLink}</div>
@@ -252,6 +253,11 @@ function OverviewTab({
       <Section icon={<ShieldCheck size={15} />} title="Account">
         <Row label="Account status"><Badge kind={p.status} /></Row>
         <Row label="Profile status"><Badge kind={p.profileStatus} /></Row>
+        <Row label="Verification">
+          <Link href={`/admin/verification/${p.slug}`} className="btn btn-ghost btn-sm" style={{ padding: "2px 8px", marginLeft: -8 }}>
+            <Badge kind={p.verificationStatus} />
+          </Link>
+        </Row>
         <Row label="Created via">{p.creationMethod === "super_admin" ? "Super Admin" : "Self sign-up"}</Row>
       </Section>
 

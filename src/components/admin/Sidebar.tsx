@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { initialsOf } from "@/lib/admin";
-import { LayoutDashboard, Users, Clock, Calendar, BarChart3, Settings, ShieldCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Clock, Calendar, BarChart3, Settings, ShieldCheck, BadgeCheck, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/login/actions";
 
 const GROUPS = [
@@ -16,6 +16,7 @@ const GROUPS = [
     items: [
       { href: "/admin/practitioners", label: "Practitioners", icon: Users, countKey: "practitioners" },
       { href: "/admin/pending", label: "Pending approval", icon: Clock, countKey: "pending" },
+      { href: "/admin/verification", label: "Verification", icon: BadgeCheck, countKey: "verification" },
       { href: "/admin/bookings", label: "Appointments", icon: Calendar, countKey: "bookingsToday" },
     ],
   },
@@ -31,6 +32,7 @@ const GROUPS = [
 export interface SidebarCounts {
   practitioners: number;
   pending: number;
+  verification: number;
   bookingsToday: number;
 }
 

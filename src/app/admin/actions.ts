@@ -3,11 +3,13 @@
 import {
   approvePractitioner,
   approveProfile,
+  approveVerification,
   createPractitionerManually,
   hideProfile,
   reactivatePractitioner,
   rejectPractitioner,
   rejectProfile,
+  rejectVerification,
   suspendPractitioner,
 } from "@/data/practitioners";
 import { renamePractitionerSlug } from "@/data/rename";
@@ -61,6 +63,18 @@ export async function hideProfileAction(slug: string) {
 export async function rejectProfileAction(slug: string, note: string) {
   await requireAdmin();
   await rejectProfile(slug, note);
+  revalidateAdmin(slug);
+}
+
+export async function approveVerificationAction(slug: string) {
+  await requireAdmin();
+  await approveVerification(slug);
+  revalidateAdmin(slug);
+}
+
+export async function rejectVerificationAction(slug: string, note: string) {
+  await requireAdmin();
+  await rejectVerification(slug, note);
   revalidateAdmin(slug);
 }
 

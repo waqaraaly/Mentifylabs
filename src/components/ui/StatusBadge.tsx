@@ -10,6 +10,8 @@ const TEXT_STYLES: Record<string, string> = {
   active: "text-success",
   suspended: "text-alert",
   rejected: "text-alert",
+  unverified: "text-muted",
+  verified: "text-success",
 };
 
 const DOT_STYLES: Record<string, string> = {
@@ -24,6 +26,8 @@ const DOT_STYLES: Record<string, string> = {
   active: "bg-success",
   suspended: "bg-alert",
   rejected: "bg-alert",
+  unverified: "bg-muted",
+  verified: "bg-success",
 };
 
 export function StatusBadge({ status }: { status: string }) {

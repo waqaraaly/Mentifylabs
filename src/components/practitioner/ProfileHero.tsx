@@ -59,7 +59,7 @@ function getInitials(fullName: string): string {
 // to name/title/tagline and a quiet three-stat row, matching the reference
 // design's exact colors and blob geometry.
 export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
-  const isVerified = practitioner.status === "active" && practitioner.profileStatus === "published";
+  const isVerified = practitioner.verificationStatus === "verified";
 
   const tagline =
     practitioner.shortBio ||

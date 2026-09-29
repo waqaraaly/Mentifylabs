@@ -5,6 +5,8 @@ import { ArrowUpRight, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/login/actions";
 import { getCurrentPractitioner } from "@/data/practitioners";
 import { DashboardNav } from "@/components/portal/DashboardNav";
+import { VerificationBanner } from "@/components/portal/VerificationBanner";
+import { VerificationSetupPopup } from "@/components/portal/VerificationSetupPopup";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   // Live data from D1 on every request, never a copy prerendered at build time.
@@ -60,7 +62,14 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 px-[clamp(15px,2.5vw,37.5px)] pt-8 pb-[17.6px]">{children}</main>
+      <main className="min-w-0 flex-1 px-[clamp(15px,2.5vw,37.5px)] pt-8 pb-[17.6px]">
+        <VerificationBanner practitioner={practitioner} />
+        {children}
+      </main>
+
+      <VerificationSetupPopup
+        show={!practitioner.verificationPromptSeenAt && practitioner.verificationStatus === "unverified"}
+      />
     </div>
   );
 }

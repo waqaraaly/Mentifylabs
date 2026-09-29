@@ -24,6 +24,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     pending: practitioners.filter(
       (p) => p.status === "pending" || ["in_review", "incomplete", "draft"].includes(p.profileStatus),
     ).length,
+    verification: practitioners.filter((p) => p.verificationStatus === "pending").length,
     bookingsToday: appointments.filter((a) => a.date === today).length,
   };
 

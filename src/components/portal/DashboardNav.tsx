@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  BadgeCheck,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -38,7 +39,10 @@ const NAV_GROUPS = [
   {
     // What clients see, kept apart from the private account below.
     label: "Your profile",
-    items: [{ href: "/dashboard/profile", label: "Public Profile", icon: UserRound }],
+    items: [
+      { href: "/dashboard/profile", label: "Public Profile", icon: UserRound },
+      { href: "/dashboard/verification", label: "Verification", icon: BadgeCheck },
+    ],
   },
   {
     label: "Account",

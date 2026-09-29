@@ -13,6 +13,13 @@ export type ProfileStatus = "draft" | "in_review" | "published" | "hidden" | "in
 
 export type PractitionerCreationMethod = "self" | "super_admin";
 
+/**
+ * Credential verification (degree/license/ID review) — independent from
+ * `status` and `profileStatus`. A practitioner can be active and published
+ * while still "unverified"; the public-profile checkmark reflects this.
+ */
+export type VerificationStatus = "unverified" | "pending" | "verified";
+
 export interface SocialLink {
   platform: "instagram" | "facebook" | "linkedin" | "twitter" | "youtube";
   url: string;
@@ -66,4 +73,12 @@ export interface Practitioner {
   approvedOn?: string;
   suspendedOn?: string;
   rejectionNote?: string;
+
+  // Credential verification (degree/license/ID) — see VerificationStatus.
+  verificationStatus: VerificationStatus;
+  verificationSubmittedAt?: string;
+  verifiedOn?: string;
+  verificationNote?: string;
+  /** Set once they dismiss the first-login setup popup; shown only until then. */
+  verificationPromptSeenAt?: string;
 }

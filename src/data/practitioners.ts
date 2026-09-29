@@ -64,6 +64,11 @@ interface PractitionerRow {
   approved_on: string | null;
   suspended_on: string | null;
   rejection_note: string | null;
+  verification_status: Practitioner["verificationStatus"];
+  verification_submitted_at: string | null;
+  verified_on: string | null;
+  verification_note: string | null;
+  verification_prompt_seen_at: string | null;
 }
 
 const opt = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
@@ -101,6 +106,11 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     approvedOn: opt(r.approved_on),
     suspendedOn: opt(r.suspended_on),
     rejectionNote: opt(r.rejection_note),
+    verificationStatus: r.verification_status,
+    verificationSubmittedAt: opt(r.verification_submitted_at),
+    verifiedOn: opt(r.verified_on),
+    verificationNote: opt(r.verification_note),
+    verificationPromptSeenAt: opt(r.verification_prompt_seen_at),
   };
 }
 
@@ -134,6 +144,11 @@ const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "feeRange">, [string, 
   approvedOn: ["approved_on"],
   suspendedOn: ["suspended_on"],
   rejectionNote: ["rejection_note"],
+  verificationStatus: ["verification_status"],
+  verificationSubmittedAt: ["verification_submitted_at"],
+  verifiedOn: ["verified_on"],
+  verificationNote: ["verification_note"],
+  verificationPromptSeenAt: ["verification_prompt_seen_at"],
 };
 
 type ColumnValue = string | number | null;
@@ -260,6 +275,35 @@ export async function hideProfile(slug: string): Promise<Practitioner | null> {
 /** Send the profile back for edits with feedback — doesn't touch account status. */
 export async function rejectProfile(slug: string, note: string): Promise<Practitioner | null> {
   return updateBySlug(slug, { profile_status: "incomplete", rejection_note: note });
+}
+
+// ---- Credential verification ----
+
+/** Marks the first-login setup popup as seen, so it only shows once. */
+export async function dismissVerificationPrompt(slug: string): Promise<void> {
+  await updateBySlug(slug, { verification_prompt_seen_at: new Date().toISOString() });
+}
+
+/** Submitting a verification document moves the request into Super Admin's review queue. */
+export async function submitVerification(slug: string): Promise<Practitioner | null> {
+  return updateBySlug(slug, {
+    verification_status: "pending",
+    verification_submitted_at: new Date().toISOString(),
+    verification_note: null,
+  });
+}
+
+export async function approveVerification(slug: string): Promise<Practitioner | null> {
+  return updateBySlug(slug, { verification_status: "verified", verified_on: today(), verification_note: null });
+}
+
+/** Sends the request back with feedback; the practitioner can resubmit. */
+export async function rejectVerification(slug: string, note: string): Promise<Practitioner | null> {
+  return updateBySlug(slug, {
+    verification_status: "unverified",
+    verification_submitted_at: null,
+    verification_note: note,
+  });
 }
 
 /**

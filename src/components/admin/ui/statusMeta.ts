@@ -21,6 +21,9 @@ export const STATUS_META: Record<string, StatusMeta> = {
   hidden: { label: "Hidden", color: "var(--ml-neutral)", bg: "var(--ml-neutral-bg)" },
   incomplete: { label: "Incomplete", color: "var(--ml-warn)", bg: "var(--ml-warn-bg)" },
 
+  unverified: { label: "Unverified", color: "var(--ml-neutral)", bg: "var(--ml-neutral-bg)" },
+  verified: { label: "Verified", color: "var(--ml-ok)", bg: "var(--ml-ok-bg)" },
+
   confirmed: { label: "Confirmed", color: "var(--ml-ok)", bg: "var(--ml-ok-bg)" },
   completed: { label: "Completed", color: "var(--ml-info)", bg: "var(--ml-info-bg)" },
   cancelled: { label: "Cancelled", color: "var(--ml-danger)", bg: "var(--ml-danger-bg)" },
