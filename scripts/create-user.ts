@@ -2,6 +2,7 @@
 //
 //   npm run user:create -- --email you@example.com --role admin [--remote]
 //   npm run user:create -- --email you@example.com --role practitioner --practitioner dr-ali [--remote]
+//   npm run user:create -- --email you@example.com --role admin --remote --env staging
 //
 // A strong password is generated and appended to credentials.local.txt (git-ignored),
 // never printed, so it doesn't end up in terminal logs or chat transcripts.
@@ -19,8 +20,11 @@ const { values } = parseArgs({
     practitioner: { type: "string" },
     name: { type: "string" },
     remote: { type: "boolean", default: false },
+    env: { type: "string" }, // e.g. "staging" — targets that environment's own D1 database.
   },
 });
+
+const database = values.env ? `mentifylabs-${values.env}-db` : "mentifylabs-db";
 
 function fail(message: string): never {
   console.error(message);
@@ -62,7 +66,7 @@ const dir = mkdtempSync(join(tmpdir(), "mentifylabs-user-"));
 const file = join(dir, "user.sql");
 writeFileSync(file, statement);
 const target = values.remote ? "--remote" : "--local";
-const result = spawnSync("npx", ["wrangler", "d1", "execute", "mentifylabs-db", target, "--file", file], {
+const result = spawnSync("npx", ["wrangler", "d1", "execute", database, target, "--file", file], {
   shell: true,
   encoding: "utf8",
   env: { ...process.env, CI: "1" },
@@ -75,7 +79,7 @@ if (result.status !== 0) {
   fail(`Could not save the account:\n${output.slice(-1500)}`);
 }
 
-const where = values.remote ? "production" : "local";
+const where = values.env ? values.env : values.remote ? "production" : "local";
 appendFileSync(
   "credentials.local.txt",
   `${new Date().toISOString()}  ${where.padEnd(10)}  ${role.padEnd(12)}  ${email}  ${password}\n`,

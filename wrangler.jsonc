@@ -48,5 +48,50 @@
 			"binding": "NEXT_INC_CACHE_KV",
 			"id": "105305efb09244c1b5f51f134cba3fc1"
 		}
-	]
+	],
+
+	// A fully separate set of resources — its own D1, R2 and KV, never production's.
+	// No explicit "name" here, so Wrangler deploys it as "mentifylabs-staging"
+	// (the "{name}-{environment}" default) — matching the WORKER_SELF_REFERENCE below.
+	"env": {
+		"staging": {
+			"vars": {
+				"SITE_URL": "https://staging.mentifylabs.com",
+				"MAIL_FROM": "MentifyLabs (staging) <no-reply@mentifylabs.com>"
+				// No RESEND_API_KEY secret on staging on purpose — emails log instead
+				// of sending, the same as local dev, so testing here never emails a real person.
+			},
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "mentifylabs-staging"
+				}
+			],
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "mentifylabs-staging-db",
+					"database_id": "13105051-89fa-4d24-b203-ee251db23761",
+					"migrations_dir": "migrations"
+				},
+				{
+					"binding": "NEXT_TAG_CACHE_D1",
+					"database_name": "mentifylabs-staging-cache",
+					"database_id": "c8db7d45-9b1e-4f1f-9cfb-61c837921fca"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "UPLOADS",
+					"bucket_name": "mentifylabs-staging-uploads"
+				}
+			],
+			"kv_namespaces": [
+				{
+					"binding": "NEXT_INC_CACHE_KV",
+					"id": "43c9686536fd418780ebe42190672c59"
+				}
+			]
+		}
+	}
 }
