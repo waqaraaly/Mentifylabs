@@ -132,6 +132,21 @@ export default async function PublicProfilePage() {
               variant="list"
             />
           </SettingsRow>
+          <SettingsRow
+            label="Note for future clients"
+            htmlFor="noteForClients"
+            description="A short personal message shown in a highlighted section at the end of your public profile — optional."
+          >
+            <textarea
+              id="noteForClients"
+              name="noteForClients"
+              rows={4}
+              maxLength={400}
+              placeholder="e.g. Reaching out is the hardest step — I'm glad you're here…"
+              defaultValue={practitioner.noteForClients}
+              className={settingsInputClass}
+            />
+          </SettingsRow>
         </>
       ),
     },

@@ -49,6 +49,7 @@ export async function updateProfileAction(formData: FormData) {
     professionalTitle: formData.get("professionalTitle")?.toString().trim() || "",
     shortBio: formData.get("shortBio")?.toString().trim() || undefined,
     bio: formData.get("bio")?.toString().trim() || "",
+    noteForClients: formData.get("noteForClients")?.toString().trim() || undefined,
     specializations: stringList(formData, "specializations"),
     services: stringList(formData, "services"),
     experienceYears: Number(formData.get("experienceYears")) || 0,

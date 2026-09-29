@@ -44,6 +44,8 @@ export interface Practitioner {
   /** One-line summary shown under the name on the public profile hero. */
   shortBio?: string;
   bio: string;
+  /** A short personal note shown in a highlighted section at the end of the public profile. */
+  noteForClients?: string;
   specializations: string[];
   /** The kinds of sessions/services offered, e.g. "Individual Therapy", "Couples Counselling". */
   services: string[];

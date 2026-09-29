@@ -40,6 +40,7 @@ interface PractitionerRow {
   photo_url: string | null;
   short_bio: string | null;
   bio: string;
+  note_for_clients: string | null;
   specializations: string;
   services: string;
   experience_years: number;
@@ -84,6 +85,7 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     photoUrl: opt(r.photo_url),
     shortBio: opt(r.short_bio),
     bio: r.bio,
+    noteForClients: opt(r.note_for_clients),
     specializations: json(r.specializations),
     services: json(r.services),
     experienceYears: r.experience_years,
@@ -123,6 +125,7 @@ const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "feeRange">, [string, 
   photoUrl: ["photo_url"],
   shortBio: ["short_bio"],
   bio: ["bio"],
+  noteForClients: ["note_for_clients"],
   specializations: ["specializations", "json"],
   services: ["services", "json"],
   experienceYears: ["experience_years"],
