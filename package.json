@@ -14,8 +14,10 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "db:migrate:local": "wrangler d1 migrations apply mentifylabs-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply mentifylabs-db --remote",
+    "db:migrate:remote:staging": "wrangler d1 migrations apply mentifylabs-staging-db --remote --env staging",
     "db:seed:local": "wrangler d1 execute mentifylabs-db --local --file seed/demo-data.sql",
     "db:seed:remote": "wrangler d1 execute mentifylabs-db --remote --file seed/demo-data.sql",
+    "db:seed:remote:staging": "wrangler d1 execute mentifylabs-staging-db --remote --env staging --file seed/demo-data.sql",
     "db:backup:local": "node scripts/backup-db.ts",
     "db:backup:remote": "node scripts/backup-db.ts --remote",
     "user:create": "node scripts/create-user.ts"
