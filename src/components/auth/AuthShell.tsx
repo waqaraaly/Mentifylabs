@@ -4,10 +4,10 @@ import { CalendarCheck2, LineChart, ShieldCheck, Sparkles, type LucideIcon } fro
 import { siteConfig } from "@/lib/site";
 
 export const authInputClass =
-  "w-full rounded-xl bg-surface py-2.5 pr-3.5 pl-10 text-sm text-foreground ring-1 ring-border outline-none transition placeholder:text-muted/60 focus:ring-2 focus:ring-primary";
+  "w-full rounded-xl bg-surface py-3 pr-3.5 pl-11 text-[15px] text-foreground ring-1 ring-border outline-none transition placeholder:text-muted/60 focus:ring-2 focus:ring-primary";
 
 export const authButtonClass =
-  "group flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--primary)_65%,transparent)] transition hover:shadow-[0_14px_30px_-10px_color-mix(in_srgb,var(--primary)_70%,transparent)] hover:opacity-95 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60 disabled:shadow-none";
+  "group flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--primary)_65%,transparent)] transition hover:shadow-[0_14px_30px_-10px_color-mix(in_srgb,var(--primary)_70%,transparent)] hover:opacity-95 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60 disabled:shadow-none";
 
 const HIGHLIGHTS = [
   { icon: CalendarCheck2, text: "Manage availability and bookings from one calendar" },
@@ -17,7 +17,7 @@ const HIGHLIGHTS = [
 
 /** The shared frame for sign-in, sign-up and password pages: a branded panel
  * paired with the form, matching the dashboard's sage-sidebar/light-workspace
- * system. The brand panel hides below `lg`, where a compact logo takes its place. */
+ * system. The brand panel hides below `lg`, where the logo takes its place. */
 export function AuthShell({
   title,
   subtitle,
@@ -34,31 +34,29 @@ export function AuthShell({
       <aside className="relative hidden w-[42%] max-w-md shrink-0 flex-col justify-between overflow-hidden bg-sidebar px-10 py-12 text-sidebar-fg lg:flex xl:w-[38%]">
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-24 -left-24 size-72 rounded-full bg-primary/25 blur-3xl"
+          className="pointer-events-none absolute -top-24 -left-24 size-72 rounded-full bg-primary/[0.12] blur-3xl"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-16 -bottom-32 size-80 rounded-full bg-accent/20 blur-3xl"
+          className="pointer-events-none absolute -right-16 -bottom-32 size-80 rounded-full bg-accent/[0.1] blur-3xl"
         />
 
-        <Link href="/" className="relative flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-brand-gradient text-sm font-bold text-primary-foreground">
-            M
-          </span>
-          <span className="text-lg font-semibold tracking-tight text-sidebar-strong">{siteConfig.name}</span>
-        </Link>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static local SVG, no optimization needed */}
+        <img src="/brand/mentifylabs-logo.svg" alt={siteConfig.name} className="relative h-9 w-auto" />
 
-        <div className="relative space-y-8">
-          <div className="space-y-3">
-            <Sparkles className="size-5 text-primary" aria-hidden />
-            <p className="text-2xl leading-snug font-medium text-sidebar-strong">
+        <div className="relative space-y-9">
+          <div className="space-y-4">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-sidebar-active text-primary ring-1 ring-sidebar-border">
+              <Sparkles className="size-[18px]" aria-hidden />
+            </span>
+            <p className="font-serif text-[28px] leading-[1.3] text-sidebar-strong">
               A calm, modern workspace built for running your therapy practice.
             </p>
           </div>
-          <ul className="space-y-4">
+          <ul className="space-y-4 border-t border-sidebar-border pt-7">
             {HIGHLIGHTS.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-start gap-3 text-sm text-sidebar-fg">
-                <span className="ring-sidebar-border mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-active text-primary ring-1">
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-active text-primary ring-1 ring-sidebar-border">
                   <Icon className="size-3.5" aria-hidden />
                 </span>
                 {text}
@@ -67,24 +65,20 @@ export function AuthShell({
           </ul>
         </div>
 
-        <p className="relative text-xs text-sidebar-fg/50">
+        <p className="relative text-xs text-sidebar-fg/60">
           © {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
         </p>
       </aside>
 
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6">
         <div className="w-full max-w-sm">
-          <Link href="/" className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-brand-gradient text-sm font-bold text-primary-foreground">
-              M
-            </span>
-            <span className="text-base font-semibold tracking-tight">{siteConfig.name}</span>
-          </Link>
+          {/* eslint-disable-next-line @next/next/no-img-element -- static local SVG, no optimization needed */}
+          <img src="/brand/mentifylabs-logo.svg" alt={siteConfig.name} className="mb-8 h-8 w-auto lg:hidden" />
 
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          {subtitle && <p className="mt-2 text-sm text-muted">{subtitle}</p>}
+          <h1 className="font-serif text-[28px] leading-tight tracking-tight">{title}</h1>
+          {subtitle && <p className="mt-2 text-[15px] text-muted">{subtitle}</p>}
 
-          <div className="mt-8 rounded-2xl bg-surface p-6 shadow-[0_1px_2px_rgba(16,24,32,0.04)] ring-1 ring-border sm:p-7">
+          <div className="mt-8 rounded-2xl bg-surface p-6 shadow-[0_1px_2px_rgba(16,24,32,0.04)] ring-1 ring-border sm:p-8">
             {children}
           </div>
           {footer && <div className="mt-6 text-center text-sm text-muted">{footer}</div>}
