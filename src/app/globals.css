@@ -74,35 +74,6 @@
   --font-serif: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #10160f;
-    --surface: #171f14;
-    --foreground: #e7ece3;
-    --muted: #9aa696;
-    --border: #29352a;
-
-    --primary: #7fbf9a;
-    --primary-foreground: #0b1f16;
-
-    --accent: #f2c94c;
-    --accent-strong: #f6d778;
-
-    --success: #6fb8c9;
-    --success-foreground: #0c2229;
-    --alert: #f0847a;
-    --alert-foreground: #2c0e0b;
-
-    --private-surface: #241f14;
-
-    --sidebar: #0c130d;
-    --sidebar-strong: #eef2ea;
-    --sidebar-active: #1f2b1c;
-    --sidebar-active-foreground: #eef2ea;
-    --sidebar-border: #232f20;
-  }
-}
-
 /* Brand surfaces: a flat primary fill, no gradients. */
 .bg-brand-gradient {
   background-color: var(--primary);
