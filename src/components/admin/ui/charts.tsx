@@ -56,7 +56,7 @@ export function GrowthChart({ data }: { data: { m: string; new: number; active: 
         <circle key={i} cx={pad.l + i * stepX} cy={y(d.active)} r="3" fill="var(--ml-bg)" stroke="var(--ml-ink-faint)" strokeWidth="1.5" />
       ))}
       {data.map((d, i) => (
-        <text key={i} x={pad.l + i * stepX} y={H - 6} fontSize="10.5" fill="var(--ml-ink-subtle)" textAnchor="middle">{d.m}</text>
+        <text key={i} x={pad.l + i * stepX} y={H - 6} fontSize="10.5" fill="var(--ml-ink-subtle)" textAnchor="middle" fontFamily="var(--ml-font)">{d.m}</text>
       ))}
     </svg>
   );
@@ -84,7 +84,7 @@ export function DonutChart({ data, size = 130 }: { data: { value: number; color:
       {arcs}
       <circle cx={cx} cy={cy} r={r * 0.62} fill="var(--ml-surface)" />
       <text x={cx} y={cy - 2} textAnchor="middle" fontSize="20" fontWeight="600" fill="var(--ml-ink)" fontFamily="var(--ml-mono)" style={{ letterSpacing: "-0.02em" }}>{total}</text>
-      <text x={cx} y={cy + 13} textAnchor="middle" fontSize="9.5" fill="var(--ml-ink-subtle)">TOTAL</text>
+      <text x={cx} y={cy + 13} textAnchor="middle" fontSize="9.5" fill="var(--ml-ink-subtle)" fontFamily="var(--ml-font)" style={{ letterSpacing: "0.04em" }}>TOTAL</text>
     </svg>
   );
 }

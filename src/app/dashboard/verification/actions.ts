@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { addDocument } from "@/data/documents";
-import { dismissVerificationPrompt, getCurrentPractitioner, requireOwnSlug, submitVerification } from "@/data/practitioners";
+import { requireOwnSlug, submitVerification } from "@/data/practitioners";
+import { recordReviewEvent } from "@/data/reviewEvents";
 import { requireRole } from "@/lib/session";
 import { revalidateAdminViews } from "@/lib/revalidate";
 import { DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, randomKeyPart, uploads } from "@/lib/storage";
@@ -34,16 +35,10 @@ export async function submitVerificationAction(
   const name = file.name.replace(/[\u0000-\u001f]/g, "").slice(0, 150) || `document.${extension}`;
   await addDocument({ practitionerSlug: slug, name, category, storageKey: key, contentType: file.type, sizeBytes: file.size });
   await submitVerification(slug);
+  await recordReviewEvent(slug, "verification_submitted", { note: name });
 
   revalidatePath("/dashboard/verification");
   revalidatePath("/dashboard");
   revalidateAdminViews();
   return { submitted: true };
-}
-
-/** Marks the first-login setup popup as seen, so it doesn't show again. */
-export async function dismissVerificationPromptAction() {
-  const practitioner = await getCurrentPractitioner();
-  await dismissVerificationPrompt(practitioner.slug);
-  revalidatePath("/dashboard");
 }

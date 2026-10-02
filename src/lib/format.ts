@@ -11,6 +11,11 @@ const MONTHS_FULL = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+export function formatFileSize(bytes?: number): string {
+  if (!bytes) return "";
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 // Deterministic, locale-independent formatting: `toLocaleDateString` resolves
 // to the server's locale during SSR and the browser's locale on the client,
 // which can differ and causes a hydration mismatch.

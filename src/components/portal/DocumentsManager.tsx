@@ -8,12 +8,8 @@ import {
   type DocumentUploadState,
 } from "@/app/dashboard/settings/documentActions";
 import { settingsInputClass } from "@/components/portal/SettingsRow";
+import { formatFileSize } from "@/lib/format";
 import { DOCUMENT_CATEGORIES, type PractitionerDocument } from "@/types/document";
-
-function formatSize(bytes?: number): string {
-  if (!bytes) return "";
-  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
 
 export function DocumentsManager({ slug, documents }: { slug: string; documents: PractitionerDocument[] }) {
   const [state, formAction, pending] = useActionState<DocumentUploadState, FormData>(uploadDocumentAction, {});
@@ -37,7 +33,7 @@ export function DocumentsManager({ slug, documents }: { slug: string; documents:
                   <p className="truncate text-sm font-medium">{d.name}</p>
                   <p className="text-xs text-muted">
                     {d.category}
-                    {d.sizeBytes ? ` · ${formatSize(d.sizeBytes)}` : ""}
+                    {d.sizeBytes ? ` · ${formatFileSize(d.sizeBytes)}` : ""}
                   </p>
                 </div>
                 {d.hasFile && (
@@ -45,7 +41,7 @@ export function DocumentsManager({ slug, documents }: { slug: string; documents:
                     href={`/documents/${d.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex size-8 items-center justify-center rounded-lg text-muted transition hover:bg-black/[0.05] hover:text-foreground"
+                    className="flex size-11 items-center justify-center rounded-lg text-muted transition hover:bg-black/[0.05] hover:text-foreground"
                     title="Open"
                   >
                     <ExternalLink className="size-4" aria-hidden />
@@ -57,7 +53,7 @@ export function DocumentsManager({ slug, documents }: { slug: string; documents:
                   <input type="hidden" name="id" value={d.id} />
                   <button
                     type="submit"
-                    className="flex size-8 items-center justify-center rounded-lg text-muted transition hover:bg-alert/[0.08] hover:text-alert"
+                    className="flex size-11 items-center justify-center rounded-lg text-muted transition hover:bg-alert/[0.08] hover:text-alert"
                     title="Remove"
                   >
                     <Trash2 className="size-4" aria-hidden />

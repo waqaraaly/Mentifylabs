@@ -52,7 +52,7 @@ export function RequestDetailModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/[0.05] hover:text-foreground"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/[0.05] hover:text-foreground"
                 aria-label="Close"
               >
                 <X className="size-4" aria-hidden />
@@ -152,7 +152,7 @@ export function RequestDetailModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/[0.05] hover:text-foreground"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/[0.05] hover:text-foreground"
                 aria-label="Close"
               >
                 <X className="size-4" aria-hidden />

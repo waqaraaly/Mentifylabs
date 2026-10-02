@@ -5,6 +5,8 @@ export interface Email {
   to: string;
   subject: string;
   text: string;
+  /** Optional branded HTML version; `text` stays as the fallback. */
+  html?: string;
 }
 
 type MailEnv = { RESEND_API_KEY?: string; MAIL_FROM?: string };
@@ -31,6 +33,7 @@ export async function sendEmail(email: Email): Promise<boolean> {
       to: [email.to],
       subject: email.subject,
       text: email.text,
+      ...(email.html ? { html: email.html } : {}),
     }),
   });
   if (!response.ok) {

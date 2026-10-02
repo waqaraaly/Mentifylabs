@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentPractitioner, requireOwnSlug, updatePractitionerProfile } from "@/data/practitioners";
+import { getCurrentPractitioner, publishOwnProfile, requireOwnSlug, updatePractitionerProfile } from "@/data/practitioners";
 import { requireRole } from "@/lib/session";
 import { MAX_PHOTO_BYTES, PHOTO_TYPES, photoKeyFromUrl, photoUrlFor, randomKeyPart, uploads } from "@/lib/storage";
 import { renamePractitionerSlug } from "@/data/rename";
@@ -72,6 +72,25 @@ export async function updateProfileAction(formData: FormData) {
   revalidatePath("/dashboard/profile");
   revalidatePath(`/${slug}`);
   revalidateAdminViews();
+}
+
+export interface PublishProfileState {
+  error?: string;
+}
+
+/** Self-serve publish, gated on verification. Returns an error message instead of throwing so the button can show it inline. */
+export async function publishProfileAction(
+  _prev: PublishProfileState,
+  formData: FormData,
+): Promise<PublishProfileState> {
+  const slug = await requireOwnSlug(formData.get("slug")?.toString());
+  const result = await publishOwnProfile(slug);
+  if (!result.ok) return { error: result.message };
+
+  revalidatePath("/dashboard/profile");
+  revalidatePath(`/${slug}`);
+  revalidateAdminViews();
+  return {};
 }
 
 /** Stores a new profile photo in R2 and removes the previous one. Returns an error message on failure. */

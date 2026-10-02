@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck, CalendarDays, ChevronRight, Clock, Inbox, MapPin, Video } from "lucide-react";
+import { ArrowRight, ChevronRight, MapPin, Video } from "lucide-react";
 import { getCurrentPractitioner } from "@/data/practitioners";
 import { getAppointmentsByPractitioner } from "@/data/appointments";
 import { getSlotsByPractitioner } from "@/data/slots";
 import { AutoRefresh } from "@/components/portal/AutoRefresh";
-import { StatTile } from "@/components/ui/StatTile";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatDate, formatDateFull, formatTime12h, daysBetween, getDateRange, greeting, isToday, mondayOf, todayIsoDate } from "@/lib/format";
+import { formatDate, formatDateFull, formatTime12h, daysBetween, getDateRange, greeting, mondayOf, todayIsoDate } from "@/lib/format";
 
 export const metadata = { title: "Dashboard" };
 
@@ -55,15 +54,6 @@ export default async function DashboardPage() {
   const weekStart = weekDates[0];
   const weekEnd = weekDates[6];
 
-  // Day load = real sessions only: confirmed or completed. Pending requests
-  // aren't on the calendar yet and cancelled ones are gone.
-  const weekLoad = weekDates.map((date) => ({
-    date,
-    count: appointments.filter(
-      (a) => a.date === date && (a.status === "confirmed" || a.status === "completed"),
-    ).length,
-  }));
-
   const inWeek = (s: (typeof slots)[number]) => s.date >= weekStart && s.date <= weekEnd;
   // Open slots that are still bookable: not in a past day or already-ended today.
   const openSlots = slots.filter(
@@ -72,7 +62,6 @@ export default async function DashboardPage() {
       inWeek(s) &&
       (s.date > today || (s.date === today && toMinutes(s.endTime) > nowMinutes)),
   );
-  const bookedSlots = slots.filter((s) => s.status === "booked" && inWeek(s));
   const firstName = practitioner.fullName.split(" ")[0];
 
   // ── Spotlight: what's happening right now / next ──────────────────────────
@@ -94,17 +83,9 @@ export default async function DashboardPage() {
   const weekSessions = appointments.filter(
     (a) => a.date >= weekStart && a.date <= weekEnd && (a.status === "confirmed" || a.status === "completed"),
   );
-  const weekDone = weekSessions.filter(
-    (a) => a.status === "completed" || a.date < today || (a.date === today && toMinutes(a.endTime) <= nowMinutes),
-  ).length;
   const oldestPendingDays = pendingInquiries.length
     ? Math.max(...pendingInquiries.map((a) => daysBetween(a.createdAt.slice(0, 10), today)))
     : 0;
-  const doneToday = todaysLive.length - upcomingToday.length;
-  const todayProgress = todaysLive.length ? Math.round((doneToday / todaysLive.length) * 100) : 0;
-  const slotTotal = openSlots.length + bookedSlots.length;
-  const fillPct = slotTotal ? Math.round((bookedSlots.length / slotTotal) * 100) : 0;
-  const maxLoad = Math.max(1, ...weekLoad.map((d) => d.count));
 
   // ── Day ruler ─────────────────────────────────────────────────────────────
   const todaysOpenSlots = slots.filter((s) => s.status === "open" && s.date === today);
@@ -126,14 +107,16 @@ export default async function DashboardPage() {
     "inline-flex items-center gap-1 text-sm font-medium text-primary transition hover:opacity-80";
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-1 pb-8 sm:px-3">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
       <AutoRefresh seconds={60} />
 
-      {/* Header */}
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pt-2 pb-2">
+      {/* Header — same hairline-bottom rhythm as PageHeader, which every other
+          portal page uses; kept bespoke here (greeting + date instead of an
+          icon/title) since this is the one page without a fixed title. */}
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-black/[0.07] pt-2 pb-6">
         <div>
           <p className="text-xs font-medium tracking-[0.14em] text-muted uppercase">{formatDateFull(today)}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="mt-2.5 text-3xl font-semibold tracking-tight sm:text-4xl">
             {greeting()}, {firstName}.
           </h1>
         </div>
@@ -144,11 +127,8 @@ export default async function DashboardPage() {
       </header>
 
       {/* Spotlight + metrics */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
-        <section className="relative flex min-h-[320px] flex-col overflow-hidden rounded-3xl bg-brand-gradient p-8 text-primary-foreground shadow-[0_24px_48px_-24px_color-mix(in_srgb,var(--primary)_55%,transparent)]">
-          <span className="pointer-events-none absolute -top-24 -right-20 size-72 rounded-full bg-white/[0.07]" aria-hidden />
-          <span className="pointer-events-none absolute -right-4 -bottom-28 size-64 rounded-full bg-white/[0.05]" aria-hidden />
-
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+        <section className="relative flex min-h-[340px] flex-col overflow-hidden rounded-3xl bg-hero p-9 text-hero-foreground shadow-[0_24px_48px_-24px_color-mix(in_srgb,var(--hero)_55%,transparent)]">
           {spotlight ? (
             <>
               <div className="relative flex items-center gap-2">
@@ -221,65 +201,42 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <div className="grid grid-cols-2 gap-4">
-          <StatTile
-            label="Left today"
-            value={upcomingToday.length}
-            detail={todaysLive.length ? `${doneToday} of ${todaysLive.length} done` : "Nothing scheduled"}
-            icon={CalendarCheck}
-            tone="primary"
-            visual={
-              <div className="h-1.5 overflow-hidden rounded-full bg-black/[0.06]">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${todayProgress}%` }} />
+        <div className="flex flex-col justify-center">
+          {(
+            [
+              { label: "Left today", value: upcomingToday.length },
+              { label: "This week", value: weekSessions.length },
+              {
+                label: "Awaiting response",
+                value: pendingInquiries.length,
+                href: "/dashboard/requests",
+                tone: oldestPendingDays >= 3 ? "text-alert" : pendingInquiries.length > 0 ? "text-accent-strong" : "",
+              },
+              { label: "Open slots", value: openSlots.length, href: "/dashboard/slots" },
+            ] as const
+          ).map((row, i, rows) => {
+            const rowClass = `flex items-baseline justify-between gap-4 ${
+              i === 0 ? "pb-[22px]" : i === rows.length - 1 ? "pt-[22px]" : "py-[22px]"
+            } ${i < rows.length - 1 ? "border-b border-border" : ""}`;
+            const tone = "tone" in row ? row.tone : "";
+            const content = (
+              <>
+                <span className={`text-sm ${tone || "text-muted"}`}>{row.label}</span>
+                <span className={`text-[40px] leading-none font-bold tracking-tight tabular-nums ${tone}`}>
+                  {row.value}
+                </span>
+              </>
+            );
+            return "href" in row ? (
+              <Link key={row.label} href={row.href} className={`${rowClass} transition hover:opacity-70`}>
+                {content}
+              </Link>
+            ) : (
+              <div key={row.label} className={rowClass}>
+                {content}
               </div>
-            }
-          />
-          <StatTile
-            label="This week"
-            value={weekSessions.length}
-            detail={weekSessions.length ? `${weekDone} done · ${weekSessions.length - weekDone} to go` : "No sessions yet"}
-            icon={CalendarDays}
-            visual={
-              <div className="flex h-8 items-end gap-1">
-                {weekLoad.map(({ date, count }) => (
-                  <span
-                    key={date}
-                    title={`${formatDate(date)}: ${count}`}
-                    style={{ height: `${Math.max(count / maxLoad, 0.12) * 100}%` }}
-                    className={`flex-1 rounded-sm ${
-                      isToday(date) ? "bg-primary" : count > 0 ? "bg-primary/35" : "bg-black/[0.07]"
-                    }`}
-                  />
-                ))}
-              </div>
-            }
-          />
-          <StatTile
-            label="Awaiting response"
-            value={pendingInquiries.length}
-            detail={
-              pendingInquiries.length === 0
-                ? "All caught up"
-                : oldestPendingDays === 0
-                  ? "Oldest arrived today"
-                  : `Oldest waiting ${oldestPendingDays}d`
-            }
-            icon={Inbox}
-            tone={oldestPendingDays >= 3 ? "alert" : pendingInquiries.length > 0 ? "accent" : "neutral"}
-            href="/dashboard/requests"
-          />
-          <StatTile
-            label="Open slots"
-            value={openSlots.length}
-            detail={slotTotal ? `${bookedSlots.length} of ${slotTotal} booked this week` : "None this week"}
-            icon={Clock}
-            href="/dashboard/slots"
-            visual={
-              <div className="h-1.5 overflow-hidden rounded-full bg-black/[0.06]">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${fillPct}%` }} />
-              </div>
-            }
-          />
+            );
+          })}
         </div>
       </div>
 
@@ -379,7 +336,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         {/* Schedule */}
         <section className={card}>
           <div className={cardHeader}>

@@ -1,9 +1,11 @@
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, Clock, FileText, ShieldCheck, UploadCloud, XCircle } from "lucide-react";
 import { getCurrentPractitioner } from "@/data/practitioners";
 import { getDocumentsByPractitioner } from "@/data/documents";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { verificationDaysLeft, VERIFICATION_WINDOW_DAYS } from "@/lib/verification";
+import { SettingsCard } from "@/components/portal/SettingsCard";
+import { formatFileSize } from "@/lib/format";
+import { isVerificationRejected } from "@/lib/verification";
 import { VerificationUploadForm } from "@/components/portal/VerificationUploadForm";
 
 export const metadata = { title: "Verification" };
@@ -11,80 +13,91 @@ export const metadata = { title: "Verification" };
 export default async function VerificationPage() {
   const practitioner = await getCurrentPractitioner();
   const documents = await getDocumentsByPractitioner(practitioner.slug);
-  const daysLeft = verificationDaysLeft(practitioner.dateJoined);
+  const rejected = isVerificationRejected(practitioner);
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-1 pb-8 sm:px-3">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
       <PageHeader
         icon={BadgeCheck}
         title="Verification"
-        badge={<StatusBadge status={practitioner.verificationStatus} />}
+        badge={<StatusBadge status={rejected ? "rejected" : practitioner.verificationStatus} />}
         description="Confirm your credentials to get the verified badge clients see on your public profile."
       />
 
-      {practitioner.verificationStatus === "verified" ? (
-        <div className="flex items-start gap-3.5 rounded-2xl bg-success/[0.08] p-6 ring-1 ring-success/20">
-          <BadgeCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
-          <div>
-            <p className="font-semibold text-success">You&apos;re verified</p>
-            <p className="mt-1 text-sm text-muted">
-              Approved {practitioner.verifiedOn ?? ""}. The verified badge now shows on your public profile.
-            </p>
-          </div>
-        </div>
-      ) : practitioner.verificationStatus === "pending" ? (
-        <div className="rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="font-semibold">Under review</p>
-          <p className="mt-1.5 text-sm leading-relaxed text-muted">
-            The MentifyLabs team is checking what you submitted. You&apos;ll see the verified badge on your public
-            profile as soon as it&apos;s approved — no action needed for now.
-          </p>
-        </div>
-      ) : (
-        <>
-          <div
-            className={`rounded-2xl p-6 ring-1 ${
-              daysLeft < 0
-                ? "bg-alert/[0.08] ring-alert/20"
-                : daysLeft <= 14
-                  ? "bg-accent/[0.1] ring-accent/25"
-                  : "bg-surface ring-border"
-            }`}
-          >
-            <p className="font-semibold">
-              {daysLeft >= 0
-                ? `${daysLeft} of ${VERIFICATION_WINDOW_DAYS} days left to verify`
-                : `${Math.abs(daysLeft)} days past your verification window`}
-            </p>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted">
-              Upload one credential below — your degree, a professional license, or another certification — so the
-              MentifyLabs team can confirm who you are and give you the verified badge.
-            </p>
-            {practitioner.verificationNote && (
-              <p className="mt-3 rounded-lg bg-alert/[0.08] px-3.5 py-2.5 text-sm font-medium text-alert">
-                <strong>Feedback from the last review:</strong> {practitioner.verificationNote}
+      <SettingsCard icon={<BadgeCheck className="size-[18px]" aria-hidden />} title="Verification status">
+        {practitioner.verificationStatus === "verified" ? (
+          <div className="flex items-start gap-3 px-6 py-6">
+            <ShieldCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
+            <div>
+              <p className="font-medium text-success">Verified</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                Approved {practitioner.verifiedOn ?? ""}. The verified badge now shows on your public profile.
               </p>
-            )}
+            </div>
           </div>
+        ) : practitioner.verificationStatus === "pending" ? (
+          <div className="flex items-start gap-3 px-6 py-6">
+            <Clock className="mt-0.5 size-5 shrink-0 text-muted" aria-hidden />
+            <div>
+              <p className="font-medium">Under review</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                The MentifyLabs team is checking what you submitted. You&apos;ll see the verified badge on your public
+                profile as soon as it&apos;s approved — no action needed for now.
+              </p>
+            </div>
+          </div>
+        ) : rejected ? (
+          <div className="flex items-start gap-3 px-6 py-6">
+            <XCircle className="mt-0.5 size-5 shrink-0 text-alert" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-alert">Not approved</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                The MentifyLabs team couldn&apos;t approve what you submitted. Review the reason below, then upload a new
+                document to submit again.
+              </p>
+              <p className="mt-3 rounded-lg bg-alert/[0.08] px-3.5 py-2.5 text-sm font-medium text-alert">
+                <strong>Reason:</strong> {practitioner.verificationNote}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 px-6 py-6">
+            <Clock className="mt-0.5 size-5 shrink-0 text-accent-strong" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">Verification needed</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                Upload one credential below — your degree, a professional license, or another certification — so the
+                MentifyLabs team can confirm who you are. Your public profile can&apos;t go live and you can&apos;t
+                accept bookings until it&apos;s approved.
+              </p>
+            </div>
+          </div>
+        )}
+      </SettingsCard>
 
-          <div className="rounded-2xl bg-surface ring-1 ring-border">
-            <VerificationUploadForm slug={practitioner.slug} />
-          </div>
-        </>
+      {practitioner.verificationStatus === "unverified" && (
+        <SettingsCard icon={<UploadCloud className="size-[18px]" aria-hidden />} title={rejected ? "Submit again" : "Upload a credential"}>
+          <VerificationUploadForm slug={practitioner.slug} />
+        </SettingsCard>
       )}
 
-      {documents.length > 0 && practitioner.verificationStatus !== "unverified" && (
-        <div className="rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="text-sm font-semibold">Submitted documents</p>
-          <ul className="mt-3 divide-y divide-black/[0.06]">
+      {documents.length > 0 && (practitioner.verificationStatus !== "unverified" || rejected) && (
+        <SettingsCard icon={<FileText className="size-[18px]" aria-hidden />} title={rejected ? "Previously submitted" : "Submitted documents"}>
+          <ul className="divide-y divide-black/[0.06]">
             {documents.map((d) => (
-              <li key={d.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                <span className="truncate">{d.name}</span>
-                <span className="shrink-0 text-xs text-muted">{d.category}</span>
+              <li key={d.id} className="flex items-center gap-3 px-6 py-4">
+                <FileText className="size-4 shrink-0 text-muted" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{d.name}</p>
+                  <p className="text-xs text-muted">
+                    {d.category}
+                    {d.sizeBytes ? ` · ${formatFileSize(d.sizeBytes)}` : ""}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
-        </div>
+        </SettingsCard>
       )}
     </div>
   );

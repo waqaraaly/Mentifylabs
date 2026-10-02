@@ -29,6 +29,7 @@ interface UserRow {
   role: Role;
   practitioner_id: string | null;
   password_hash: string;
+  disabled_at: string | null;
 }
 
 const toUser = (r: UserRow): SessionUser => ({
@@ -50,8 +51,12 @@ export function randomToken(): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-/** Suspended or rejected practitioners can't sign in or keep using an existing session. */
-const ACCOUNT_ALLOWED = `(u.role = 'admin' OR EXISTS (
+/**
+ * Suspended or rejected practitioners can't sign in or keep using an existing
+ * session, and neither can any account (of either role) Super Admin has
+ * disabled from Manage Users.
+ */
+const ACCOUNT_ALLOWED = `u.disabled_at IS NULL AND (u.role = 'admin' OR EXISTS (
   SELECT 1 FROM practitioners p WHERE p.id = u.practitioner_id AND p.status NOT IN ('suspended', 'rejected')))`;
 
 /** The signed-in user for this request, or null. Cached so every component shares one lookup. */
@@ -109,6 +114,23 @@ async function tooManyAttempts(email: string): Promise<boolean> {
 // the same, so the form can't be used to find out which emails have accounts.
 let decoyHash: Promise<string> | undefined;
 
+/** Why a correctly-authenticated account can't sign in. Only called after the password matched. */
+async function blockedAccountMessage(user: UserRow): Promise<string> {
+  const help = "Contact the MentifyLabs team for help.";
+  if (user.disabled_at) return `This account has been deactivated. ${help}`;
+  const p = user.practitioner_id
+    ? await first<{ status: string; rejection_note: string | null }>(
+        "SELECT status, rejection_note FROM practitioners WHERE id = ?",
+        user.practitioner_id,
+      )
+    : null;
+  if (p?.status === "rejected") {
+    const reason = p.rejection_note ? ` Reason: ${p.rejection_note}.` : "";
+    return `Your application wasn't approved.${reason} ${help}`;
+  }
+  return `This account is suspended. ${help}`;
+}
+
 export type SignInResult = { ok: true; role: Role } | { ok: false; message: string };
 
 export async function signIn(emailInput: string, password: string): Promise<SignInResult> {
@@ -128,7 +150,7 @@ export async function signIn(emailInput: string, password: string): Promise<Sign
 
   await run("DELETE FROM login_attempts WHERE email = ?", email);
   if (!(await first(`SELECT 1 FROM users u WHERE u.id = ? AND ${ACCOUNT_ALLOWED}`, row.id))) {
-    return { ok: false, message: "This account is suspended. Contact the MentifyLabs team for help." };
+    return { ok: false, message: await blockedAccountMessage(row) };
   }
   await startSession(row.id);
   if (row.practitioner_id) {

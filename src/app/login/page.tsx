@@ -19,7 +19,6 @@ export default async function LoginPage({
   return (
     <AuthShell
       title="Sign in"
-      subtitle="For practitioners and administrators."
       footer={
         <>
           New practitioner?{" "}

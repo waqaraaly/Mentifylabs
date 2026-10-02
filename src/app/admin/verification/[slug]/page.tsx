@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/session";
 import { getAllPractitioners } from "@/data/practitioners";
 import { getDocumentsByPractitioner } from "@/data/documents";
+import { getReviewEvents } from "@/data/reviewEvents";
 import { TopBar } from "@/components/admin/TopBar";
 import { VerificationReview } from "@/components/admin/VerificationReview";
 
@@ -17,13 +18,13 @@ export default async function AdminVerificationReviewPage({ params }: PageProps<
   const practitioner = (await getAllPractitioners()).find((p) => p.slug === slug);
   if (!practitioner) notFound();
 
-  const documents = await getDocumentsByPractitioner(slug);
+  const [documents, history] = await Promise.all([getDocumentsByPractitioner(slug), getReviewEvents(slug)]);
 
   return (
     <div>
       <TopBar title="Verification review" subtitle="Check the documents, then approve or send back" />
       <div style={{ padding: "0 32px 40px" }}>
-        <VerificationReview p={practitioner} documents={documents} />
+        <VerificationReview p={practitioner} documents={documents} history={history} />
       </div>
     </div>
   );

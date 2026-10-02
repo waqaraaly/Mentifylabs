@@ -12,6 +12,7 @@ export const RESERVED_SLUGS = [
   "sessions",
   "manage-slots",
   "settings",
+  "preview",
   "login",
   "signup",
   "forgot-password",
@@ -70,6 +71,7 @@ interface PractitionerRow {
   verified_on: string | null;
   verification_note: string | null;
   verification_prompt_seen_at: string | null;
+  onboarded_at: string | null;
 }
 
 const opt = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
@@ -113,6 +115,7 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     verifiedOn: opt(r.verified_on),
     verificationNote: opt(r.verification_note),
     verificationPromptSeenAt: opt(r.verification_prompt_seen_at),
+    onboardedAt: opt(r.onboarded_at),
   };
 }
 
@@ -152,6 +155,7 @@ const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "feeRange">, [string, 
   verifiedOn: ["verified_on"],
   verificationNote: ["verification_note"],
   verificationPromptSeenAt: ["verification_prompt_seen_at"],
+  onboardedAt: ["onboarded_at"],
 };
 
 type ColumnValue = string | number | null;
@@ -275,6 +279,20 @@ export async function hideProfile(slug: string): Promise<Practitioner | null> {
   return updateBySlug(slug, { profile_status: "hidden" });
 }
 
+/**
+ * Self-serve publish: the practitioner takes their own profile live, gated only on
+ * credential verification — no admin content review required.
+ */
+export async function publishOwnProfile(slug: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const current = await getPractitionerBySlug(slug);
+  if (!current) return { ok: false, message: "Profile not found." };
+  if (current.verificationStatus !== "verified") {
+    return { ok: false, message: "To publish your profile you must verify your credentials." };
+  }
+  await updateBySlug(slug, { profile_status: "published", rejection_note: null });
+  return { ok: true };
+}
+
 /** Send the profile back for edits with feedback — doesn't touch account status. */
 export async function rejectProfile(slug: string, note: string): Promise<Practitioner | null> {
   return updateBySlug(slug, { profile_status: "incomplete", rejection_note: note });
@@ -285,6 +303,11 @@ export async function rejectProfile(slug: string, note: string): Promise<Practit
 /** Marks the first-login setup popup as seen, so it only shows once. */
 export async function dismissVerificationPrompt(slug: string): Promise<void> {
   await updateBySlug(slug, { verification_prompt_seen_at: new Date().toISOString() });
+}
+
+/** Ends the guided /onboarding flow (finished or skipped), unlocking the dashboard. */
+export async function completeOnboarding(slug: string): Promise<void> {
+  await updateBySlug(slug, { onboarded_at: new Date().toISOString() });
 }
 
 /** Submitting a verification document moves the request into Super Admin's review queue. */
@@ -407,12 +430,10 @@ export function getContactDetails(p: Practitioner): ContactMethod[] {
   );
 }
 
-export async function getPublicPractitionerBySlug(slug: string): Promise<Practitioner | null> {
-  const practitioner = await getPractitionerBySlug(slug);
-  if (!practitioner || !isPubliclyVisible(practitioner)) return null;
-  // Private contact details must never leave the server: the public page hands
-  // this object to client components, which serializes it into the page source.
-  // The account email/phone are blanked too, or a detail marked Private could leak through them.
+// Private contact details must never leave the server: the profile page hands
+// this object to client components, which serializes it into the page source.
+// The account email/phone are blanked too, or a detail marked Private could leak through them.
+function sanitizeForProfilePage(practitioner: Practitioner): Practitioner {
   return {
     ...practitioner,
     email: "",
@@ -421,6 +442,18 @@ export async function getPublicPractitionerBySlug(slug: string): Promise<Practit
     socialLinks: practitioner.socialLinks.filter(isSupportedSocialLink),
     contactMethods: getContactDetails(practitioner).filter((c) => c.isPublic && c.value),
   };
+}
+
+export async function getPublicPractitionerBySlug(slug: string): Promise<Practitioner | null> {
+  const practitioner = await getPractitionerBySlug(slug);
+  if (!practitioner || !isPubliclyVisible(practitioner)) return null;
+  return sanitizeForProfilePage(practitioner);
+}
+
+/** The signed-in practitioner's own profile, sanitized the same way as the public page, regardless of publish state. */
+export async function getOwnProfilePreview(slug: string): Promise<Practitioner | null> {
+  const practitioner = await getPractitionerBySlug(slug);
+  return practitioner ? sanitizeForProfilePage(practitioner) : null;
 }
 
 export async function getPublicPractitionerSlugs(): Promise<string[]> {

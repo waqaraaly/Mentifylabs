@@ -1,4 +1,4 @@
-import { ArrowUpRight, FileText, GraduationCap, Link2, Palette, User, Wallet } from "lucide-react";
+import { ArrowUpRight, Eye, FileText, GraduationCap, Link2, Palette, User, Wallet } from "lucide-react";
 import { getContactDetails, getCurrentPractitioner, isPubliclyVisible } from "@/data/practitioners";
 import { hasFeeRange } from "@/lib/fees";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
@@ -13,6 +13,7 @@ import { ProfileSections, type ProfileSection } from "@/components/portal/Profil
 import { SessionModeFields } from "@/components/portal/SessionModeFields";
 import { SettingsRow, settingsInputClass } from "@/components/portal/SettingsRow";
 import { SlugEditor } from "@/components/portal/SlugEditor";
+import { PublishProfileButton } from "@/components/portal/PublishProfileButton";
 import { ThemePicker } from "@/components/portal/ThemePicker";
 import { BRAND_BACKGROUND, PLATFORM_ICON_PATH } from "@/components/practitioner/ContactLinks";
 import { updateProfileAction } from "./actions";
@@ -22,9 +23,6 @@ export const metadata = { title: "Public Profile" };
 const iconClass = "size-4";
 
 const NOT_LIVE_REASON: Record<string, string> = {
-  draft: "Your profile is still a draft.",
-  in_review: "Your profile is waiting for admin approval.",
-  incomplete: "Your profile needs changes before it can go live.",
   hidden: "Your profile is hidden by an admin.",
   suspended: "Your account is suspended.",
 };
@@ -35,7 +33,16 @@ export default async function PublicProfilePage() {
   const socials = Object.fromEntries(practitioner.socialLinks.map((link) => [link.platform, link.url]));
 
   const isLive = isPubliclyVisible(practitioner);
-  const notLiveReason = NOT_LIVE_REASON[practitioner.profileStatus] ?? "Your profile isn't published yet.";
+  const isVerified = practitioner.verificationStatus === "verified";
+  const isPublished = practitioner.profileStatus === "published";
+  const accountPending = practitioner.status === "pending";
+  const notLiveReason =
+    NOT_LIVE_REASON[practitioner.profileStatus] ??
+    (!isVerified
+      ? "Verify your credentials to publish your profile."
+      : isPublished && accountPending
+        ? "Published — waiting on your account to be approved before it's visible."
+        : "You're verified — publish when you're ready.");
 
   const sections: ProfileSection[] = [
     {
@@ -331,7 +338,7 @@ export default async function PublicProfilePage() {
     "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition";
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-1 pb-8 sm:px-3">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
       <PageHeader
         icon={User}
         title="Public profile"
@@ -358,13 +365,21 @@ export default async function PublicProfilePage() {
               <ArrowUpRight className="size-4" aria-hidden />
             </a>
           ) : (
-            <span
-              title="Available once your profile is published"
-              className={`${liveButtonClass} cursor-not-allowed bg-black/[0.05] text-muted`}
-            >
-              View live profile
-              <ArrowUpRight className="size-4" aria-hidden />
-            </span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <a
+                href={`/preview/${practitioner.slug}`}
+                target="_blank"
+                rel="noopener"
+                title="Only you can see this — it's not your published link"
+                className={`${liveButtonClass} bg-black/[0.05] text-muted hover:bg-black/[0.08]`}
+              >
+                <Eye className="size-4" aria-hidden />
+                Preview profile
+              </a>
+              {NOT_LIVE_REASON[practitioner.profileStatus] === undefined && !isPublished && (
+                <PublishProfileButton slug={practitioner.slug} />
+              )}
+            </div>
           )
         }
       />

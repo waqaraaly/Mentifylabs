@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { ArrowRight, Briefcase, Lock, Mail, User } from "lucide-react";
+import { ArrowRight, Lock, Mail, User } from "lucide-react";
 import { AuthError, AuthField, AuthInput, authButtonClass } from "@/components/auth/AuthShell";
 import { signUpAction, type SignUpState } from "./actions";
 
@@ -19,16 +19,6 @@ export function SignUpForm() {
           autoComplete="name"
           required
           defaultValue={state.values?.fullName}
-        />
-      </AuthField>
-
-      <AuthField id="professionalTitle" label="Professional title">
-        <AuthInput
-          icon={Briefcase}
-          id="professionalTitle"
-          name="professionalTitle"
-          placeholder="e.g. Clinical Psychologist"
-          defaultValue={state.values?.professionalTitle}
         />
       </AuthField>
 

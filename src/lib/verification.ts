@@ -1,19 +1,20 @@
 import type { Practitioner } from "@/types/practitioner";
 
-export const VERIFICATION_WINDOW_DAYS = 60;
-
-/** Calendar days left until the 60-day verification deadline (negative once it's passed). */
-export function verificationDaysLeft(dateJoined: string): number {
-  const joined = new Date(`${dateJoined}T00:00:00Z`);
-  const deadline = joined.getTime() + VERIFICATION_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-  return Math.ceil((deadline - Date.now()) / (24 * 60 * 60 * 1000));
-}
-
-export function isVerificationOverdue(dateJoined: string): boolean {
-  return verificationDaysLeft(dateJoined) < 0;
+/**
+ * Super Admin sent the last submission back. Stored as "unverified" plus the feedback note
+ * (submitting again or approving clears the note), so no separate DB status is needed.
+ */
+export function isVerificationRejected(p: Pick<Practitioner, "verificationStatus" | "verificationNote">): boolean {
+  return p.verificationStatus === "unverified" && !!p.verificationNote;
 }
 
 /** Whether the "please verify" reminder is worth showing at all right now. */
 export function needsVerificationReminder(p: Pick<Practitioner, "verificationStatus">): boolean {
   return p.verificationStatus !== "verified";
+}
+
+/** Calendar days since a verification request was submitted, for sorting/display in the admin queue. */
+export function daysSinceSubmitted(submittedAt: string | undefined): number | null {
+  if (!submittedAt) return null;
+  return Math.floor((Date.now() - new Date(submittedAt).getTime()) / (24 * 60 * 60 * 1000));
 }
