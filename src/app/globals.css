@@ -1,45 +1,61 @@
 @import "tailwindcss";
 
 :root {
-  /* "Sage Room" — a light, low-contrast sage-green frame. No dark surfaces
-     anywhere; the sidebar is a soft sage tint instead of a dark rail. */
-  --background: #f0f3ef;
+  /* "Moss & Honey" — muted moss green as the brand/primary color, deep moss
+     ink for text, a warm oat/cream background, and a golden-honey accent
+     for warmth and "needs attention" states. Sidebar stays light (oat/
+     cream), matching the mockup's own light panel. */
+  --background: #f6f4ea;
   --surface: #ffffff;
-  --foreground: #1b231e;
-  --muted: #59655d;
-  --border: #dfe4dc;
+  --foreground: #2e3522;
+  --muted: #6f7257;
+  --border: #e6e4cf;
 
-  --primary: #3b6651;
+  /* Moss green — muted and grounded, the brand color for buttons and links. */
+  --primary: #6e8356;
   --primary-foreground: #ffffff;
 
-  /* Warm amber for anything that needs attention but isn't an error
-     (pending requests, items to close out). --accent-strong is the readable
-     text/icon shade of it. */
-  --accent: #d18d1b;
-  --accent-strong: #80570a;
+  /* Honey, soft: a pale golden wash for "needs attention" surfaces.
+     --accent-strong is the fuller honey tone, readable as text/icons on
+     that wash. */
+  --accent: #f6e8c8;
+  --accent-strong: #8a5c00;
 
-  /* Blue-teal, deliberately not green — confirmed/completed status can't be
-     mistaken for the sage-green brand primary. */
-  --success: #1d6273;
+  /* Deep moss ink reused — the darkest tone in the family, for a filled
+     badge. Confirmed/completed reads as "furthest along" within the same
+     green family, distinct from --primary by depth rather than hue. */
+  --success: #2e3522;
   --success-foreground: #ffffff;
+  /* Untouched across every theme round on purpose: red for errors/
+     cancellations is a safety-critical convention, and nothing in this
+     palette is a credible substitute. */
   --alert: #a3342b;
   --alert-foreground: #ffffff;
 
-  /* The "not shared with client" tint — for practitioner-private notes. */
-  --private-surface: #f8f2e3;
+  /* The "not shared with client" tint — background mixed roughly 90/10 with
+     the honey accent, a warm pale wash distinct from both --accent and the
+     page background. */
+  --private-surface: #ebe5d3;
 
-  /* The navigation rail — a soft sage tint, not a dark rail. */
-  --sidebar: #e5eae3;
-  --sidebar-foreground: #4a594f;
-  /* Higher-contrast ink for brand name, active labels and avatar initials
-     inside the sidebar, where --sidebar-foreground is too muted. */
-  --sidebar-strong: #1b251e;
-  /* The active/hover nav pill: a white surface, since the sidebar itself is
-     already a light tint. --sidebar-border gives it a hairline ring so it
-     doesn't disappear into the sidebar background. */
+  /* The navigation rail — a soft oat/cream panel, not a solid dark fill:
+     matches the Moss & Honey mockup's own light sidebar. */
+  --sidebar: #ebe8d8;
+  --sidebar-foreground: #5c6049;
+  /* Deep, near-black moss for the brand name and avatar initials, where
+     --sidebar-foreground is too muted. */
+  --sidebar-strong: #232a1a;
+  /* The active/hover nav pill: white, with deep moss text — a crisp pill
+     against the light cream panel. */
   --sidebar-active: #ffffff;
-  --sidebar-active-foreground: #1b251e;
-  --sidebar-border: #d5dcd2;
+  --sidebar-active-foreground: #3f4e30;
+  --sidebar-border: #ddddc4;
+
+  /* Deep moss — the dashboard's "next session" spotlight card specifically.
+     Kept distinct from the lighter --primary (used for ordinary buttons and
+     links) so the spotlight reads as a richer, more deliberate panel rather
+     than reusing the same flat brand fill as everything else. */
+  --hero: #3f4e30;
+  --hero-foreground: #ffffff;
 }
 
 @theme inline {
@@ -51,6 +67,9 @@
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+
+  --color-hero: var(--hero);
+  --color-hero-foreground: var(--hero-foreground);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-fg: var(--sidebar-foreground);
@@ -405,4 +424,13 @@ body {
   --pt-tile-4-hover: #186a7a;
   --pt-tile-5: #1e7a8c;
   --pt-tile-5-hover: #186a7a;
+}
+
+/* The loader script sizes its canvas in device pixels and leaves display size
+   to CSS — without this, a 125%/150%/200% display scale draws the brain larger
+   than its box and pushes it off-center. */
+.brain-loader canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }

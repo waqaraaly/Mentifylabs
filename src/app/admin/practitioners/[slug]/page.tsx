@@ -4,6 +4,7 @@ import { getAllPractitioners } from "@/data/practitioners";
 import { getAllAppointments } from "@/data/appointments";
 import { getDocumentsByPractitioner } from "@/data/documents";
 import { getAllFeatures, getAccessForPractitioner, getFeatureLogs } from "@/data/features";
+import { getReviewEvents } from "@/data/reviewEvents";
 import { siteConfig } from "@/lib/site";
 import { TopBar } from "@/components/admin/TopBar";
 import { PractitionerDetail } from "@/components/admin/PractitionerDetail";
@@ -20,12 +21,13 @@ export default async function AdminPractitionerPage({ params }: PageProps<"/admi
   const practitioner = (await getAllPractitioners()).find((p) => p.slug === slug);
   if (!practitioner) notFound();
 
-  const [appointments, documents, features, accessIds, logs] = await Promise.all([
+  const [appointments, documents, features, accessIds, logs, history] = await Promise.all([
     getAllAppointments(),
     getDocumentsByPractitioner(slug),
     getAllFeatures(),
     getAccessForPractitioner(slug),
     getFeatureLogs(),
+    getReviewEvents(slug),
   ]);
 
   return (
@@ -39,6 +41,7 @@ export default async function AdminPractitionerPage({ params }: PageProps<"/admi
           features={features}
           accessIds={accessIds}
           logs={logs}
+          history={history}
           siteUrl={siteConfig.url}
         />
       </div>

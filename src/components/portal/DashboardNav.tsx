@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   BadgeCheck,
+  BarChart3,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -23,7 +24,7 @@ const NAV_GROUPS = [
   {
     label: "Manage",
     items: [
-      { href: "/dashboard/requests", label: "Appointment Requests", icon: Inbox },
+      { href: "/dashboard/requests", label: "Appointment Requests", icon: Inbox, countKey: "pendingRequests" as const },
       { href: "/dashboard/sessions", label: "Sessions", icon: CalendarClock },
       {
         href: "/dashboard/slots",
@@ -41,6 +42,7 @@ const NAV_GROUPS = [
     label: "Your profile",
     items: [
       { href: "/dashboard/profile", label: "Public Profile", icon: UserRound },
+      { href: "/dashboard/stats", label: "Profile Stats", icon: BarChart3 },
       { href: "/dashboard/verification", label: "Verification", icon: BadgeCheck },
     ],
   },
@@ -50,10 +52,11 @@ const NAV_GROUPS = [
   },
 ];
 
-export function DashboardNav() {
+export function DashboardNav({ pendingRequests = 0 }: { pendingRequests?: number }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentView = searchParams.get("view") === "pattern" ? "pattern" : "week";
+  const counts: Record<string, number> = { pendingRequests };
 
   return (
     <nav className="space-y-6">
@@ -68,6 +71,7 @@ export function DashboardNav() {
                 item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href);
               const hasSubItems = "subItems" in item && !!item.subItems;
               const expanded = hasSubItems && isActive;
+              const count = "countKey" in item && item.countKey ? counts[item.countKey] : undefined;
 
               return (
                 <div key={item.href}>
@@ -75,15 +79,24 @@ export function DashboardNav() {
                     href={item.href}
                     className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                       isActive
-                        ? "bg-brand-gradient font-semibold text-primary-foreground shadow-sm"
+                        ? "ring-sidebar-border bg-sidebar-active font-semibold text-sidebar-active-fg shadow-sm ring-1"
                         : "text-sidebar-fg hover:bg-sidebar-active hover:text-sidebar-active-fg"
                     }`}
                   >
                     <item.icon className="size-4" aria-hidden />
                     {item.label}
+                    {!!count && (
+                      <span
+                        className={`ml-auto rounded-full px-1.5 py-0.5 text-xs leading-none font-semibold tabular-nums ${
+                          isActive ? "bg-sidebar-active-fg/15 text-sidebar-active-fg" : "bg-sidebar-border text-sidebar-strong"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    )}
                     {hasSubItems && (
                       <ChevronDown
-                        className={`ml-auto size-4 opacity-70 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+                        className={`${count ? "" : "ml-auto"} size-4 opacity-70 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
                         aria-hidden
                       />
                     )}

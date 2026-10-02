@@ -2,32 +2,50 @@
    Namespaced under .ml-admin so it never leaks into the public/practitioner UI. */
 
 .ml-admin {
-  /* Surfaces - cool neutral canvas, white cards */
-  --ml-bg: #f3f5f8;
-  --ml-bg-alt: #eceff3;
-  --ml-surface: #ffffff;
-  --ml-surface-2: #f8f9fb;
-  --ml-surface-3: #eff1f5;
+  /* Surfaces - tracks the same theme as the practitioner portal
+     (globals.css): "Moss & Honey" — a muted moss green and golden honey as
+     the brand pair, a deep moss-ink text color, light oat/cream surfaces
+     throughout. The fallback hex after each var() is only used if that
+     variable is somehow missing — the real value always comes from
+     globals.css, so the two portals can never drift apart. */
+  --ml-bg: var(--background, #f6f4ea);
+  --ml-bg-alt: var(--border, #e6e4cf);
+  --ml-surface: var(--surface, #ffffff);
+  --ml-surface-2: color-mix(in srgb, var(--surface, #ffffff) 96%, var(--border, #e6e4cf) 4%);
+  --ml-surface-3: color-mix(in srgb, var(--surface, #ffffff) 88%, var(--border, #e6e4cf) 12%);
 
   /* Borders */
-  --ml-border: #e4e8ee;
-  --ml-border-strong: #d3d9e2;
-  --ml-border-soft: #edf0f4;
+  --ml-border: var(--border, #e6e4cf);
+  --ml-border-strong: var(--sidebar-border, #ddddc4);
+  --ml-border-soft: color-mix(in srgb, var(--border, #e6e4cf) 55%, var(--surface, #ffffff) 45%);
 
-  /* Ink */
-  --ml-ink: #0f172a;
-  --ml-ink-2: #334155;
-  --ml-ink-muted: #64748b;
-  --ml-ink-subtle: #8792a5;
-  --ml-ink-faint: #b6bfcc;
+  /* Ink - the same deep moss-ink family as the practitioner portal's --foreground/--muted */
+  --ml-ink: var(--foreground, #2e3522);
+  --ml-ink-2: color-mix(in srgb, var(--foreground, #2e3522) 75%, white 25%);
+  --ml-ink-muted: var(--muted, #6f7257);
+  --ml-ink-subtle: color-mix(in srgb, var(--muted, #6f7257) 80%, white 20%);
+  --ml-ink-faint: color-mix(in srgb, var(--muted, #6f7257) 50%, white 50%);
 
-  /* Accent - one teal, used for actions, active states and focus only */
-  --ml-accent: var(--primary, #0f766e);
-  --ml-accent-2: #0b5d57;
-  --ml-accent-soft: #d8eeeb;
-  --ml-accent-tint: #eef7f6;
+  /* Accent - tracks the main app's theme (--primary), used for actions, active states and focus only */
+  --ml-accent: var(--primary, #6e8356);
+  --ml-accent-2: color-mix(in srgb, var(--primary, #6e8356) 80%, black);
+  --ml-accent-soft: var(--accent, #f6e8c8);
+  --ml-accent-tint: color-mix(in srgb, var(--accent, #f6e8c8) 50%, var(--surface, #ffffff) 50%);
 
-  /* Status */
+  /* Sidebar - a soft oat/cream panel, matching the practitioner portal's
+     light nav rail. The fg/strong/active tokens mirror the practitioner
+     portal's sidebar-foreground/sidebar-strong/sidebar-active exactly. */
+  --ml-sidebar: var(--sidebar, #ebe8d8);
+  --ml-sidebar-border: var(--sidebar-border, #ddddc4);
+  --ml-sidebar-fg: var(--sidebar-foreground, #5c6049);
+  --ml-sidebar-fg-strong: var(--sidebar-strong, #232a1a);
+  --ml-sidebar-active: var(--sidebar-active, #ffffff);
+  --ml-sidebar-active-fg: var(--sidebar-active-foreground, #3f4e30);
+
+  /* Status - functional signal colors (approve/pending/reject/info), kept
+     distinct from the brand theme on purpose, the same way the practitioner
+     portal's red --alert stays untouched across every theme change: these
+     need to read as semantic states at a glance, not brand accents. */
   --ml-ok: #0f7a4d;
   --ml-ok-bg: #e2f5ec;
   --ml-warn: #9a5b06;
@@ -36,8 +54,8 @@
   --ml-danger-bg: #fde7e4;
   --ml-info: #1d5fb4;
   --ml-info-bg: #e2edfb;
-  --ml-neutral: #475569;
-  --ml-neutral-bg: #eaeef3;
+  --ml-neutral: var(--muted, #475569);
+  --ml-neutral-bg: var(--border, #eaeef3);
 
   --ml-radius: 14px;
   --ml-radius-sm: 9px;
@@ -85,7 +103,7 @@
 }
 .ml-admin .btn:hover { background: var(--ml-surface-2); color: var(--ml-ink); }
 .ml-admin .btn:disabled { opacity: .5; cursor: not-allowed; }
-.ml-admin .btn-primary { background: var(--ml-accent); color: #fff; border-color: var(--ml-accent); box-shadow: 0 1px 2px rgba(15,118,110,.3); }
+.ml-admin .btn-primary { background: var(--ml-accent); color: #fff; border-color: var(--ml-accent); box-shadow: 0 1px 2px color-mix(in srgb, var(--ml-accent) 30%, transparent); }
 .ml-admin .btn-primary:hover { background: var(--ml-accent-2); border-color: var(--ml-accent-2); color: #fff; }
 .ml-admin .btn-danger { color: var(--ml-danger); border-color: var(--ml-danger-bg); background: var(--ml-surface); }
 .ml-admin .btn-danger:hover { background: var(--ml-danger-bg); color: var(--ml-danger); }
@@ -168,19 +186,20 @@
 
 .ml-admin .sidebar-link {
   display: flex; align-items: center; gap: 11px;
-  padding: 9px 11px; border-radius: var(--ml-radius-sm);
-  color: var(--ml-ink-muted); cursor: pointer; font-size: 13.5px; font-weight: 500;
+  padding: 9.5px 11px; border-radius: var(--ml-radius-sm);
+  color: var(--ml-sidebar-fg); cursor: pointer; font-size: 13.5px; font-weight: 500;
   transition: background .1s, color .1s; user-select: none; text-decoration: none;
 }
-.ml-admin .sidebar-link:hover { background: var(--ml-surface-3); color: var(--ml-ink); }
-.ml-admin .sidebar-link.active { background: var(--ml-accent-tint); color: var(--ml-accent-2); }
-.ml-admin .sidebar-link .icon { color: var(--ml-ink-subtle); }
-.ml-admin .sidebar-link.active .icon { color: var(--ml-accent); }
+.ml-admin .sidebar-link:hover { background: var(--ml-sidebar-active); color: var(--ml-sidebar-fg-strong); }
+.ml-admin .sidebar-link.active { background: var(--ml-sidebar-active); color: var(--ml-sidebar-active-fg); box-shadow: 0 0 0 1px var(--ml-sidebar-border); }
+.ml-admin .sidebar-link .icon { color: var(--ml-sidebar-fg); }
+.ml-admin .sidebar-link:hover .icon { color: var(--ml-sidebar-fg-strong); }
+.ml-admin .sidebar-link.active .icon { color: var(--ml-sidebar-active-fg); }
 .ml-admin .sidebar-link .count {
-  margin-left: auto; font-size: 11px; font-weight: 600; color: var(--ml-ink-muted);
-  background: var(--ml-surface-3); padding: 1px 7px; border-radius: 999px; min-width: 22px; text-align: center;
+  margin-left: auto; font-size: 11px; font-weight: 600; color: var(--ml-sidebar-fg-strong);
+  background: var(--ml-sidebar-border); padding: 1px 7px; border-radius: 999px; min-width: 22px; text-align: center;
 }
-.ml-admin .sidebar-link.active .count { background: var(--ml-accent); color: #fff; }
+.ml-admin .sidebar-link.active .count { background: var(--ml-sidebar, #ebe8d8); color: var(--ml-sidebar-active-fg); }
 
 .ml-admin .avatar {
   width: 32px; height: 32px; border-radius: 50%;
@@ -234,11 +253,39 @@
   height: 100vh; position: sticky; top: 0;
 }
 .ml-admin .shell-sidebar-inner {
-  height: 100%; display: flex; flex-direction: column; padding: 16px 12px;
-  background: var(--ml-surface); border: 1px solid var(--ml-border);
+  height: 100%; display: flex; flex-direction: column; padding: 18px 13px;
+  background: var(--ml-sidebar); border: 1px solid var(--ml-sidebar-border);
   border-radius: var(--ml-radius-lg); box-shadow: var(--ml-shadow);
 }
-.ml-admin .nav-group { padding: 18px 11px 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ml-ink-subtle); }
+.ml-admin .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 4px 11px 18px; }
+.ml-admin .sidebar-brand-icon {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--ml-accent); color: #fff;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.ml-admin .sidebar-brand-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.ml-admin .sidebar-brand-name { font-size: 16px; font-weight: 650; letter-spacing: -0.02em; color: var(--ml-sidebar-fg-strong); }
+.ml-admin .sidebar-brand-sub { font-size: 11.5px; color: var(--ml-sidebar-fg); margin-top: 1px; }
+
+.ml-admin .sidebar-nav { display: flex; flex-direction: column; overflow-y: auto; }
+.ml-admin .nav-group-block { display: flex; flex-direction: column; gap: 2px; }
+.ml-admin .nav-group-block + .nav-group-block {
+  margin-top: 6px; padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--ml-sidebar-border) 70%, transparent);
+}
+.ml-admin .nav-group { padding: 0 11px 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ml-sidebar-fg); opacity: .75; }
+
+.ml-admin .sidebar-footer { padding-top: 12px; }
+.ml-admin .sidebar-profile {
+  padding: 12px; background: var(--ml-surface-2);
+  border: 1px solid var(--ml-border-soft); border-radius: 12px;
+  display: flex; gap: 10px; align-items: center;
+}
+.ml-admin .sidebar-profile-name { font-size: 13px; font-weight: 600; line-height: 1.2; color: var(--ml-ink); }
+.ml-admin .sidebar-profile-email { font-size: 11.5px; color: var(--ml-ink-subtle); line-height: 1.4; margin-top: 1px; }
+.ml-admin .sidebar-signout {
+  width: 100%; margin-top: 8px; border: none; background: none; cursor: pointer;
+}
 
 /* KPI tile + list rows */
 .ml-admin .kpi { padding: 18px; display: flex; flex-direction: column; gap: 14px; }

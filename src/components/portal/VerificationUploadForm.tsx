@@ -1,44 +1,78 @@
 "use client";
 
-import { useActionState } from "react";
-import { Check } from "lucide-react";
+import { useActionState, useState } from "react";
+import { Check, Paperclip } from "lucide-react";
 import { submitVerificationAction, type VerificationSubmitState } from "@/app/dashboard/verification/actions";
 import { settingsInputClass } from "@/components/portal/SettingsRow";
+import { formatFileSize } from "@/lib/format";
 import { DOCUMENT_CATEGORIES } from "@/types/document";
 
 export function VerificationUploadForm({ slug }: { slug: string }) {
   const [state, formAction, pending] = useActionState<VerificationSubmitState, FormData>(submitVerificationAction, {});
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileSize, setFileSize] = useState<number | undefined>(undefined);
 
   return (
-    <form action={formAction} className="px-6 py-6">
+    <form action={formAction} className="p-6">
       <input type="hidden" name="slug" value={slug} />
-      <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
-        <label className="sr-only" htmlFor="verificationCategory">
-          Document type
-        </label>
-        <select id="verificationCategory" name="category" required defaultValue="" className={settingsInputClass}>
-          <option value="" disabled>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="verificationCategory" className="text-sm font-medium">
             Document type
-          </option>
-          {DOCUMENT_CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
+          </label>
+          <select
+            id="verificationCategory"
+            name="category"
+            required
+            defaultValue=""
+            className={`mt-1.5 ${settingsInputClass}`}
+          >
+            <option value="" disabled>
+              Choose a type
             </option>
-          ))}
-        </select>
-        <label className="sr-only" htmlFor="verificationFile">
-          File
-        </label>
-        <input
-          id="verificationFile"
-          name="file"
-          type="file"
-          required
-          accept="application/pdf,image/jpeg,image/png,image/webp"
-          className="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-primary/[0.1] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary"
-        />
+            {DOCUMENT_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="verificationFile" className="text-sm font-medium">
+            File
+          </label>
+          <label
+            htmlFor="verificationFile"
+            className="mt-1.5 flex cursor-pointer items-center gap-2.5 rounded-xl bg-black/[0.025] px-3.5 py-2.5 text-sm ring-1 ring-transparent transition hover:bg-black/[0.04] focus-within:ring-primary/40"
+          >
+            <Paperclip className="size-4 shrink-0 text-muted" aria-hidden />
+            {fileName ? (
+              <span className="min-w-0 flex-1 truncate">
+                {fileName}
+                {fileSize ? <span className="text-muted"> · {formatFileSize(fileSize)}</span> : null}
+              </span>
+            ) : (
+              <span className="text-muted">Choose a file to upload</span>
+            )}
+          </label>
+          <input
+            id="verificationFile"
+            name="file"
+            type="file"
+            required
+            accept="application/pdf,image/jpeg,image/png,image/webp"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              setFileName(file?.name ?? null);
+              setFileSize(file?.size);
+            }}
+          />
+        </div>
       </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-black/[0.06] pt-5">
         <p className="text-xs text-muted">PDF, JPG, PNG or WebP, up to 10 MB.</p>
         <button
           type="submit"

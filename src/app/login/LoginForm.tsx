@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { ArrowRight, Lock, Mail } from "lucide-react";
+import { LoadingOverlay } from "@/components/ui/BrainLoader";
 import { AuthError, AuthField, AuthInput, authButtonClass } from "@/components/auth/AuthShell";
 import { signInAction, type LoginState } from "./actions";
 
@@ -11,6 +12,7 @@ export function LoginForm({ next }: { next?: string }) {
 
   return (
     <form action={formAction} className="space-y-5">
+      <LoadingOverlay active={pending} message="Signing you in…" />
       {next && <input type="hidden" name="next" value={next} />}
 
       <AuthField id="email" label="Email">

@@ -142,7 +142,7 @@ export function ManageSlotsBoard({
               <Link
                 href={prevHref}
                 aria-label="Previous week"
-                className="flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.05] hover:text-foreground"
+                className="flex size-11 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.05] hover:text-foreground"
               >
                 <ChevronLeft className="size-4" aria-hidden />
               </Link>
@@ -150,7 +150,7 @@ export function ManageSlotsBoard({
               <Link
                 href={nextHref}
                 aria-label="Next week"
-                className="flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.05] hover:text-foreground"
+                className="flex size-11 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.05] hover:text-foreground"
               >
                 <ChevronRight className="size-4" aria-hidden />
               </Link>

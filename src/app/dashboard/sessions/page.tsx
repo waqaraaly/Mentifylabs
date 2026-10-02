@@ -40,7 +40,7 @@ export default async function SessionsPage({ searchParams }: Props) {
   const sorted = [...filtered].sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-1 pb-8 sm:px-3">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
       <AutoRefresh seconds={60} />
 
       <PageHeader

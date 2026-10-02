@@ -13,9 +13,11 @@ import type { PractitionerDocument } from "@/types/document";
 import type { Feature, FeatureAccessLog } from "@/types/feature";
 import { Avatar } from "./ui/Avatar";
 import { Badge } from "./ui/Badge";
-import { ConfirmDialog, type ConfirmConfig } from "./ui/Overlays";
+import { ConfirmDialog, Modal, type ConfirmConfig } from "./ui/Overlays";
 import { Section, Row, SummaryItem, dash, sectionGrid } from "./ui/Detail";
 import { DocumentViewer } from "./ui/DocumentViewer";
+import { ReviewHistory } from "./ReviewHistory";
+import type { ReviewEvent } from "@/types/reviewEvent";
 import { useToast } from "./ui/ToastProvider";
 import { bookingStatsFor, publicLinkFor } from "@/lib/admin";
 import { formatFeeRange } from "@/lib/fees";
@@ -42,6 +44,7 @@ export function PractitionerDetail({
   features,
   accessIds,
   logs,
+  history,
   siteUrl,
 }: {
   p: Practitioner;
@@ -50,10 +53,13 @@ export function PractitionerDetail({
   features: Feature[];
   accessIds: string[];
   logs: FeatureAccessLog[];
+  history: ReviewEvent[];
   siteUrl: string;
 }) {
   const [tab, setTab] = useState<TabId>("overview");
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
   const [slugEdit, setSlugEdit] = useState(false);
   const [slug, setSlug] = useState(p.slug);
   const [pending, startTransition] = useTransition();
@@ -80,18 +86,9 @@ export function PractitionerDetail({
               router.refresh();
             }),
           })}><Check size={13} />Approve</button>
-          <button className="btn btn-sm btn-danger" disabled={pending} onClick={() => doAction({
-            title: "Reject account?",
-            danger: true,
-            body: `Rejecting will permanently deny this application. ${p.fullName} can re-apply with corrected details.`,
-            confirmLabel: "Reject",
-            action: () => startTransition(async () => {
-              await rejectAccount(p.slug);
-              addToast(`${p.fullName} rejected`, "danger");
-              setConfirm(null);
-              router.push(BACK_HREF);
-            }),
-          })}><X size={13} />Reject</button>
+          <button className="btn btn-sm btn-danger" disabled={pending} onClick={() => setRejectOpen(true)}>
+            <X size={13} />Reject
+          </button>
         </>
       )}
       {p.status === "active" && (
@@ -211,11 +208,49 @@ export function PractitionerDetail({
           {tab === "bookings" && <BookingsTab p={p} appointments={appointments} stats={stats} />}
           {tab === "documents" && <DocumentsTab documents={documents} personName={p.fullName} />}
           {tab === "features" && <FeatureAccessTab p={p} features={features} accessIds={accessIds} />}
-          {tab === "activity" && <ActivityTab p={p} logs={logs} />}
+          {tab === "activity" && <ActivityTab p={p} logs={logs} history={history} />}
         </div>
       )}
 
       <ConfirmDialog confirm={confirm} onCancel={() => setConfirm(null)} />
+
+      <Modal
+        open={rejectOpen}
+        onClose={() => setRejectOpen(false)}
+        title={`Reject ${p.fullName}'s application`}
+        width={520}
+        footer={
+          <>
+            <button className="btn" onClick={() => setRejectOpen(false)}>Cancel</button>
+            <button
+              className="btn btn-danger"
+              disabled={!rejectNote.trim() || pending}
+              onClick={() => startTransition(async () => {
+                await rejectAccount(p.slug, rejectNote);
+                addToast(`${p.fullName} rejected`, "danger");
+                setRejectOpen(false);
+                router.push(BACK_HREF);
+              })}
+            >
+              <X size={13} />Reject application
+            </button>
+          </>
+        }
+      >
+        <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginBottom: 10, lineHeight: 1.5 }}>
+          They won&apos;t be able to sign in. They&apos;ll see this reason when they try, and can contact the team for help.
+        </div>
+        <div style={{ fontSize: 12, color: "var(--ml-ink-muted)", marginBottom: 6, fontWeight: 500 }}>
+          Reason <span style={{ color: "var(--ml-danger)" }}>*</span>
+        </div>
+        <textarea
+          className="input input-plain"
+          value={rejectNote}
+          onChange={(e) => setRejectNote(e.target.value)}
+          placeholder="Explain why this application can't be accepted…"
+          style={{ minHeight: 120, height: "auto", padding: "10px 12px", fontFamily: "var(--ml-font)", resize: "vertical" }}
+        />
+      </Modal>
     </div>
   );
 }
@@ -510,12 +545,14 @@ function FeatureRow({
   );
 }
 
-function ActivityTab({ p, logs }: { p: Practitioner; logs: FeatureAccessLog[] }) {
+function ActivityTab({ p, logs, history }: { p: Practitioner; logs: FeatureAccessLog[]; history: ReviewEvent[] }) {
+  // Older accounts have no recorded decisions, so fall back to the dates stored on the practitioner.
+  const hasEvent = (kind: ReviewEvent["kind"]) => history.some((e) => e.kind === kind);
   const items = [
     p.lastSignIn && { t: p.lastSignIn, action: "Signed in", kind: "info" as const },
-    p.approvedOn && { t: p.approvedOn, action: "Account approved by Super Admin", kind: "ok" as const },
+    !hasEvent("account_approved") && p.approvedOn && { t: p.approvedOn, action: "Account approved by Super Admin", kind: "ok" as const },
     { t: p.dateJoined, action: "Account created · " + (p.creationMethod === "super_admin" ? "by Super Admin" : "self sign-up"), kind: "info" as const },
-    p.status === "suspended" && p.suspendedOn && { t: p.suspendedOn, action: "Account suspended" + (p.rejectionNote ? ` — ${p.rejectionNote}` : ""), kind: "danger" as const },
+    !hasEvent("account_suspended") && p.status === "suspended" && p.suspendedOn && { t: p.suspendedOn, action: "Account suspended" + (p.rejectionNote ? ` — ${p.rejectionNote}` : ""), kind: "danger" as const },
   ].filter((x): x is { t: string; action: string; kind: "info" | "ok" | "danger" } => !!x);
 
   const ownLogs = logs.filter((l) => l.practitionerSlug === p.slug);
@@ -536,6 +573,13 @@ function ActivityTab({ p, logs }: { p: Practitioner; logs: FeatureAccessLog[] })
           <div className="mono tnum" style={{ fontSize: 13 }}>{p.approvedOn ?? "—"}</div>
         </div>
       </div>
+
+      {history.length > 0 && (
+        <div>
+          <div className="label" style={{ marginBottom: 10 }}>Review decisions</div>
+          <ReviewHistory events={history} />
+        </div>
+      )}
 
       <div style={{ borderLeft: "1px solid var(--ml-border)", marginLeft: 6, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {items.map((it, i) => {

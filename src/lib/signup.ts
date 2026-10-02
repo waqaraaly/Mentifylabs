@@ -1,7 +1,8 @@
 import "server-only";
 import { headers } from "next/headers";
 import { first, run } from "@/lib/db";
-import { sendEmail } from "@/lib/mail";
+import { sendBrandedEmail } from "@/lib/notifications";
+import { siteOrigin } from "@/lib/siteOrigin";
 import { MIN_PASSWORD_LENGTH, hashPassword } from "@/lib/password";
 import { startSession } from "@/lib/session";
 import { CONTACT_DETAIL_LABELS, uniqueSlugFor } from "@/data/practitioners";
@@ -12,18 +13,18 @@ const MAX_SIGNUPS_PER_HOUR = 5;
 
 export interface SignUpInput {
   fullName: string;
-  professionalTitle: string;
   email: string;
   password: string;
 }
 
 /**
  * Creates a practitioner (pending approval, draft profile) with its sign-in account and signs them in.
- * Super Admin still approves the account and publishes the profile before it goes public.
+ * Professional title is collected later, in /onboarding. Super Admin still approves the account
+ * and publishes the profile before it goes public.
  */
 export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true } | { ok: false; message: string }> {
   const fullName = input.fullName.trim();
-  const professionalTitle = input.professionalTitle.trim() || "Practitioner";
+  const professionalTitle = "Practitioner";
   const email = input.email.trim().toLowerCase();
 
   if (fullName.length < 2) return { ok: false, message: "Enter your full name." };
@@ -89,10 +90,16 @@ export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true
 
   const settings = await getAdminSettings();
   if (settings.notifyNewSignup) {
-    await sendEmail({
+    await sendBrandedEmail({
       to: settings.email,
       subject: `New practitioner sign-up: ${fullName}`,
-      text: `${fullName} (${professionalTitle}, ${email}) just signed up and is waiting for approval in Super Admin > Pending approval.`,
+      greeting: "Hello,",
+      content: {
+        eyebrow: "New sign-up",
+        heading: `${fullName} is waiting for approval`,
+        body: [`${fullName} (${professionalTitle}, ${email}) just signed up as a practitioner.`],
+        button: { label: "Review application", url: `${await siteOrigin()}/admin/pending` },
+      },
     });
   }
   return { ok: true };

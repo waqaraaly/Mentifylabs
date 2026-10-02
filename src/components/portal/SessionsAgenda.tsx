@@ -56,7 +56,7 @@ function RowMenu({
         onClick={handleToggle}
         aria-label="Session actions"
         aria-expanded={open}
-        className="flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-black/[0.05] hover:text-foreground"
+        className="flex size-11 items-center justify-center rounded-full text-muted transition hover:bg-black/[0.05] hover:text-foreground"
       >
         <MoreHorizontal className="size-4.5" aria-hidden />
       </button>

@@ -15,6 +15,15 @@ import {
 import { renamePractitionerSlug } from "@/data/rename";
 import { revalidateAdminViews, revalidatePractitionerViews } from "@/lib/revalidate";
 import { grantAccess, revokeAccess } from "@/data/features";
+import {
+  notifyAccountApproved,
+  notifyAccountReactivated,
+  notifyAccountRejected,
+  notifyAccountSuspended,
+  notifyVerificationApproved,
+  notifyVerificationRejected,
+} from "@/lib/notifications";
+import { recordReviewEvent } from "@/data/reviewEvents";
 import { requireAdmin } from "@/lib/session";
 import { adminResetLink } from "@/lib/passwordReset";
 
@@ -25,26 +34,35 @@ function revalidateAdmin(...slugs: string[]) {
 }
 
 export async function approveAccount(slug: string) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   await approvePractitioner(slug);
+  await recordReviewEvent(slug, "account_approved", { actorName: admin.name });
+  await notifyAccountApproved(slug);
   revalidateAdmin(slug);
 }
 
-export async function rejectAccount(slug: string) {
-  await requireAdmin();
-  await rejectPractitioner(slug, "Application rejected");
+export async function rejectAccount(slug: string, note: string) {
+  const admin = await requireAdmin();
+  const reason = note.trim() || "Application rejected";
+  await rejectPractitioner(slug, reason);
+  await recordReviewEvent(slug, "account_rejected", { note: reason, actorName: admin.name });
+  await notifyAccountRejected(slug, reason);
   revalidateAdmin(slug);
 }
 
 export async function suspendAccount(slug: string) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   await suspendPractitioner(slug);
+  await recordReviewEvent(slug, "account_suspended", { actorName: admin.name });
+  await notifyAccountSuspended(slug);
   revalidateAdmin(slug);
 }
 
 export async function reactivateAccount(slug: string) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   await reactivatePractitioner(slug);
+  await recordReviewEvent(slug, "account_reactivated", { actorName: admin.name });
+  await notifyAccountReactivated(slug);
   revalidateAdmin(slug);
 }
 
@@ -67,14 +85,18 @@ export async function rejectProfileAction(slug: string, note: string) {
 }
 
 export async function approveVerificationAction(slug: string) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   await approveVerification(slug);
+  await recordReviewEvent(slug, "verification_approved", { actorName: admin.name });
+  await notifyVerificationApproved(slug);
   revalidateAdmin(slug);
 }
 
 export async function rejectVerificationAction(slug: string, note: string) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   await rejectVerification(slug, note);
+  await recordReviewEvent(slug, "verification_rejected", { note, actorName: admin.name });
+  await notifyVerificationRejected(slug, note);
   revalidateAdmin(slug);
 }
 

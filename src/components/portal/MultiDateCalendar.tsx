@@ -26,7 +26,7 @@ export function MultiDateCalendar({
         <button
           type="button"
           onClick={() => setViewMonth((m) => addMonths(m, -1))}
-          className="flex size-7 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.05] hover:text-foreground"
+          className="flex size-10 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.05] hover:text-foreground"
           aria-label="Previous month"
         >
           <ChevronLeft className="size-4" aria-hidden />
@@ -35,7 +35,7 @@ export function MultiDateCalendar({
         <button
           type="button"
           onClick={() => setViewMonth((m) => addMonths(m, 1))}
-          className="flex size-7 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.05] hover:text-foreground"
+          className="flex size-10 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.05] hover:text-foreground"
           aria-label="Next month"
         >
           <ChevronRight className="size-4" aria-hidden />

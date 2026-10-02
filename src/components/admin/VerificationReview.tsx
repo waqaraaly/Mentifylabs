@@ -3,21 +3,31 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, Download, Eye, FileText, ShieldCheck, X } from "lucide-react";
+import { ArrowLeft, Check, Download, Eye, FileText, History, ShieldCheck, X } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import type { PractitionerDocument } from "@/types/document";
 import { Avatar } from "./ui/Avatar";
 import { Badge } from "./ui/Badge";
 import { Modal, ConfirmDialog, type ConfirmConfig } from "./ui/Overlays";
 import { Section, SummaryItem, sectionGrid } from "./ui/Detail";
+import { ReviewHistory } from "./ReviewHistory";
+import type { ReviewEvent } from "@/types/reviewEvent";
 import { DocumentViewer } from "./ui/DocumentViewer";
 import { useToast } from "./ui/ToastProvider";
 import { approveVerificationAction, rejectVerificationAction } from "@/app/admin/actions";
-import { verificationDaysLeft } from "@/lib/verification";
+import { daysSinceSubmitted } from "@/lib/verification";
 
 const BACK_HREF = "/admin/verification";
 
-export function VerificationReview({ p, documents }: { p: Practitioner; documents: PractitionerDocument[] }) {
+export function VerificationReview({
+  p,
+  documents,
+  history,
+}: {
+  p: Practitioner;
+  documents: PractitionerDocument[];
+  history: ReviewEvent[];
+}) {
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [note, setNote] = useState("");
@@ -26,7 +36,7 @@ export function VerificationReview({ p, documents }: { p: Practitioner; document
   const addToast = useToast();
   const router = useRouter();
 
-  const daysLeft = verificationDaysLeft(p.dateJoined);
+  const waitingDays = daysSinceSubmitted(p.verificationSubmittedAt);
 
   const approve = () => setConfirm({
     title: "Approve verification?",
@@ -76,16 +86,11 @@ export function VerificationReview({ p, documents }: { p: Practitioner; document
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", borderTop: "1px solid var(--ml-border-soft)", background: "var(--ml-surface-2)" }}>
           <SummaryItem label="Joined" value={p.dateJoined} />
           <SummaryItem label="Submitted" value={p.verificationSubmittedAt?.slice(0, 10) ?? "—"} />
-          <SummaryItem label="60-day window" value={daysLeft >= 0 ? `${daysLeft} days left` : `${Math.abs(daysLeft)} days overdue`} />
+          <SummaryItem label="Waiting" value={waitingDays === null ? "—" : waitingDays === 0 ? "Today" : `${waitingDays} days`} />
           <SummaryItem label="Documents" value={String(documents.length)} />
         </div>
       </div>
 
-      {p.verificationNote && (
-        <div className="card" style={{ padding: "14px 20px", background: "var(--ml-warn-bg)", borderColor: "transparent", fontSize: 13.5, color: "var(--ml-warn)" }}>
-          <strong>Previous feedback sent:</strong> {p.verificationNote}
-        </div>
-      )}
 
       <div style={sectionGrid}>
         <Section icon={<FileText size={15} />} title="Submitted documents" span={2}>
@@ -106,6 +111,12 @@ export function VerificationReview({ p, documents }: { p: Practitioner; document
               )}
             </div>
           ))}
+        </Section>
+        <Section icon={<History size={15} />} title="Review history" span={2}>
+          <ReviewHistory
+            events={history.filter((e) => e.kind.startsWith("verification_"))}
+            empty="No earlier submissions or decisions."
+          />
         </Section>
       </div>
 

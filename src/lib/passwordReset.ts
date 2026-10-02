@@ -1,6 +1,6 @@
 import "server-only";
 import { first, run } from "@/lib/db";
-import { sendEmail } from "@/lib/mail";
+import { sendBrandedEmail } from "@/lib/notifications";
 import { MIN_PASSWORD_LENGTH, hashPassword } from "@/lib/password";
 import { homeFor, randomToken, sha256Hex, startSession, type Role } from "@/lib/session";
 import { siteOrigin } from "@/lib/siteOrigin";
@@ -40,10 +40,17 @@ export async function requestPasswordReset(emailInput: string): Promise<void> {
   if (!user) return;
 
   const link = await createResetLink(user.id, SELF_SERVE_MINUTES * 60 * 1000);
-  await sendEmail({
+  await sendBrandedEmail({
     to: email,
     subject: "Reset your MentifyLabs password",
-    text: `Someone asked to reset the password for your MentifyLabs account.\n\nChoose a new password here (the link works once, for ${SELF_SERVE_MINUTES} minutes):\n${link}\n\nIf this wasn't you, ignore this email. Your password stays the same.`,
+    greeting: "Hello,",
+    content: {
+      eyebrow: "Password",
+      heading: "Reset your password",
+      body: ["Someone asked to reset the password for your MentifyLabs account. Choose a new one below."],
+      button: { label: "Choose a new password", url: link },
+      footnote: `The link works once and expires in ${SELF_SERVE_MINUTES} minutes. If this wasn't you, ignore this email — your password stays the same.`,
+    },
   });
 }
 
@@ -127,10 +134,43 @@ export async function adminResetLink(
   }
 
   const link = await createResetLink(user!.id, ADMIN_LINK_DAYS * 24 * 60 * 60 * 1000);
-  const emailed = await sendEmail({
+  const emailed = await sendBrandedEmail({
     to: user!.email,
     subject: "Set your MentifyLabs password",
-    text: `Hi ${practitioner.full_name},\n\nUse this link to set your MentifyLabs password and sign in (it works once, for ${ADMIN_LINK_DAYS} days):\n${link}`,
+    greeting: `Hi ${practitioner.full_name},`,
+    content: {
+      eyebrow: "Password",
+      heading: "Set your password",
+      body: ["Use the button below to choose your MentifyLabs password and sign in."],
+      button: { label: "Set password", url: link },
+      footnote: `The link works once and expires in ${ADMIN_LINK_DAYS} days.`,
+    },
   });
   return { ok: true, link, emailed, email: user!.email };
+}
+
+/**
+ * Same shape as `adminResetLink`, for a newly created Super Admin account
+ * instead of a practitioner. The link is always returned so it can be shared
+ * manually when email isn't set up.
+ */
+export async function adminInviteAdmin(
+  userId: string,
+  email: string,
+  fullName: string,
+): Promise<{ link: string; emailed: boolean }> {
+  const link = await createResetLink(userId, ADMIN_LINK_DAYS * 24 * 60 * 60 * 1000);
+  const emailed = await sendBrandedEmail({
+    to: email,
+    subject: "You've been added as a Super Admin — MentifyLabs",
+    greeting: `Hi ${fullName},`,
+    content: {
+      eyebrow: "Super Admin",
+      heading: "You've been added as a Super Admin",
+      body: ["You now have admin access to MentifyLabs. Set your password to sign in."],
+      button: { label: "Set password", url: link },
+      footnote: `The link works once and expires in ${ADMIN_LINK_DAYS} days.`,
+    },
+  });
+  return { link, emailed };
 }

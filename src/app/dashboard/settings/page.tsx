@@ -1,12 +1,9 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
-import { ArrowUpRight, Check, FileText, KeyRound, Lock, Settings, ShieldCheck, User } from "lucide-react";
+import { Check, KeyRound, Lock, Settings, ShieldCheck, User } from "lucide-react";
 import { getCurrentPractitioner } from "@/data/practitioners";
 import { getAccount } from "@/data/account";
-import { getDocumentsByPractitioner } from "@/data/documents";
-import { DocumentsManager } from "@/components/portal/DocumentsManager";
 import { Field } from "@/components/portal/Field";
 import { PasswordForm } from "@/components/portal/PasswordForm";
+import { SettingsCard } from "@/components/portal/SettingsCard";
 import { settingsInputClass } from "@/components/portal/SettingsRow";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { resendVerificationAction, updateAccountAction } from "./actions";
@@ -16,21 +13,6 @@ export const metadata = { title: "Settings" };
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const [firstName = "", ...rest] = fullName.trim().split(/\s+/);
   return { firstName, lastName: rest.join(" ") };
-}
-
-/** A settings card: icon + title header, then the form (body and footer) below. */
-function SettingsCard({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col rounded-2xl bg-surface ring-1 ring-black/[0.07]">
-      <header className="flex items-center gap-3.5 border-b border-black/[0.06] px-6 py-5">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/[0.1] text-primary">
-          {icon}
-        </span>
-        <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-      </header>
-      {children}
-    </section>
-  );
 }
 
 export default async function SettingsPage({
@@ -44,10 +26,9 @@ export default async function SettingsPage({
     searchParams,
   ]);
   const { firstName, lastName } = splitName(account.name);
-  const documents = await getDocumentsByPractitioner(practitioner.slug);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-1 pb-8 sm:px-3">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
       <PageHeader
         icon={Settings}
         title="Settings"
@@ -58,15 +39,6 @@ export default async function SettingsPage({
           </span>
         }
         description="Your account only. Nothing here appears on your public profile."
-        actions={
-          <Link
-            href="/dashboard/profile"
-            className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold ring-1 ring-black/[0.14] transition hover:bg-black/[0.04]"
-          >
-            Edit public profile
-            <ArrowUpRight className="size-4" aria-hidden />
-          </Link>
-        }
       />
 
       {(saved === "account" || saved === "verification") && (
@@ -154,10 +126,6 @@ export default async function SettingsPage({
           <PasswordForm />
         </SettingsCard>
       </div>
-
-      <SettingsCard icon={<FileText className="size-[18px]" aria-hidden />} title="Verification documents">
-        <DocumentsManager slug={practitioner.slug} documents={documents} />
-      </SettingsCard>
     </div>
   );
 }

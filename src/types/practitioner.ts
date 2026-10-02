@@ -83,4 +83,7 @@ export interface Practitioner {
   verificationNote?: string;
   /** Set once they dismiss the first-login setup popup; shown only until then. */
   verificationPromptSeenAt?: string;
+
+  /** Set once they finish (or skip) the guided first-login setup at /onboarding. Gates dashboard access. */
+  onboardedAt?: string;
 }

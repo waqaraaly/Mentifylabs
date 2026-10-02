@@ -62,7 +62,7 @@ export default async function ManageSlotsPage({ searchParams }: Props) {
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-1 pb-8 sm:px-3">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
       <ManageSlotsBoard
         monthLabel={monthLabel}
         selectedDate={selectedDate}

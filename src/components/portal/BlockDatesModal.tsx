@@ -136,7 +136,7 @@ export function BlockDatesModal({
                     type="button"
                     onClick={() => removeGroup(group)}
                     aria-label={`Remove ${groupLabel(group)}`}
-                    className="flex size-7 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.06] hover:text-foreground"
+                    className="flex size-11 items-center justify-center rounded-full text-muted transition hover:bg-foreground/[0.06] hover:text-foreground"
                   >
                     <X className="size-4" aria-hidden />
                   </button>

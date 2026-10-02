@@ -22,17 +22,17 @@ export default function GlobalError({
           display: "flex",
           minHeight: "100vh",
           alignItems: "center",
-          background: "#f0f3ef",
-          color: "#1b231e",
+          background: "#f6f4ea",
+          color: "#2e3522",
           fontFamily: "Arial, Helvetica, sans-serif",
         }}
       >
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "6rem 1.5rem" }}>
-          <p style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.15em", color: "#59655d", textTransform: "uppercase" }}>
+          <p style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.15em", color: "#6f7257", textTransform: "uppercase" }}>
             MentifyLabs
           </p>
           <h1 style={{ marginTop: "1.5rem", fontSize: 36, lineHeight: 1.15 }}>Something went wrong.</h1>
-          <p style={{ marginTop: "1.5rem", maxWidth: 420, fontSize: 18, color: "#59655d" }}>
+          <p style={{ marginTop: "1.5rem", maxWidth: 420, fontSize: 18, color: "#6f7257" }}>
             Our side, not yours. Try again, and if it keeps happening, let us know.
           </p>
           <button
@@ -43,7 +43,7 @@ export default function GlobalError({
               alignItems: "center",
               gap: 6,
               borderRadius: 8,
-              background: "#3b6651",
+              background: "#6e8356",
               padding: "0.75rem 1.5rem",
               fontSize: 14,
               fontWeight: 600,

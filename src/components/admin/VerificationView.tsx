@@ -8,7 +8,7 @@ import { Avatar } from "./ui/Avatar";
 import { Badge } from "./ui/Badge";
 import { EmptyState } from "./ui/Overlays";
 import { TopBar } from "./TopBar";
-import { verificationDaysLeft } from "@/lib/verification";
+import { daysSinceSubmitted } from "@/lib/verification";
 
 export function VerificationView({ queue }: { queue: Practitioner[] }) {
   const router = useRouter();
@@ -28,7 +28,7 @@ export function VerificationView({ queue }: { queue: Practitioner[] }) {
           ) : (
             <div>
               {queue.map((p, i) => {
-                const daysLeft = verificationDaysLeft(p.dateJoined);
+                const waitingDays = daysSinceSubmitted(p.verificationSubmittedAt);
                 return (
                   <div
                     key={p.slug}
@@ -42,8 +42,8 @@ export function VerificationView({ queue }: { queue: Practitioner[] }) {
                       <div className="truncate" style={{ fontSize: 12, color: "var(--ml-ink-muted)", marginTop: 2 }}>{p.professionalTitle}</div>
                     </div>
                     <Badge kind={p.verificationStatus} />
-                    <span className="tnum hide-sm" style={{ fontSize: 12, color: daysLeft < 0 ? "var(--ml-danger)" : "var(--ml-ink-subtle)" }}>
-                      {daysLeft >= 0 ? `${daysLeft}d left` : `${Math.abs(daysLeft)}d overdue`}
+                    <span className="tnum hide-sm" style={{ fontSize: 12, color: "var(--ml-ink-subtle)" }}>
+                      {waitingDays === null ? "—" : waitingDays === 0 ? "Today" : `Waiting ${waitingDays}d`}
                     </span>
                     <Link className="btn btn-sm" href={`/admin/verification/${p.slug}`} onClick={(e) => e.stopPropagation()}>
                       <Eye size={13} />Review

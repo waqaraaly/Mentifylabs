@@ -1,6 +1,6 @@
 import "server-only";
 import { first, run } from "@/lib/db";
-import { sendEmail } from "@/lib/mail";
+import { sendBrandedEmail } from "@/lib/notifications";
 import { randomToken, sha256Hex } from "@/lib/session";
 import { siteOrigin } from "@/lib/siteOrigin";
 
@@ -22,10 +22,17 @@ export async function sendVerificationEmail(userId: string, email: string, fullN
     new Date(Date.now() + LINK_DAYS * 24 * 60 * 60 * 1000).toISOString(),
   );
   const link = `${await siteOrigin()}/verify-email?token=${encodeURIComponent(token)}`;
-  await sendEmail({
+  await sendBrandedEmail({
     to: email,
     subject: "Confirm your email — MentifyLabs",
-    text: `Hi ${fullName},\n\nConfirm this is your email address (the link works once, for ${LINK_DAYS} days):\n${link}\n\nIf you didn't sign up for MentifyLabs, ignore this email.`,
+    greeting: `Hi ${fullName},`,
+    content: {
+      eyebrow: "Email",
+      heading: "Confirm your email address",
+      body: ["Confirm this is your email address so we can reach you about your account."],
+      button: { label: "Confirm email", url: link },
+      footnote: `The link works once and expires in ${LINK_DAYS} days. If you didn't sign up for MentifyLabs, you can ignore this email.`,
+    },
   });
 }
 
