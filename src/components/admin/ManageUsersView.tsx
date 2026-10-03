@@ -86,7 +86,7 @@ export function ManageUsersView({ users, currentUserId }: { users: AdminUser[]; 
           {filtered.length === 0 ? (
             <EmptyState title="No accounts match" body="Try a different role or search term." />
           ) : (
-            <div className="table-scroll">
+            <div className="table-scroll scroll-y">
               <table className="table" style={{ border: "none" }}>
                 <thead>
                   <tr>

@@ -19,7 +19,8 @@ export default async function AdminAppointmentPage({ params }: PageProps<"/admin
     <div>
       <TopBar title="Appointment" subtitle="Booking details" />
       <div style={{ padding: "0 32px 40px" }}>
-        <AppointmentDetail b={appointment} practitioner={practitioner} />
+        {/* Who the client is, and what they wrote to their practitioner, stays between the two of them, so it is dropped here. */}
+        <AppointmentDetail b={{ ...appointment, concern: undefined, clientName: "", clientContact: "" }} practitioner={practitioner} />
       </div>
     </div>
   );

@@ -32,5 +32,9 @@ export const STATUS_META: Record<string, StatusMeta> = {
   beta: { label: "Beta", color: "var(--ml-info)", bg: "var(--ml-info-bg)" },
   disabled: { label: "Disabled", color: "var(--ml-neutral)", bg: "var(--ml-neutral-bg)" },
 
+  // Session mode: the same amber / green pairing the practitioner portal uses for Online and On-Site.
+  online: { label: "Online", color: "var(--ml-warn)", bg: "var(--ml-warn-bg)" },
+  onsite: { label: "On-Site", color: "var(--ml-ok)", bg: "var(--ml-ok-bg)" },
+
   info: { label: "Info", color: "var(--ml-info)", bg: "var(--ml-info-bg)" },
 };

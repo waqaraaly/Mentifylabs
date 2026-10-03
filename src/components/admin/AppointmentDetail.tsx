@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, MapPin, Video, UserRound, CalendarClock, Stethoscope, Ticket } from "lucide-react";
+import { ArrowLeft, ExternalLink, MapPin, Video, CalendarClock, Stethoscope, Ticket } from "lucide-react";
 import type { Appointment } from "@/types/appointment";
 import type { Practitioner } from "@/types/practitioner";
 import { Avatar } from "./ui/Avatar";
 import { Badge } from "./ui/Badge";
-import { Section, Row, SummaryItem, dash, sectionGrid } from "./ui/Detail";
+import { Section, Row, SummaryItem, sectionGrid } from "./ui/Detail";
 
 const BACK_HREF = "/admin/bookings";
 
@@ -26,7 +26,7 @@ export function AppointmentDetail({ b, practitioner }: { b: Appointment; practit
           </div>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <h2 style={{ fontSize: 22, fontWeight: 650, letterSpacing: "-0.02em" }}>{online ? "Online session" : "Onsite session"}</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 650, letterSpacing: "-0.02em" }}>{online ? "Online session" : "On-Site session"}</h2>
               <Badge kind={b.status} />
             </div>
             <div className="tnum" style={{ color: "var(--ml-ink-muted)", fontSize: 14, marginTop: 4 }}>
@@ -39,7 +39,7 @@ export function AppointmentDetail({ b, practitioner }: { b: Appointment; practit
           <SummaryItem label="Date" value={b.date} />
           <SummaryItem label="Time" value={`${b.startTime}–${b.endTime}`} />
           <SummaryItem label="Practitioner" value={practitioner?.fullName ?? b.practitionerSlug} />
-          <SummaryItem label="Booked on" value={bookedOn} />
+          <SummaryItem label="Received" value={bookedOn} />
         </div>
       </div>
 
@@ -61,28 +61,21 @@ export function AppointmentDetail({ b, practitioner }: { b: Appointment; practit
           )}
         </Section>
 
-        <Section icon={<UserRound size={15} />} title="Client">
-          <Row label="Client ID"><span className="mono">{b.clientId}</span></Row>
-          <Row label="Name">{b.clientName || dash}</Row>
-          <Row label="Contact">{b.clientContact ? <span className="mono" style={{ fontSize: 13 }}>{b.clientContact}</span> : dash}</Row>
-        </Section>
-
         <Section icon={<CalendarClock size={15} />} title="Session">
           <Row label="Status"><Badge kind={b.status} /></Row>
           <Row label="Date"><span className="mono tnum">{b.date}</span></Row>
           <Row label="Time"><span className="mono tnum">{b.startTime}–{b.endTime}</span></Row>
-          <Row label="Session type">
+          <Row label="Session mode">
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               {online ? <Video size={13} /> : <MapPin size={13} />}
-              {online ? "Online (video call)" : "Onsite"}
+              {online ? "Online (video call)" : "On-Site"}
             </span>
           </Row>
         </Section>
 
         <Section icon={<Ticket size={15} />} title="Booking">
           <Row label="Booking ID"><span className="mono" style={{ fontSize: 13 }}>{b.id}</span></Row>
-          <Row label="Booked on"><span className="mono tnum">{bookedOn}</span></Row>
-          <Row label="Concern">{b.concern ? <span style={{ lineHeight: 1.55 }}>{b.concern}</span> : dash}</Row>
+          <Row label="Received"><span className="mono tnum">{bookedOn}</span></Row>
         </Section>
       </div>
     </div>

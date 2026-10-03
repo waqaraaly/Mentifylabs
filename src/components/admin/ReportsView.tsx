@@ -132,7 +132,7 @@ export function ReportsView({
               <FilterSelect value={sessionFilter} onChange={(v) => setSessionFilter(v as typeof sessionFilter)} width={140} options={[
                 { value: "all", label: "All sessions" },
                 { value: "online", label: "Online" },
-                { value: "offline", label: "Onsite" },
+                { value: "offline", label: "On-Site" },
               ]} />
               <FilterSelect value={statusFilter} onChange={(v) => setStatusFilter(v as typeof statusFilter)} width={150} options={[
                 { value: "all", label: "All statuses" },

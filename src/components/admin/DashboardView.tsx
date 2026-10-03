@@ -75,7 +75,7 @@ export function DashboardView({
                     <div className="truncate" style={{ fontWeight: 600, fontSize: 13.5 }}>{p.fullName}</div>
                     <div className="truncate" style={{ fontSize: 12, color: "var(--ml-ink-subtle)", display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
                       {b.sessionType === "online" ? <Video size={12} /> : <MapPin size={12} />}
-                      {b.sessionType === "online" ? "Online" : "Onsite"} · <span className="mono">{b.clientId}</span>
+                      {b.sessionType === "online" ? "Online" : "On-Site"} · <span className="mono">{b.clientId}</span>
                     </div>
                   </div>
                   <Badge kind={b.status} />

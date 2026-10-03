@@ -165,7 +165,7 @@ export function ProfileStatsOverview({ practitioners, stats }: { practitioners: 
           {shown.length === 0 ? (
             <EmptyState title="No practitioners match" body="Try a different search term." />
           ) : (
-            <div className="table-scroll">
+            <div className="table-scroll scroll-y">
               <table className="table" style={{ border: "none" }}>
                 <thead>
                   <tr>

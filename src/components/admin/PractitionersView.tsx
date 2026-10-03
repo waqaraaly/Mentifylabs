@@ -77,7 +77,7 @@ export function PractitionersView({ practitioners }: { practitioners: Practition
           {filtered.length === 0 ? (
             <EmptyState title="No practitioners match" body="Try a different status or search term." />
           ) : (
-            <div className="table-scroll">
+            <div className="table-scroll scroll-y">
               <table className="table" style={{ border: "none" }}>
                 <thead>
                   <tr>

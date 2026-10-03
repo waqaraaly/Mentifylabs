@@ -28,7 +28,7 @@ const BACK_HREF = "/admin/pending";
 const DOCUMENTS_CHECK = "Credential documents";
 const CHECKS = [DOCUMENTS_CHECK, "Profile photo", "Bio (120+ characters)", "Fee range", "Certifications", "Specializations"];
 
-const SESSION_MODE = { online: "Online only", offline: "On-site only", both: "Online and on-site" } as const;
+const SESSION_MODE = { online: "Online only", offline: "On-Site only", both: "Online and On-Site" } as const;
 
 type TabId = "documents" | "profile" | "details" | "history";
 
@@ -245,7 +245,7 @@ export function ProfileReview({
               <div className="review-dl" style={{ paddingTop: 14, paddingBottom: 10 }}>
                 <div>
                   <Block label="Practice" first>
-                    <Row label="Sessions">{SESSION_MODE[p.sessionType]}</Row>
+                    <Row label="Session mode">{SESSION_MODE[p.sessionType]}</Row>
                     <Row label="Location">{p.location ?? dash}</Row>
                     <Row label="Fee range"><span className="tnum">{feeText ?? <span className="subtle">Not set</span>}</span></Row>
                     <Row label="Experience">{p.experienceYears} {p.experienceYears === 1 ? "year" : "years"}</Row>

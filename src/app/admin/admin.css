@@ -183,6 +183,11 @@
 .ml-admin .table tbody tr:hover td { background: var(--ml-accent-tint); }
 .ml-admin .table tbody tr.selected td { background: var(--ml-accent-tint); }
 .ml-admin .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* A long list scrolls inside its card instead of stretching the page; the column headings stay in view. */
+.ml-admin .table-scroll.scroll-y { max-height: clamp(360px, calc(100vh - 330px), 780px); overflow-y: auto; }
+.ml-admin .table-scroll.scroll-y .table th { position: sticky; top: 0; z-index: 2; }
+/* The same for a list of rows that isn't a table. */
+.ml-admin .scroll-list { max-height: clamp(360px, calc(100vh - 330px), 780px); overflow-y: auto; }
 
 .ml-admin .sidebar-link {
   display: flex; align-items: center; gap: 11px;

@@ -71,9 +71,13 @@ export async function getAppointmentById(id: string): Promise<Appointment | null
 
 // ---- Super Admin ----
 
+/**
+ * Every booking, for the Super Admin pages. Who the client is (name, phone) and what they wrote to their
+ * practitioner stay between the two of them, so they are left out here. The anonymous client ID is kept.
+ */
 export async function getAllAppointments(): Promise<Appointment[]> {
   const rows = await all<AppointmentRow>("SELECT * FROM appointments ORDER BY created_at DESC");
-  return rows.map(toAppointment);
+  return rows.map((r) => ({ ...toAppointment(r), concern: undefined, clientName: "", clientContact: "" }));
 }
 
 /**

@@ -60,7 +60,7 @@ export function PendingView({ queue, documentCounts }: { queue: Practitioner[]; 
           ) : shown.length === 0 ? (
             <EmptyState title="No one matches" body="Try a different name or email address." />
           ) : (
-            <div>
+            <div className="scroll-list">
               {shown.map((p, i) => {
                 const docs = documentCounts[p.slug] ?? 0;
                 const days = daysSinceSubmitted(p.verificationSubmittedAt);
