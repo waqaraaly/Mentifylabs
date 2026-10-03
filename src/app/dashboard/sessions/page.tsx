@@ -12,6 +12,7 @@ export const metadata = { title: "Sessions" };
 
 const TAB_STATUS: Record<string, AppointmentStatus> = {
   upcoming: "confirmed",
+  overdue: "confirmed",
   completed: "completed",
   cancelled: "cancelled",
 };
@@ -31,8 +32,10 @@ export default async function SessionsPage({ searchParams }: Props) {
     getOpenSlotsByPractitioner(practitioner.slug),
   ]);
 
+  const confirmed = all.filter((a) => a.status === "confirmed");
   const counts = {
-    upcoming: all.filter((a) => a.status === "confirmed").length,
+    upcoming: confirmed.length,
+    overdue: 0, // the split between upcoming and overdue depends on the viewer's clock, so the page works it out in the browser
     completed: all.filter((a) => a.status === "completed").length,
     cancelled: all.filter((a) => a.status === "cancelled").length,
   };
@@ -55,8 +58,10 @@ export default async function SessionsPage({ searchParams }: Props) {
         tab={tab}
         practitionerSlug={practitioner.slug}
         openSlots={openSlots}
+        confirmedEnds={confirmed.map((a) => ({ date: a.date, endTime: a.endTime }))}
         tabItems={[
           { value: "upcoming", label: "Upcoming", count: counts.upcoming },
+          { value: "overdue", label: "Overdue", count: counts.overdue },
           { value: "completed", label: "Completed", count: counts.completed },
           { value: "cancelled", label: "Cancelled", count: counts.cancelled },
         ]}

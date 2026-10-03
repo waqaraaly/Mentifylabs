@@ -44,11 +44,7 @@ export default async function AppointmentRequestsPage() {
       <PageHeader
         icon={Inbox}
         title="Appointment requests"
-        description={
-          sorted.length === 0
-            ? "New booking inquiries from clients will show up here."
-            : `${sorted.length} request${sorted.length > 1 ? "s" : ""} waiting for your response.`
-        }
+        description="Review, accept or reschedule booking requests from clients."
       />
 
       <RequestsQueue requests={sorted} practitionerSlug={practitioner.slug} openSlots={openSlots} />

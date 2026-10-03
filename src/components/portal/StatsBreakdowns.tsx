@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import {
-  Globe, Link2, Mail, MessageCircle, Search, Send, type LucideIcon,
+  Globe, Layers, Link2, Mail, MessageCircle, Search, Send, type LucideIcon,
 } from "lucide-react";
 import type { BreakdownRow } from "@/data/profileStats";
 import { PLATFORM_ICON_PATH } from "@/components/practitioner/ContactLinks";
@@ -76,7 +76,13 @@ export function SourcesList({ rows, total }: { rows: BreakdownRow[]; total: numb
     <ul className="space-y-4 px-6 py-5">
       {shown.map((row, i) => (
         <li key={row.label} className="flex items-center gap-3">
-          {i < top.length ? <SourceIcon label={row.label} /> : <span className="size-8 shrink-0" aria-hidden />}
+          {i < top.length ? (
+            <SourceIcon label={row.label} />
+          ) : (
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/[0.1] text-primary">
+              <Layers className="size-4" aria-hidden />
+            </span>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className={`truncate ${i < top.length ? "" : "text-muted"}`}>{row.label}</span>

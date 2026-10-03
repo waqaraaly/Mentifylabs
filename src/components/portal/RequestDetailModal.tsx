@@ -2,27 +2,32 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Check, Phone, X } from "lucide-react";
+import { CalendarClock, X } from "lucide-react";
 import type { Appointment } from "@/types/appointment";
 import type { Slot } from "@/types/slot";
-import { formatDateFull } from "@/lib/format";
+import { formatDateFull, formatRequestedAt, formatTime12h } from "@/lib/format";
 import { approveAppointment, declineAppointment, rescheduleAppointmentAction } from "@/app/dashboard/sessions/actions";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { RescheduleFields } from "./RescheduleFields";
 
 export function RequestDetailModal({
   appointment,
+  slotPassed,
+  initialView = "details",
   practitionerSlug,
   openSlots,
   onClose,
 }: {
   appointment: Appointment;
+  /** The requested time has already gone by, so it can only be moved or declined, not accepted as it stands. */
+  slotPassed: boolean;
+  /** Which screen the modal opens on; the table opens a passed request straight on rescheduling. */
+  initialView?: "details" | "reschedule";
   practitionerSlug: string;
   openSlots: Slot[];
   onClose: () => void;
 }) {
   const isOnline = appointment.sessionType === "online";
-  const [view, setView] = useState<"details" | "reschedule">("details");
+  const [view, setView] = useState<"details" | "reschedule">(initialView);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -45,9 +50,6 @@ export function RequestDetailModal({
             <div className="flex items-start justify-between gap-4 px-8 pt-8">
               <div className="min-w-0">
                 <h2 className="text-2xl font-semibold tracking-tight">{appointment.clientName}</h2>
-                <div className="mt-2">
-                  <StatusBadge status={appointment.status} />
-                </div>
               </div>
               <button
                 type="button"
@@ -66,30 +68,39 @@ export function RequestDetailModal({
                   className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-black/[0.02]"
                 >
                   <span className="text-xs font-medium tracking-[0.06em] text-muted uppercase">Contact</span>
-                  <span className="flex items-center gap-2 text-sm font-semibold">
-                    <Phone className="size-3.5 text-muted" aria-hidden />
+                  <span className="text-sm font-semibold">
                     {appointment.clientContact}
                   </span>
                 </a>
 
                 <div className="flex items-center justify-between gap-4 px-5 py-4">
-                  <span className="text-xs font-medium tracking-[0.06em] text-muted uppercase">Date &amp; time</span>
-                  <span className="text-right text-sm font-semibold">
+                  <span className="text-xs font-medium tracking-[0.06em] text-muted uppercase">Date</span>
+                  <span className="text-right text-base font-semibold">
                     {formatDateFull(appointment.date)}
-                    <span className="block text-xs font-normal text-muted">
-                      {appointment.startTime}–{appointment.endTime}
-                    </span>
+                    {slotPassed && (
+                      <span className="mt-1 block text-xs font-normal text-alert">
+                        This time has already passed. Reschedule it or decline.
+                      </span>
+                    )}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 px-5 py-4">
-                  <span className="text-xs font-medium tracking-[0.06em] text-muted uppercase">Mode</span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                      isOnline ? "bg-amber-500/[0.16] text-amber-800 dark:text-amber-300" : "bg-primary/10 text-primary"
-                    }`}
-                  >
-                    {isOnline ? "Online" : "On-Site"}
+                  <span className="text-xs font-medium tracking-[0.06em] text-muted uppercase">Time</span>
+                  <span className="text-base font-semibold">
+                    {formatTime12h(appointment.startTime)} – {formatTime12h(appointment.endTime)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 px-5 py-4">
+                  <span className="text-xs font-medium tracking-[0.06em] text-muted uppercase">Session mode</span>
+                  <span className="text-sm font-semibold">{isOnline ? "Online" : "On-Site"}</span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 px-5 py-4">
+                  <span className="text-xs font-medium tracking-[0.06em] text-muted uppercase">Received</span>
+                  <span className="text-sm text-muted" suppressHydrationWarning>
+                    {formatRequestedAt(appointment.createdAt)}
                   </span>
                 </div>
               </div>
@@ -110,30 +121,33 @@ export function RequestDetailModal({
               <button
                 type="button"
                 onClick={() => setView("reschedule")}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-muted ring-1 ring-black/[0.08] transition hover:bg-black/[0.03] hover:text-foreground"
+                className={
+                  slotPassed
+                    ? "order-last ml-auto rounded-lg bg-accent-strong px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+                    : "rounded-lg px-6 py-3 text-sm font-medium text-muted ring-1 ring-black/[0.08] transition hover:bg-black/[0.03] hover:text-foreground"
+                }
               >
-                <CalendarClock className="size-3.5" aria-hidden />
                 Reschedule
               </button>
-              <form className="ml-auto flex flex-wrap items-center gap-3">
+              <form className={slotPassed ? "flex flex-wrap items-center gap-3" : "ml-auto flex flex-wrap items-center gap-3"}>
                 <input type="hidden" name="id" value={appointment.id} />
                 <input type="hidden" name="slug" value={practitionerSlug} />
                 <button
                   type="submit"
                   formAction={declineAppointment}
-                  className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-medium text-muted ring-1 ring-black/[0.08] transition hover:bg-alert/[0.06] hover:text-alert"
+                  className="rounded-lg px-6 py-3 text-sm font-medium text-muted ring-1 ring-black/[0.08] transition hover:bg-alert/[0.06] hover:text-alert"
                 >
-                  <X className="size-4" aria-hidden />
                   Decline
                 </button>
-                <button
-                  type="submit"
-                  formAction={approveAppointment}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
-                >
-                  <Check className="size-4" aria-hidden />
-                  Approve
-                </button>
+                {!slotPassed && (
+                  <button
+                    type="submit"
+                    formAction={approveAppointment}
+                    className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+                  >
+                    Approve
+                  </button>
+                )}
               </form>
             </div>
           </>

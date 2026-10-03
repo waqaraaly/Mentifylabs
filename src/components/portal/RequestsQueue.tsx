@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Inbox } from "lucide-react";
+import { Fragment, useState, useSyncExternalStore } from "react";
+import { Inbox } from "lucide-react";
 import type { Appointment } from "@/types/appointment";
 import type { Slot } from "@/types/slot";
-import { daysBetween, formatDayCell, formatTime12h, todayIsoDate } from "@/lib/format";
+import { daysBetween, formatDayCell, formatDayHeading, formatTime12h, localDayOf, todayIsoDate } from "@/lib/format";
 import { approveAppointment } from "@/app/dashboard/sessions/actions";
 import { RequestDetailModal } from "./RequestDetailModal";
 
@@ -13,17 +13,13 @@ function toMinutes(time: string): number {
   return h * 60 + m;
 }
 
-function waitingLabel(createdAt: string, today: string): string {
-  const days = daysBetween(createdAt.slice(0, 10), today);
-  if (days <= 0) return "Received today";
-  return `Waiting ${days}d`;
-}
-
 /** Whether the requested slot has already gone by, which the practitioner needs to know before accepting. */
 function slotHasPassed(a: Appointment, today: string, nowMinutes: number): boolean {
   const diff = daysBetween(today, a.date);
   return diff < 0 || (diff === 0 && toMinutes(a.endTime) <= nowMinutes);
 }
+
+const subscribeNever = () => () => {};
 
 export function RequestsQueue({
   requests,
@@ -35,11 +31,23 @@ export function RequestsQueue({
   openSlots: Slot[];
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [openView, setOpenView] = useState<"details" | "reschedule">("details");
+  const open = (id: string, view: "details" | "reschedule") => {
+    setOpenView(view);
+    setOpenId(id);
+  };
   const openDetail = requests.find((r) => r.id === openId) ?? null;
 
   const today = todayIsoDate();
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // Day headings depend on the viewer's timezone, which the server can't know. So the server and the first browser
+  // render show the plain list, and the grouped version takes over once the page is running in the browser.
+  const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const rows = inBrowser
+    ? [...requests].sort((a, b) => localDayOf(b.createdAt).localeCompare(localDayOf(a.createdAt)) || a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
+    : requests;
 
   if (requests.length === 0) {
     return (
@@ -60,7 +68,6 @@ export function RequestsQueue({
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="slug" value={practitionerSlug} />
       <button type="submit" formAction={approveAppointment} className={className}>
-        <Check className="size-4" aria-hidden />
         {label}
       </button>
     </form>
@@ -70,19 +77,21 @@ export function RequestsQueue({
     <>
       {/* Queue */}
       <section className="rounded-2xl bg-surface ring-1 ring-black/[0.07]">
-        <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-4">
-          <h2 className="text-base font-semibold tracking-tight">All requests</h2>
-          <span className="text-xs text-muted">Soonest session first</span>
-        </div>
-
-        <ul className="themed-scrollbar max-h-[40rem] divide-y divide-black/[0.06] overflow-auto border-t border-black/[0.06]">
-          {requests.map((r) => {
+        <ul className="themed-scrollbar max-h-[40rem] divide-y divide-black/[0.06] overflow-auto rounded-2xl">
+          {rows.map((r, i) => {
             const passed = slotHasPassed(r, today, nowMinutes);
             const cell = formatDayCell(r.date);
-            const waited = daysBetween(r.createdAt.slice(0, 10), today);
+            const day = inBrowser ? localDayOf(r.createdAt) : null;
+            const startsDay = day !== null && (i === 0 || day !== localDayOf(rows[i - 1].createdAt));
             return (
-              <li key={r.id} className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:gap-6">
-                {/* Requested-date tile */}
+              <Fragment key={r.id}>
+                {startsDay && (
+                  <li className="sticky top-0 z-10 bg-surface px-6 pt-4 pb-2 text-xs font-semibold tracking-[0.06em] text-muted uppercase">
+                    Received {formatDayHeading(day)}
+                  </li>
+                )}
+              <li className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:gap-6">
+                {/* Session-date tile */}
                 <div
                   className={`flex w-16 shrink-0 flex-col items-center rounded-xl py-2.5 ${
                     passed ? "bg-alert/[0.08] text-alert" : "bg-primary/[0.08] text-primary"
@@ -96,45 +105,38 @@ export function RequestsQueue({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-base font-semibold tracking-tight">{r.clientName}</p>
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                        r.sessionType === "online" ? "bg-amber-500/[0.16] text-amber-800 dark:text-amber-300" : "bg-primary/10 text-primary"
-                      }`}
-                    >
-                      {r.sessionType === "online" ? "Online" : "On-Site"}
-                    </span>
-                    {passed && (
-                      <span className="rounded-full bg-alert/10 px-2.5 py-0.5 text-xs font-semibold text-alert">
-                        Slot passed
-                      </span>
-                    )}
                   </div>
                   <p className="mt-1 text-[15px] text-muted tabular-nums" suppressHydrationWarning>
                     {formatTime12h(r.startTime)} – {formatTime12h(r.endTime)}
-                    <span className={waited >= 3 ? "text-alert" : ""}> · {waitingLabel(r.createdAt, today)}</span>
                   </p>
-                  {r.concern && (
-                    <p className="mt-2 line-clamp-2 max-w-prose text-[15px] leading-relaxed text-foreground/75">
-                      &ldquo;{r.concern}&rdquo;
-                    </p>
-                  )}
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setOpenId(r.id)}
+                    onClick={() => open(r.id, "details")}
                     className="rounded-lg px-4 py-2 text-sm font-semibold text-foreground ring-1 ring-black/[0.12] transition hover:bg-black/[0.04]"
                   >
                     View
                   </button>
-                  {approve(
-                    r.id,
-                    "inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90",
-                    "Accept",
+                  {passed ? (
+                    <button
+                      type="button"
+                      onClick={() => open(r.id, "reschedule")}
+                      className="rounded-lg px-4 py-2 text-sm font-semibold text-accent-strong ring-1 ring-accent-strong/40 transition hover:bg-accent/50"
+                    >
+                      Reschedule
+                    </button>
+                  ) : (
+                    approve(
+                      r.id,
+                      "rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90",
+                      "Accept",
+                    )
                   )}
                 </div>
               </li>
+              </Fragment>
             );
           })}
         </ul>
@@ -143,6 +145,8 @@ export function RequestsQueue({
       {openDetail && (
         <RequestDetailModal
           appointment={openDetail}
+          slotPassed={slotHasPassed(openDetail, today, nowMinutes)}
+          initialView={openView}
           practitionerSlug={practitionerSlug}
           openSlots={openSlots}
           onClose={() => setOpenId(null)}

@@ -112,7 +112,7 @@ export function RescheduleDialog({
                   </div>
                   <div>
                     <label htmlFor="reschedule-mode" className="text-xs text-muted">
-                      Mode
+                      Session mode
                     </label>
                     <select id="reschedule-mode" name="sessionType" defaultValue="online" className={`mt-1 ${fieldClass}`}>
                       <option value="online">Online</option>

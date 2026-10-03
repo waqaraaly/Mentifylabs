@@ -17,7 +17,7 @@ export function SessionTypePicker({
 }) {
   return (
     <fieldset className="space-y-1.5">
-      <legend className="text-sm font-medium text-muted">Session type</legend>
+      <legend className="text-sm font-medium text-muted">Session mode</legend>
       <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-lg ring-1 ring-border">
         {OPTIONS.map(({ value: option, label }) => {
           const selected = value === option;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, CalendarPlus, Clock, MapPin, MessageSquare, Phone, Video, X } from "lucide-react";
-import { formatDateFull, formatDateTime, formatTime12h } from "@/lib/format";
+import { formatDateFull, formatRequestedAt, formatTime12h } from "@/lib/format";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { Appointment } from "@/types/appointment";
 
@@ -60,7 +60,7 @@ export function AppointmentDetailModal({
           <div className={rowClass}>
             <SessionIcon className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden />
             <div>
-              <p className={labelClass}>Session type</p>
+              <p className={labelClass}>Session mode</p>
               <p className="mt-0.5 text-sm font-medium capitalize">
                 {appointment.sessionType === "online" ? "Online" : "On-Site"}
               </p>
@@ -78,8 +78,8 @@ export function AppointmentDetailModal({
           <div className={rowClass}>
             <CalendarPlus className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden />
             <div>
-              <p className={labelClass}>Requested on</p>
-              <p className="mt-0.5 text-sm font-medium">{formatDateTime(appointment.createdAt)}</p>
+              <p className={labelClass}>Received</p>
+              <p className="mt-0.5 text-sm font-medium">{formatRequestedAt(appointment.createdAt)}</p>
             </div>
           </div>
 

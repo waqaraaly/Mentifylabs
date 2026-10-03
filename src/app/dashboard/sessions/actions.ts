@@ -31,11 +31,20 @@ async function ownAppointment(formData: FormData): Promise<{ slug: string; id: s
   return appointment?.practitionerSlug === slug ? { slug, id } : null;
 }
 
-/** A slot id from the form, only if that slot belongs to this practitioner. */
+/**
+ * Whether a date is clearly in the past. Dates carry no timezone, so the server can't tell exactly where "today"
+ * is for this practitioner; it allows a day either side of its own date and leaves the exact time to the form.
+ */
+function isClearlyPast(date: string): boolean {
+  const earliest = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return date < earliest;
+}
+
+/** A slot id from the form, only if that slot belongs to this practitioner and is not clearly in the past. */
 async function ownSlotId(slotId: string | undefined, slug: string): Promise<string | null> {
   if (!slotId) return null;
   const slot = await getSlotById(slotId);
-  return slot?.practitionerSlug === slug ? slot.id : null;
+  return slot?.practitionerSlug === slug && !isClearlyPast(slot.date) ? slot.id : null;
 }
 
 async function setStatus(formData: FormData, status: "confirmed" | "cancelled" | "completed") {
@@ -77,7 +86,7 @@ export async function scheduleSessionAction(formData: FormData) {
     const slotId = await ownSlotId(requestedSlot, slug);
     if (!slotId) return;
     await createManualAppointment({ practitionerSlug: slug, clientName, clientContact, slotId, sessionType });
-  } else if (isIsoDate(date) && isTimeOfDay(startTime) && isTimeOfDay(endTime) && startTime < endTime && sessionType) {
+  } else if (isIsoDate(date) && !isClearlyPast(date) && isTimeOfDay(startTime) && isTimeOfDay(endTime) && startTime < endTime && sessionType) {
     await createManualAppointment({ practitionerSlug: slug, clientName, clientContact, date, startTime, endTime, sessionType });
   } else {
     return;
@@ -107,7 +116,7 @@ export async function rescheduleAppointmentAction(formData: FormData) {
     const slotId = await ownSlotId(requestedSlot, own.slug);
     if (!slotId) return;
     await rescheduleAppointment(own.id, { slotId });
-  } else if (isIsoDate(date) && isTimeOfDay(startTime) && isTimeOfDay(endTime) && startTime < endTime && sessionType) {
+  } else if (isIsoDate(date) && !isClearlyPast(date) && isTimeOfDay(startTime) && isTimeOfDay(endTime) && startTime < endTime && sessionType) {
     await rescheduleAppointment(own.id, { date, startTime, endTime, sessionType });
   } else {
     return;
