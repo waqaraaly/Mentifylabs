@@ -5,8 +5,8 @@ import { formatFeeAmounts, hasFeeRange } from "@/lib/fees";
 
 const SESSION_MODE_LABEL: Record<Practitioner["sessionType"], string> = {
   online: "Online",
-  offline: "Onsite",
-  both: "Online, Onsite",
+  offline: "On-Site",
+  both: "Online, On-Site",
 };
 
 // A solid accent-colored circle with a checkmark in --pt-accent-foreground
@@ -140,7 +140,7 @@ export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
               <p className="mt-2.5 text-xl text-(--pt-text)">{formatFeeAmounts(practitioner.feeRange) ?? "—"}</p>
             </div>
             <div>
-              <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">Mode</p>
+              <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">Session mode</p>
               <p className="mt-2.5 text-xl text-(--pt-text)">{SESSION_MODE_LABEL[practitioner.sessionType]}</p>
             </div>
           </div>
