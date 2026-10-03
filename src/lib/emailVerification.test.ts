@@ -43,7 +43,7 @@ async function makeUser(opts: { verified: boolean; role?: "practitioner" | "admi
   if (role === "practitioner") {
     const slug = `evt-${randomBytes(5).toString("hex")}`;
     const p = await first<{ id: string }>(
-      "INSERT INTO practitioners (slug, full_name, email, status) VALUES (?, 'Verify Tester', ?, 'active') RETURNING id",
+      "INSERT INTO practitioners (slug, full_name, email, status, fee_currency) VALUES (?, 'Verify Tester', ?, 'active', 'PKR') RETURNING id",
       slug,
       email,
     );

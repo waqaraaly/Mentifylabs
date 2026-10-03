@@ -3,6 +3,7 @@ import { run } from "@/lib/db";
 import { CURRENCIES, DEFAULT_CURRENCY, currencyOptions, isCurrencyCode, resolveCurrency } from "@/lib/currencies";
 import { formatFeeRange } from "@/lib/fees";
 import { createPractitionerManually, getPractitionerBySlug, updatePractitionerProfile } from "./practitioners";
+import { randomBytes } from "node:crypto";
 
 const created: string[] = [];
 
@@ -67,5 +68,33 @@ describe("practitioners and their fees", () => {
     const saved = await getPractitionerBySlug(slug);
     expect(saved?.feeRange).toEqual({ currency: "USD", min: 40, max: 60 });
     expect(formatFeeRange(saved!.feeRange)).toBe("USD 40–60");
+  });
+});
+
+describe("the database insists on a currency", () => {
+  const slug = () => `cur-${randomBytes(5).toString("hex")}`;
+
+  it("refuses a practitioner with no currency, instead of quietly defaulting to one", async () => {
+    await expect(run("INSERT INTO practitioners (slug, full_name, email) VALUES (?, 'No Currency', 'nc@example.com')", slug())).rejects.toThrow(/fee_currency is required/);
+  });
+
+  it("refuses a blank currency", async () => {
+    await expect(run("INSERT INTO practitioners (slug, full_name, email, fee_currency) VALUES (?, 'Blank', 'b@example.com', '  ')", slug())).rejects.toThrow(/fee_currency is required/);
+  });
+
+  it("refuses changing a practitioner's currency to nothing", async () => {
+    const s = slug();
+    created.push(s);
+    await run("INSERT INTO practitioners (slug, full_name, email, fee_currency) VALUES (?, 'Keeps Currency', 'kc@example.com', 'GBP')", s);
+    await expect(run("UPDATE practitioners SET fee_currency = NULL WHERE slug = ?", s)).rejects.toThrow(/fee_currency is required/);
+    expect((await getPractitionerBySlug(s))?.feeRange.currency).toBe("GBP");
+  });
+
+  it("still lets a practitioner change currency to another real one", async () => {
+    const s = slug();
+    created.push(s);
+    await run("INSERT INTO practitioners (slug, full_name, email, fee_currency) VALUES (?, 'Switches', 'sw@example.com', 'PKR')", s);
+    await run("UPDATE practitioners SET fee_currency = 'EUR' WHERE slug = ?", s);
+    expect((await getPractitionerBySlug(s))?.feeRange.currency).toBe("EUR");
   });
 });
