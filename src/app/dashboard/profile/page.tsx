@@ -351,17 +351,19 @@ export default async function PublicProfilePage() {
         description={isLive ? "What clients see when they find you. Changes appear as soon as you save." : notLiveReason}
         actions={
           <div className="flex flex-wrap items-start justify-end gap-2.5">
-            {/* Always available, live or not: a private look at the page exactly as clients will see it. */}
-            <a
-              href={`/preview/${practitioner.slug}`}
-              target="_blank"
-              rel="noopener"
-              title="Only you can see this. It's a private preview, and nobody can book from it."
-              className={`${liveButtonClass} ring-1 ring-black/[0.14] hover:bg-black/[0.04]`}
-            >
-              <Eye className="size-4" aria-hidden />
-              Preview profile
-            </a>
+            {/* Only while the profile isn't live: once it is, saving updates it straight away, so the live page is the preview. */}
+            {!isLive && (
+              <a
+                href={`/preview/${practitioner.slug}`}
+                target="_blank"
+                rel="noopener"
+                title="Only you can see this. It's a private preview, and nobody can book from it."
+                className={`${liveButtonClass} ring-1 ring-black/[0.14] hover:bg-black/[0.04]`}
+              >
+                <Eye className="size-4" aria-hidden />
+                Preview profile
+              </a>
+            )}
 
             {isLive ? (
               <>

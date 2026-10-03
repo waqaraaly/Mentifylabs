@@ -1,4 +1,4 @@
-export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "juniper-brick" | "ocean-mist";
+export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "juniper-brick" | "ocean-mist" | "fog-teal" | "olive-grove";
 
 export interface ColorThemeOption {
   id: ColorThemeId;
@@ -41,6 +41,18 @@ export const COLOR_THEMES: ColorThemeOption[] = [
     name: "Ocean Mist",
     description: "A crisp white surface with a pale aqua frame and a deep ocean-teal accent.",
     swatches: ["#F8FCFD", "#CFE8EE", "#1E7A8C", "#E2F1F4"],
+  },
+  {
+    id: "fog-teal",
+    name: "Fog Teal",
+    description: "A soft grey-white surface with a muted, deep teal accent. Clinical but gentle.",
+    swatches: ["#F6F8F8", "#D3E2E3", "#3E5E60", "#E8EDED"],
+  },
+  {
+    id: "olive-grove",
+    name: "Olive Grove",
+    description: "A soft warm-white surface with a muted, deep olive accent. Natural and steady.",
+    swatches: ["#F8F8F6", "#DEE3D3", "#56603E", "#ECEDE8"],
   },
 ];
 
