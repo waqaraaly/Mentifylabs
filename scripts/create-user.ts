@@ -52,14 +52,15 @@ const name = values.name
     : "'Super Admin'";
 
 const statement = `
-INSERT INTO users (email, name, password_hash, role, practitioner_id)
-VALUES (${sql(email)}, ${name}, ${sql(hash)}, ${sql(role)}, ${practitionerId})
+INSERT INTO users (email, name, password_hash, role, practitioner_id, email_verified_at)
+VALUES (${sql(email)}, ${name}, ${sql(hash)}, ${sql(role)}, ${practitionerId}, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 ON CONFLICT (email) DO UPDATE SET
+  email_verified_at = COALESCE(users.email_verified_at, excluded.email_verified_at),
   password_hash = excluded.password_hash,
   role = excluded.role,
   practitioner_id = excluded.practitioner_id;
 DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE email = ${sql(email)});
-DELETE FROM login_attempts WHERE email = ${sql(email)};
+DELETE FROM login_attempts WHERE email = ${sql(email)} OR (email >= ${sql(email + "|")} AND email < ${sql(email + "}")});
 `;
 
 const dir = mkdtempSync(join(tmpdir(), "mentifylabs-user-"));

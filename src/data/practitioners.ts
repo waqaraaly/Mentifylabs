@@ -3,6 +3,8 @@ import type { ColorThemeId } from "@/lib/themes";
 import { isSupportedSocialLink } from "@/lib/social";
 import { all, first, run } from "@/lib/db";
 import { requireRole } from "@/lib/session";
+import { publishBlockReason } from "@/lib/verification";
+import { DEFAULT_CURRENCY } from "@/lib/currencies";
 
 // Slugs a practitioner may not claim, since practitioners are served at the
 // root URL (/[username]) alongside app routes like /dashboard, /admin or /login.
@@ -72,6 +74,7 @@ interface PractitionerRow {
   verification_note: string | null;
   verification_prompt_seen_at: string | null;
   onboarded_at: string | null;
+  accepting_bookings: number;
 }
 
 const opt = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
@@ -116,6 +119,7 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     verificationNote: opt(r.verification_note),
     verificationPromptSeenAt: opt(r.verification_prompt_seen_at),
     onboardedAt: opt(r.onboarded_at),
+    acceptingBookings: r.accepting_bookings !== 0,
   };
 }
 
@@ -156,6 +160,7 @@ const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "feeRange">, [string, 
   verificationNote: ["verification_note"],
   verificationPromptSeenAt: ["verification_prompt_seen_at"],
   onboardedAt: ["onboarded_at"],
+  acceptingBookings: ["accepting_bookings"],
 };
 
 type ColumnValue = string | number | null;
@@ -172,7 +177,14 @@ function toColumns(updates: Partial<Omit<Practitioner, "slug">>): Record<string,
     const spec = COLUMN[key as keyof typeof COLUMN];
     if (!spec) continue;
     const [column, kind] = spec;
-    cols[column] = value === undefined || value === null ? null : kind === "json" ? JSON.stringify(value) : (value as ColumnValue);
+    cols[column] =
+      value === undefined || value === null
+        ? null
+        : kind === "json"
+          ? JSON.stringify(value)
+          : typeof value === "boolean"
+            ? Number(value)
+            : (value as ColumnValue);
   }
   return cols;
 }
@@ -260,17 +272,21 @@ export async function suspendPractitioner(slug: string): Promise<Practitioner | 
 }
 
 export async function reactivatePractitioner(slug: string): Promise<Practitioner | null> {
-  // Public profile needs a manual re-publish after reactivation.
-  return updateBySlug(slug, { status: "active", suspended_on: null, profile_status: "hidden" });
+  // The profile stays offline after reactivation; the practitioner publishes it again themselves.
+  return updateBySlug(slug, { status: "active", suspended_on: null, profile_status: "draft" });
 }
 
-/** Approve & publish the public profile — independent from account status. */
-export async function approveProfile(slug: string): Promise<Practitioner | null> {
+/**
+ * Super Admin's one approval: marks the credentials verified and, if the account was still pending,
+ * activates it. It never publishes. Going live is the practitioner's own step (publishOwnProfile).
+ */
+export async function approveSubmission(slug: string): Promise<Practitioner | null> {
   const current = await getPractitionerBySlug(slug);
   if (!current) return null;
   return updateBySlug(slug, {
-    profile_status: "published",
-    rejection_note: null,
+    verification_status: "verified",
+    verified_on: today(),
+    verification_note: null,
     ...(current.status === "pending" ? { status: "active", approved_on: today() } : {}),
   });
 }
@@ -280,16 +296,24 @@ export async function hideProfile(slug: string): Promise<Practitioner | null> {
 }
 
 /**
- * Self-serve publish: the practitioner takes their own profile live, gated only on
- * credential verification — no admin content review required.
+ * The practitioner takes their own profile live. Only possible once their credentials are verified
+ * (see publishBlockReason), so pending, unverified and sent-back practitioners can't.
  */
 export async function publishOwnProfile(slug: string): Promise<{ ok: true } | { ok: false; message: string }> {
   const current = await getPractitionerBySlug(slug);
   if (!current) return { ok: false, message: "Profile not found." };
-  if (current.verificationStatus !== "verified") {
-    return { ok: false, message: "To publish your profile you must verify your credentials." };
-  }
+  const blocked = publishBlockReason(current);
+  if (blocked) return { ok: false, message: blocked };
   await updateBySlug(slug, { profile_status: "published", rejection_note: null });
+  return { ok: true };
+}
+
+/** The practitioner takes their own profile offline again. It goes back to draft, so they can republish whenever they like. */
+export async function unpublishOwnProfile(slug: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const current = await getPractitionerBySlug(slug);
+  if (!current) return { ok: false, message: "Profile not found." };
+  if (current.profileStatus !== "published") return { ok: false, message: "Your profile isn't published." };
+  await updateBySlug(slug, { profile_status: "draft" });
   return { ok: true };
 }
 
@@ -317,10 +341,6 @@ export async function submitVerification(slug: string): Promise<Practitioner | n
     verification_submitted_at: new Date().toISOString(),
     verification_note: null,
   });
-}
-
-export async function approveVerification(slug: string): Promise<Practitioner | null> {
-  return updateBySlug(slug, { verification_status: "verified", verified_on: today(), verification_note: null });
 }
 
 /** Sends the request back with feedback; the practitioner can resubmit. */
@@ -397,28 +417,32 @@ export async function createPractitionerManually(input: {
   const row = await first<PractitionerRow>(
     `INSERT INTO practitioners
        (slug, full_name, professional_title, email, session_type, contact_methods,
-        status, profile_status, creation_method, date_joined, approved_on)
-     VALUES (?, ?, ?, ?, 'both', ?, ?, ?, 'super_admin', ?, ?)
+        status, profile_status, creation_method, date_joined, approved_on, verification_status, verified_on, fee_currency)
+     VALUES (?, ?, ?, ?, 'both', ?, ?, ?, 'super_admin', ?, ?, ?, ?, ?)
      RETURNING *`,
     normalizedSlug,
     input.fullName,
     input.professionalTitle || "Practitioner",
     input.email,
     JSON.stringify(contactMethods),
-    // Manually added by Super Admin.
+    // Manually added by Super Admin. "Skip verification" means Super Admin vouches for them: they start active
+    // and verified, so they can publish straight away. Either way the profile starts as a draft.
     skip ? "active" : "pending",
-    skip ? "hidden" : "draft",
+    "draft",
     day,
     skip ? day : null,
+    skip ? "verified" : "unverified",
+    skip ? day : null,
+    DEFAULT_CURRENCY,
   );
   return { ok: true, practitioner: toPractitioner(row!) };
 }
 
 // ---- Public visibility ----
 
-/** A profile is live to the public only when the account is active and Super Admin has published it. */
+/** A profile is live to the public only when the account is active, the credentials are verified, and the practitioner has published it. */
 export function isPubliclyVisible(p: Practitioner): boolean {
-  return p.status === "active" && p.profileStatus === "published";
+  return p.status === "active" && p.profileStatus === "published" && p.verificationStatus === "verified";
 }
 
 export const CONTACT_DETAIL_LABELS = ["Email", "Phone"] as const;
@@ -458,7 +482,7 @@ export async function getOwnProfilePreview(slug: string): Promise<Practitioner |
 
 export async function getPublicPractitionerSlugs(): Promise<string[]> {
   const rows = await all<{ slug: string }>(
-    "SELECT slug FROM practitioners WHERE status = 'active' AND profile_status = 'published' ORDER BY created_at",
+    "SELECT slug FROM practitioners WHERE status = 'active' AND profile_status = 'published' AND verification_status = 'verified' ORDER BY created_at",
   );
   return rows.map((r) => r.slug);
 }

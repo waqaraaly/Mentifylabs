@@ -7,6 +7,8 @@ import { EditableList } from "@/components/portal/EditableList";
 import { LoadingOverlay } from "@/components/ui/BrainLoader";
 import { formatFileSize } from "@/lib/format";
 import { siteConfig } from "@/lib/site";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { currencyOptions } from "@/lib/currencies";
 import { DOCUMENT_CATEGORIES } from "@/types/document";
 import type { SessionType } from "@/types/practitioner";
 import { finishOnboardingAction, skipOnboardingAction } from "./actions";
@@ -53,6 +55,7 @@ export function OnboardingWizard({
   shortBio,
   specializations,
   sessionType,
+  feeCurrency,
   feeMin,
   feeMax,
 }: {
@@ -62,6 +65,7 @@ export function OnboardingWizard({
   shortBio: string;
   specializations: string[];
   sessionType: SessionType;
+  feeCurrency: string;
   feeMin: number;
   feeMax: number;
 }) {
@@ -210,7 +214,18 @@ export function OnboardingWizard({
 
               <Step show={step === 4}>
                 <h1 className={headingClass}>What do you charge?</h1>
-                <p className={subtitleClass}>In PKR, per session. You can leave this for now.</p>
+                <p className={subtitleClass}>Per session. Pick your currency, then your range. You can leave this for now.</p>
+                <div className="mt-8 sm:max-w-sm">
+                  <span className="text-sm text-muted">Currency</span>
+                  <ThemedSelect
+                    name="feeCurrency"
+                    ariaLabel="Currency"
+                    openUp
+                    defaultValue={feeCurrency}
+                    options={currencyOptions(feeCurrency)}
+                    triggerClassName="flex w-full items-center border-0 border-b-2 border-foreground bg-transparent py-2.5 text-left text-2xl sm:text-[28px]"
+                  />
+                </div>
                 <div className="mt-8 grid grid-cols-2 gap-8 sm:max-w-sm">
                   <div>
                     <label htmlFor="feeMin" className="text-sm text-muted">

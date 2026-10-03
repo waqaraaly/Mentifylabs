@@ -114,7 +114,7 @@ export function EditableList({
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={handleListKeyDown}
               placeholder={placeholder}
-              className="flex-1 rounded-xl bg-black/[0.025] px-3.5 py-2.5 text-sm outline-none ring-1 ring-transparent focus:bg-surface focus:ring-primary/40 transition"
+              className="min-w-0 flex-1 rounded-xl bg-black/[0.025] px-3.5 py-2.5 text-sm outline-none ring-1 ring-transparent focus:bg-surface focus:ring-primary/40 transition"
             />
             <button
               type="button"

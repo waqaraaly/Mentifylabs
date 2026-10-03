@@ -2,7 +2,7 @@ import { BadgeCheck, Clock, FileText, ShieldCheck, UploadCloud, XCircle } from "
 import { getCurrentPractitioner } from "@/data/practitioners";
 import { getDocumentsByPractitioner } from "@/data/documents";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { VerificationBadge } from "@/components/portal/VerificationBadge";
 import { SettingsCard } from "@/components/portal/SettingsCard";
 import { formatFileSize } from "@/lib/format";
 import { isVerificationRejected } from "@/lib/verification";
@@ -20,11 +20,14 @@ export default async function VerificationPage() {
       <PageHeader
         icon={BadgeCheck}
         title="Verification"
-        badge={<StatusBadge status={rejected ? "rejected" : practitioner.verificationStatus} />}
         description="Confirm your credentials to get the verified badge clients see on your public profile."
       />
 
-      <SettingsCard icon={<BadgeCheck className="size-[18px]" aria-hidden />} title="Verification status">
+      <SettingsCard
+        icon={<BadgeCheck className="size-[18px]" aria-hidden />}
+        title="Verification status"
+        aside={<VerificationBadge status={practitioner.verificationStatus} rejected={rejected} />}
+      >
         {practitioner.verificationStatus === "verified" ? (
           <div className="flex items-start gap-3 px-6 py-6">
             <ShieldCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
@@ -68,7 +71,7 @@ export default async function VerificationPage() {
               <p className="mt-1 text-sm leading-relaxed text-muted">
                 Upload one credential below — your degree, a professional license, or another certification — so the
                 MentifyLabs team can confirm who you are. Your public profile can&apos;t go live and you can&apos;t
-                accept bookings until it&apos;s approved.
+                accept bookings until your credentials are approved and you publish it.
               </p>
             </div>
           </div>

@@ -8,10 +8,18 @@ import type { Slot } from "@/types/slot";
 // plus the booking CTA travel with the visitor instead of living inside a
 // section further up the page. Colors and the pulsing dot match the
 // reference design exactly.
-export function StickyBookingBar({ nextSlot }: { nextSlot: Slot | null }) {
+export function StickyBookingBar({ nextSlot, accepting = true }: { nextSlot: Slot | null; accepting?: boolean }) {
   function openModal() {
     const dialog = document.getElementById(BOOKING_MODAL_ID) as HTMLDialogElement | null;
     dialog?.showModal();
+  }
+
+  if (!accepting) {
+    return (
+      <div className="fixed bottom-8 left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-full border border-(--pt-border) bg-white px-6 py-3.5 text-center text-[13px] text-(--pt-muted) shadow-[0_20px_48px_-16px_rgba(32,34,31,0.32)] sm:w-auto">
+        Not taking new bookings right now
+      </div>
+    );
   }
 
   return (

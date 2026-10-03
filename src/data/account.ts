@@ -7,13 +7,10 @@ import { sendVerificationEmail, resendVerificationEmail } from "@/lib/emailVerif
  * Deliberately separate from the public profile (see Practitioner in src/types),
  * which has its own display name and public contact details.
  */
-export async function getAccount(): Promise<{ name: string; email: string; phone: string; emailVerified: boolean }> {
+export async function getAccount(): Promise<{ name: string; email: string; phone: string; pendingEmail: string | null }> {
   const user = await requireRole("practitioner");
-  const row = await first<{ email_verified_at: string | null }>(
-    "SELECT email_verified_at FROM users WHERE id = ?",
-    user.id,
-  );
-  return { name: user.name, email: user.email, phone: user.phone, emailVerified: !!row?.email_verified_at };
+  const row = await first<{ pending_email: string | null }>("SELECT pending_email FROM users WHERE id = ?", user.id);
+  return { name: user.name, email: user.email, phone: user.phone, pendingEmail: row?.pending_email ?? null };
 }
 
 export async function resendAccountVerificationEmail(): Promise<{ ok: boolean; message: string }> {
@@ -28,8 +25,9 @@ export async function updateAccountDetails(details: {
 }): Promise<{ ok: boolean; message: string }> {
   const user = await requireRole("practitioner");
   const result = await updateUserDetails(user, details);
-  if (result.ok && details.email.trim().toLowerCase() !== user.email) {
-    await sendVerificationEmail(user.id, details.email.trim().toLowerCase(), user.name);
+  // A changed address waits for confirmation: the link goes to the new one.
+  if (result.ok && result.pendingEmail) {
+    await sendVerificationEmail(user.id, result.pendingEmail, details.name || user.name, { newEmail: result.pendingEmail });
   }
   return result;
 }

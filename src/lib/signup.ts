@@ -1,12 +1,10 @@
 import "server-only";
 import { headers } from "next/headers";
 import { first, run } from "@/lib/db";
-import { sendBrandedEmail } from "@/lib/notifications";
-import { siteOrigin } from "@/lib/siteOrigin";
 import { MIN_PASSWORD_LENGTH, hashPassword } from "@/lib/password";
-import { startSession } from "@/lib/session";
+import { MAX_PASSWORD_LENGTH } from "@/lib/session";
+import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { CONTACT_DETAIL_LABELS, uniqueSlugFor } from "@/data/practitioners";
-import { getAdminSettings } from "@/data/adminSettings";
 import { sendVerificationEmail } from "@/lib/emailVerification";
 
 const MAX_SIGNUPS_PER_HOUR = 5;
@@ -18,7 +16,8 @@ export interface SignUpInput {
 }
 
 /**
- * Creates a practitioner (pending approval, draft profile) with its sign-in account and signs them in.
+ * Creates a practitioner (pending approval, draft profile) with its sign-in account. They are not signed in:
+ * the account is usable only after the emailed confirmation link is clicked.
  * Professional title is collected later, in /onboarding. Super Admin still approves the account
  * and publishes the profile before it goes public.
  */
@@ -29,6 +28,9 @@ export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true
 
   if (fullName.length < 2) return { ok: false, message: "Enter your full name." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, message: "Enter a valid email address." };
+  if (input.password.length > MAX_PASSWORD_LENGTH) {
+    return { ok: false, message: `Choose a password of at most ${MAX_PASSWORD_LENGTH} characters.` };
+  }
   if (input.password.length < MIN_PASSWORD_LENGTH) {
     return { ok: false, message: `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.` };
   }
@@ -59,14 +61,15 @@ export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true
   const practitioner = await first<{ id: string }>(
     `INSERT INTO practitioners
        (slug, full_name, professional_title, email, session_type, contact_methods,
-        status, profile_status, creation_method)
-     VALUES (?, ?, ?, ?, 'both', ?, 'pending', 'draft', 'self')
+        status, profile_status, creation_method, fee_currency)
+     VALUES (?, ?, ?, ?, 'both', ?, 'pending', 'draft', 'self', ?)
      RETURNING id`,
     slug,
     fullName,
     professionalTitle,
     email,
     JSON.stringify(contactMethods),
+    DEFAULT_CURRENCY,
   );
 
   let user: { id: string } | null;
@@ -85,22 +88,8 @@ export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true
   }
 
   await run("INSERT INTO login_attempts (email) VALUES (?)", throttleKey);
-  await startSession(user!.id);
+  // No session yet: they sign in once they have confirmed this address from the email we send now.
   await sendVerificationEmail(user!.id, email, fullName);
 
-  const settings = await getAdminSettings();
-  if (settings.notifyNewSignup) {
-    await sendBrandedEmail({
-      to: settings.email,
-      subject: `New practitioner sign-up: ${fullName}`,
-      greeting: "Hello,",
-      content: {
-        eyebrow: "New sign-up",
-        heading: `${fullName} is waiting for approval`,
-        body: [`${fullName} (${professionalTitle}, ${email}) just signed up as a practitioner.`],
-        button: { label: "Review application", url: `${await siteOrigin()}/admin/pending` },
-      },
-    });
-  }
   return { ok: true };
 }

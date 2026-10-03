@@ -83,11 +83,11 @@ export function DashboardNav({ pendingRequests = 0 }: { pendingRequests?: number
                         : "text-sidebar-fg hover:bg-sidebar-active hover:text-sidebar-active-fg"
                     }`}
                   >
-                    <item.icon className="size-4" aria-hidden />
-                    {item.label}
+                    <item.icon className="size-4 shrink-0" aria-hidden />
+                    <span className="whitespace-nowrap">{item.label}</span>
                     {!!count && (
                       <span
-                        className={`ml-auto rounded-full px-1.5 py-0.5 text-xs leading-none font-semibold tabular-nums ${
+                        className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-xs leading-none font-semibold tabular-nums ${
                           isActive ? "bg-sidebar-active-fg/15 text-sidebar-active-fg" : "bg-sidebar-border text-sidebar-strong"
                         }`}
                       >

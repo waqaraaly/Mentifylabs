@@ -1,98 +1,157 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { initialsOf } from "@/lib/admin";
-import { LayoutDashboard, Users, UserCog, Clock, Calendar, BarChart3, Settings, ShieldCheck, BadgeCheck, LogOut } from "lucide-react";
+import {
+  BarChart3,
+  Calendar,
+  Clock,
+  LayoutDashboard,
+  LineChart,
+  LogOut,
+  Menu,
+  Settings,
+  ShieldCheck,
+  UserCog,
+  Users,
+  X,
+} from "lucide-react";
 import { signOutAction } from "@/app/login/actions";
 
-const GROUPS = [
+type CountKey = "practitioners" | "pending" | "bookingsToday";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof Users;
+  /** Which sidebar count to show beside the label. */
+  countKey?: CountKey;
+  /** A count of things waiting on Super Admin: shown only when above zero, and highlighted. */
+  attention?: boolean;
+}
+
+// Grouped by what the admin is doing: the approval queue up top, then managing records, then the numbers.
+const GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Overview",
-    items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard, countKey: null }],
+    items: [
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/pending", label: "Pending approval", icon: Clock, countKey: "pending", attention: true },
+    ],
   },
   {
     label: "Manage",
     items: [
       { href: "/admin/practitioners", label: "Practitioners", icon: Users, countKey: "practitioners" },
-      { href: "/admin/pending", label: "Pending approval", icon: Clock, countKey: "pending" },
-      { href: "/admin/verification", label: "Verification", icon: BadgeCheck, countKey: "verification" },
       { href: "/admin/bookings", label: "Appointments", icon: Calendar, countKey: "bookingsToday" },
+      { href: "/admin/users", label: "Manage Users", icon: UserCog },
     ],
   },
   {
-    label: "Platform",
+    label: "Insights",
     items: [
-      { href: "/admin/reports", label: "Reports", icon: BarChart3, countKey: null },
-      { href: "/admin/users", label: "Manage Users", icon: UserCog, countKey: null },
-      { href: "/admin/settings", label: "Settings", icon: Settings, countKey: null },
+      { href: "/admin/profile-stats", label: "Profile stats", icon: LineChart },
+      { href: "/admin/reports", label: "Reports", icon: BarChart3 },
     ],
   },
-] as const;
+];
+
+const SETTINGS: NavItem = { href: "/admin/settings", label: "Settings", icon: Settings };
 
 export interface SidebarCounts {
   practitioners: number;
   pending: number;
-  verification: number;
   bookingsToday: number;
 }
 
 export function Sidebar({ counts, admin }: { counts: SidebarCounts; admin: { name: string; email: string } }) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
+
+  const renderLink = (item: NavItem) => {
+    const active = isActive(item.href);
+    const count = item.countKey ? counts[item.countKey] : undefined;
+    // Review-queue counts only matter when something is waiting.
+    const showCount = count !== undefined && (!item.attention || count > 0);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={active ? "page" : undefined}
+        className={"sidebar-link" + (active ? " active" : "")}
+      >
+        <item.icon size={18} className="icon" strokeWidth={1.8} />
+        <span>{item.label}</span>
+        {showCount && <span className={"count tnum" + (item.attention ? " attention" : "")}>{count}</span>}
+      </Link>
+    );
+  };
 
   return (
     <aside className="shell-sidebar">
       <div className="shell-sidebar-inner">
-        <div className="sidebar-brand">
-          <div className="sidebar-brand-icon">
-            <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 6h12L6 18h12" />
-            </svg>
+        <div className="sidebar-top">
+          <div className="sidebar-brand">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local SVG, no optimization needed */}
+            <img src="/brand/mentifylabs-logo.svg" alt="MentifyLabs" className="sidebar-logo" />
           </div>
-          <div className="sidebar-brand-text">
-            <span className="sidebar-brand-name">MentifyLabs</span>
-            <span className="sidebar-brand-sub">Super Admin</span>
-          </div>
+          <button
+            type="button"
+            className="sidebar-menu-btn"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-controls="admin-menu"
+          >
+            {open ? <X size={20} /> : <Menu size={20} />}
+            <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
+          </button>
         </div>
 
-        <nav className="sidebar-nav">
-          {GROUPS.map((group) => (
-            <div key={group.label} className="nav-group-block">
-              <div className="nav-group">{group.label}</div>
-              {group.items.map((item) => {
-                const active = item.href === "/admin" ? pathname === item.href : pathname.startsWith(item.href);
-                const count = item.countKey ? counts[item.countKey] : undefined;
-                return (
-                  <Link key={item.href} href={item.href} className={"sidebar-link" + (active ? " active" : "")}>
-                    <item.icon size={18} className="icon" strokeWidth={1.8} />
-                    <span>{item.label}</span>
-                    {count !== undefined && <span className="count tnum">{count}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
+        <div
+          id="admin-menu"
+          className={"sidebar-body" + (open ? " open" : "")}
+          // Tapping any link closes the menu on small screens; the page navigates as usual.
+          onClick={(e) => (e.target as HTMLElement).closest("a") && setOpen(false)}
+        >
+          <nav className="sidebar-nav" aria-label="Super Admin">
+            {GROUPS.map((group) => (
+              <div key={group.label} className="nav-group-block">
+                <div className="nav-group">{group.label}</div>
+                {group.items.map(renderLink)}
+              </div>
+            ))}
+          </nav>
 
-        <div style={{ flex: 1 }} />
-
-        <div className="sidebar-footer">
-          <div className="sidebar-profile">
-            <div className="avatar avatar-md" style={{ background: "var(--ml-accent-soft)", color: "var(--ml-accent-2)", border: "none" }}>
-              {initialsOf(admin.name)}
+          <div className="sidebar-footer">
+            {renderLink(SETTINGS)}
+            <div className="sidebar-profile">
+              <div className="avatar avatar-md" style={{ background: "var(--ml-accent-soft)", color: "var(--ml-accent-2)", border: "none" }}>
+                {initialsOf(admin.name)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="sidebar-profile-name truncate">{admin.name}</div>
+                <div className="sidebar-profile-email truncate">{admin.email}</div>
+              </div>
+              <ShieldCheck size={17} style={{ color: "var(--ml-accent)", flexShrink: 0 }} />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="sidebar-profile-name truncate">{admin.name}</div>
-              <div className="sidebar-profile-email truncate">{admin.email}</div>
-            </div>
-            <ShieldCheck size={17} style={{ color: "var(--ml-accent)", flexShrink: 0 }} />
+            <form action={signOutAction}>
+              <button type="submit" className="sidebar-link sidebar-signout">
+                <LogOut size={17} className="icon" />
+                <span>Sign out</span>
+              </button>
+            </form>
           </div>
-          <form action={signOutAction}>
-            <button type="submit" className="sidebar-link sidebar-signout">
-              <LogOut size={17} className="icon" />
-              <span>Sign out</span>
-            </button>
-          </form>
         </div>
       </div>
     </aside>

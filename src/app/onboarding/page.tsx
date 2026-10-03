@@ -20,6 +20,7 @@ export default async function OnboardingPage() {
       shortBio={practitioner.shortBio ?? ""}
       specializations={practitioner.specializations}
       sessionType={practitioner.sessionType}
+      feeCurrency={practitioner.feeRange.currency}
       feeMin={practitioner.feeRange.min}
       feeMax={practitioner.feeRange.max}
     />

@@ -5,6 +5,7 @@ import { Field } from "@/components/portal/Field";
 import { PasswordForm } from "@/components/portal/PasswordForm";
 import { SettingsCard } from "@/components/portal/SettingsCard";
 import { settingsInputClass } from "@/components/portal/SettingsRow";
+import { phoneExample } from "@/lib/countries";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { resendVerificationAction, updateAccountAction } from "./actions";
 
@@ -85,17 +86,20 @@ export default async function SettingsPage({
                   required
                   className={settingsInputClass}
                 />
-                {account.emailVerified ? (
+                {account.pendingEmail ? (
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
+                    <span>
+                      Waiting for you to confirm <span className="font-medium break-all text-foreground">{account.pendingEmail}</span>. Until
+                      then you sign in with this address.
+                    </span>
+                    <button type="submit" formAction={resendVerificationAction} className="font-medium text-primary hover:underline">
+                      Resend confirmation email
+                    </button>
+                  </p>
+                ) : (
                   <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-primary">
                     <ShieldCheck className="size-3.5" aria-hidden />
                     Verified
-                  </p>
-                ) : (
-                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
-                    Not verified yet.
-                    <button type="submit" formAction={resendVerificationAction} className="font-medium text-primary hover:underline">
-                      Resend verification email
-                    </button>
                   </p>
                 )}
               </Field>
@@ -104,7 +108,7 @@ export default async function SettingsPage({
                   id="phone"
                   name="phone"
                   type="tel"
-                  placeholder="+92 300 1234567"
+                  placeholder={phoneExample()}
                   defaultValue={account.phone}
                   className={settingsInputClass}
                 />

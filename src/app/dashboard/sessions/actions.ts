@@ -12,6 +12,7 @@ import {
 } from "@/data/appointments";
 import { getSlotById } from "@/data/slots";
 import { requireOwnSlug } from "@/data/practitioners";
+import { BOOKING_LIMITS, isIsoDate, isTimeOfDay } from "@/lib/validate";
 
 function revalidatePortalAndPublic(slug: string) {
   revalidatePath("/dashboard");
@@ -64,7 +65,7 @@ export async function scheduleSessionAction(formData: FormData) {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
   const clientName = formData.get("clientName")?.toString()?.trim();
   const clientContact = formData.get("clientContact")?.toString()?.trim() ?? "";
-  if (!clientName) return;
+  if (!clientName || clientName.length > BOOKING_LIMITS.name || clientContact.length > BOOKING_LIMITS.contact) return;
 
   const requestedSlot = formData.get("slotId")?.toString();
   const date = formData.get("date")?.toString();
@@ -76,7 +77,7 @@ export async function scheduleSessionAction(formData: FormData) {
     const slotId = await ownSlotId(requestedSlot, slug);
     if (!slotId) return;
     await createManualAppointment({ practitionerSlug: slug, clientName, clientContact, slotId, sessionType });
-  } else if (date && startTime && endTime && sessionType) {
+  } else if (isIsoDate(date) && isTimeOfDay(startTime) && isTimeOfDay(endTime) && startTime < endTime && sessionType) {
     await createManualAppointment({ practitionerSlug: slug, clientName, clientContact, date, startTime, endTime, sessionType });
   } else {
     return;
@@ -106,7 +107,7 @@ export async function rescheduleAppointmentAction(formData: FormData) {
     const slotId = await ownSlotId(requestedSlot, own.slug);
     if (!slotId) return;
     await rescheduleAppointment(own.id, { slotId });
-  } else if (date && startTime && endTime && sessionType) {
+  } else if (isIsoDate(date) && isTimeOfDay(startTime) && isTimeOfDay(endTime) && startTime < endTime && sessionType) {
     await rescheduleAppointment(own.id, { date, startTime, endTime, sessionType });
   } else {
     return;

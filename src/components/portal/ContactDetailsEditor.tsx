@@ -1,5 +1,6 @@
 "use client";
 
+import { phoneExample } from "@/lib/countries";
 import { useState } from "react";
 import { Mail, Phone } from "lucide-react";
 import type { ContactMethod } from "@/types/practitioner";
@@ -9,7 +10,7 @@ const fieldClass =
 
 const FIELD_META: Record<string, { icon: typeof Mail; type: string; placeholder: string }> = {
   Email: { icon: Mail, type: "email", placeholder: "e.g. name@example.com" },
-  Phone: { icon: Phone, type: "tel", placeholder: "e.g. +92 300 1234567" },
+  Phone: { icon: Phone, type: "tel", placeholder: `e.g. ${phoneExample()}` },
 };
 
 /** The fixed Email and Phone rows, each with its own Public/Private toggle. */
@@ -45,7 +46,7 @@ export function ContactDetailsEditor({ initialItems }: { initialItems: ContactMe
               value={item.value}
               onChange={(e) => updateItem(item.label, { value: e.target.value })}
               placeholder={meta?.placeholder}
-              className={`min-w-[10rem] flex-1 ${fieldClass}`}
+              className={`min-w-0 flex-1 ${fieldClass}`}
             />
 
             <div className="flex items-center gap-2">

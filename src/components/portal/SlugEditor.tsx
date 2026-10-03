@@ -94,10 +94,12 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
   return (
     <div>
       <div
-        className={`flex items-center rounded-xl bg-black/[0.025] py-1 pr-1.5 pl-3.5 ring-1 transition ${
+        className={`flex flex-wrap items-center rounded-xl bg-black/[0.025] py-1 pr-1.5 pl-3.5 ring-1 transition ${
           editing ? (error ? "bg-surface ring-alert/50" : "bg-surface ring-primary/40") : "ring-transparent"
         }`}
       >
+        {/* The URL itself and its buttons are two groups, so on a narrow screen the buttons drop to their own line instead of overflowing. */}
+        <div className="flex min-w-0 flex-1 basis-44 items-center">
         <Link2 className="mr-1.5 size-4 shrink-0 text-muted" aria-hidden />
         <span className="shrink-0 text-sm text-muted">{domain}/</span>
 
@@ -121,7 +123,9 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
         ) : (
           <span className="min-w-0 flex-1 truncate py-1.5 text-sm font-medium">{currentSlug}</span>
         )}
+        </div>
 
+        <div className="ml-auto flex shrink-0 items-center">
         {editing ? (
           <>
             <button
@@ -157,6 +161,7 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
             </ActionButton>
           </>
         )}
+        </div>
       </div>
 
       {editing && (

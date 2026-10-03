@@ -24,6 +24,7 @@ import { WEEKDAYS_FULL } from "@/lib/format";
 import { getAppointmentsByPractitioner } from "@/data/appointments";
 import { parseSlotSessionType } from "@/lib/sessionType";
 import { requireOwnSlug } from "@/data/practitioners";
+import { isIsoDate, validTimeRange } from "@/lib/validate";
 
 function revalidatePortalAndPublic(slug: string) {
   revalidatePath("/dashboard");
@@ -48,7 +49,9 @@ export async function addSlotAction(formData: FormData): Promise<{ error?: strin
   const sessionType = parseSlotSessionType(formData.get("sessionType")?.toString());
 
   if (!practitionerSlug || !date || !startTime || !endTime || !sessionType) return { error: "Missing fields." };
-  if (startTime >= endTime) return { error: "End time must be after the start time." };
+  if (!isIsoDate(date)) return { error: "Choose a valid date." };
+  const timeError = validTimeRange(startTime, endTime);
+  if (timeError) return { error: timeError };
 
   const override = await getDayOverride(practitionerSlug, date);
   if (override?.type === "unavailable") {
@@ -85,7 +88,11 @@ export async function editSlotAction(formData: FormData) {
   const sessionType = parseSlotSessionType(formData.get("sessionType")?.toString());
 
   if (!id || !slug || !date || !startTime || !endTime || !sessionType) return;
-  if ((await getSlotById(id))?.practitionerSlug !== slug) return;
+  if (!isIsoDate(date) || validTimeRange(startTime, endTime)) return;
+  const existing = await getSlotById(id);
+  // A booked slot holds a client's appointment, and a clash would create a double booking.
+  if (!existing || existing.practitionerSlug !== slug || existing.status === "booked") return;
+  if (await slotsOverlap(slug, date, startTime, endTime, id)) return;
 
   await updateSlot(id, { date, startTime, endTime, sessionType });
   revalidatePortalAndPublic(slug);
@@ -99,7 +106,8 @@ export async function updateSlotDetailsAction(formData: FormData): Promise<{ err
   const endTime = formData.get("endTime")?.toString();
   const sessionType = parseSlotSessionType(formData.get("sessionType")?.toString());
   if (!id || !slug || !startTime || !endTime || !sessionType) return { error: "Missing fields." };
-  if (startTime >= endTime) return { error: "End time must be after the start time." };
+  const timeError = validTimeRange(startTime, endTime);
+  if (timeError) return { error: timeError };
 
   const slot = await getSlotById(id);
   if (!slot || slot.practitionerSlug !== slug) return { error: "This slot no longer exists." };
@@ -132,10 +140,11 @@ export async function copySlotAction(formData: FormData) {
   const id = formData.get("id")?.toString();
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
   const targetDate = formData.get("targetDate")?.toString();
-  if (!id || !slug || !targetDate) return;
+  if (!id || !slug || !isIsoDate(targetDate)) return;
 
   const slot = await getSlotById(id);
   if (!slot || slot.practitionerSlug !== slug) return;
+  if (await slotsOverlap(slug, targetDate, slot.startTime, slot.endTime)) return;
 
   await addSlot({
     practitionerSlug: slug,
@@ -174,8 +183,11 @@ export async function addWeeklyRuleAction(formData: FormData): Promise<{ error?:
   const startTime = formData.get("startTime")?.toString();
   const endTime = formData.get("endTime")?.toString();
   const sessionType = parseSlotSessionType(formData.get("sessionType")?.toString());
-  if (!slug || Number.isNaN(weekday) || !startTime || !endTime || !sessionType) return { error: "Missing fields." };
-  if (startTime >= endTime) return { error: "End time must be after the start time." };
+  if (!slug || !Number.isInteger(weekday) || weekday < 0 || weekday > 6 || !startTime || !endTime || !sessionType) {
+    return { error: "Missing fields." };
+  }
+  const timeError = validTimeRange(startTime, endTime);
+  if (timeError) return { error: timeError };
   if (await weeklyRuleOverlaps(slug, weekday, startTime, endTime)) {
     return { error: "This overlaps with an existing slot on that day." };
   }
@@ -195,10 +207,11 @@ export async function updateWeeklyRuleAction(formData: FormData): Promise<{ erro
   const startTime = formData.get("startTime")?.toString();
   const endTime = formData.get("endTime")?.toString();
   const sessionType = parseSlotSessionType(formData.get("sessionType")?.toString());
-  if (!id || !slug || Number.isNaN(weekday) || !startTime || !endTime || !sessionType) {
+  if (!id || !slug || !Number.isInteger(weekday) || weekday < 0 || weekday > 6 || !startTime || !endTime || !sessionType) {
     return { error: "Missing fields." };
   }
-  if (startTime >= endTime) return { error: "End time must be after the start time." };
+  const timeError = validTimeRange(startTime, endTime);
+  if (timeError) return { error: timeError };
   if (await weeklyRuleOverlaps(slug, weekday, startTime, endTime, id)) {
     return { error: "This overlaps with an existing slot on that day." };
   }
@@ -223,7 +236,7 @@ export async function removeWeeklyRuleAction(formData: FormData) {
 export async function copyWeeklyRuleAction(formData: FormData): Promise<{ error?: string }> {
   const id = formData.get("id")?.toString();
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
-  const targets = formData.getAll("targets").map(Number).filter((n) => !Number.isNaN(n));
+  const targets = formData.getAll("targets").map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
   if (!id || !slug || targets.length === 0) return { error: "Missing fields." };
 
   const rules = await getWeeklyRules(slug);
@@ -253,10 +266,10 @@ export async function addTimeOffAction(formData: FormData) {
   const startDate = formData.get("startDate")?.toString();
   const endDateRaw = formData.get("endDate")?.toString();
   const label = formData.get("label")?.toString();
-  if (!slug || !startDate) return;
+  if (!slug || !isIsoDate(startDate)) return;
 
-  const endDate = endDateRaw && endDateRaw >= startDate ? endDateRaw : startDate;
-  await addTimeOff(slug, startDate, endDate, label && label.trim() ? label.trim() : "Time off");
+  const endDate = isIsoDate(endDateRaw) && endDateRaw >= startDate ? endDateRaw : startDate;
+  await addTimeOff(slug, startDate, endDate, label && label.trim() ? label.trim().slice(0, 100) : "Time off");
   await blockOpenSlotsInRange(slug, startDate, endDate);
   revalidatePortalAndPublic(slug);
 }
@@ -278,7 +291,7 @@ export async function removeTimeOffAction(formData: FormData) {
 export async function applyWeeklyHoursForDateAction(formData: FormData) {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
   const date = formData.get("date")?.toString();
-  if (!slug || !date) return;
+  if (!slug || !isIsoDate(date)) return;
 
   await resetDateToWeeklyHours(slug, date);
   revalidatePortalAndPublic(slug);
@@ -294,7 +307,7 @@ export async function getDayOverrideAction(slug: string, date: string) {
 export async function markDateUnavailableAction(formData: FormData) {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
   const date = formData.get("date")?.toString();
-  if (!slug || !date) return;
+  if (!slug || !isIsoDate(date)) return;
 
   await setDayOverride(slug, date, "unavailable");
   await blockOpenSlotsInRange(slug, date, date);
@@ -324,7 +337,7 @@ export async function getUnavailableDatesAction(slug: string): Promise<string[]>
 /** Marks several dates unavailable in one go. Booked sessions are left scheduled; only open slots are blocked. */
 export async function markDatesUnavailableAction(formData: FormData) {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
-  const dates = formData.getAll("dates").map(String).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+  const dates = formData.getAll("dates").map(String).filter((d) => isIsoDate(d));
   if (!slug || dates.length === 0) return;
 
   for (const date of dates) {

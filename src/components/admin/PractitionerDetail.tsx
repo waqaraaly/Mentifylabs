@@ -289,7 +289,7 @@ function OverviewTab({
         <Row label="Account status"><Badge kind={p.status} /></Row>
         <Row label="Profile status"><Badge kind={p.profileStatus} /></Row>
         <Row label="Verification">
-          <Link href={`/admin/verification/${p.slug}`} className="btn btn-ghost btn-sm" style={{ padding: "2px 8px", marginLeft: -8 }}>
+          <Link href={`/admin/pending/${p.slug}`} className="btn btn-ghost btn-sm" style={{ padding: "2px 8px", marginLeft: -8 }}>
             <Badge kind={p.verificationStatus} />
           </Link>
         </Row>
@@ -329,6 +329,9 @@ function OverviewTab({
             {p.sessionType !== "offline" && <Badge kind="info" dot={false}>Online</Badge>}
             {p.sessionType !== "online" && <Badge kind="active" dot={false}>Onsite</Badge>}
           </span>
+        </Row>
+        <Row label="New bookings">
+          {p.acceptingBookings ? <Badge kind="active">Accepting</Badge> : <Badge kind="suspended">Paused by practitioner</Badge>}
         </Row>
         <Row label="Languages">{p.languages.length ? p.languages.join(" · ") : dash}</Row>
       </Section>

@@ -18,5 +18,5 @@ export async function signUpAction(_prev: SignUpState, formData: FormData): Prom
   if (!result.ok) return { error: result.message, values };
 
   revalidateAdminViews();
-  redirect("/onboarding");
+  redirect(`/signup/check-email?email=${encodeURIComponent(values.email.trim().toLowerCase())}`);
 }

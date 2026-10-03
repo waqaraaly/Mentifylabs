@@ -19,12 +19,10 @@ function waitingLabel(createdAt: string, today: string): string {
   return `Waiting ${days}d`;
 }
 
-function sessionWhen(a: Appointment, today: string, nowMinutes: number): { text: string; expired: boolean } {
+/** Whether the requested slot has already gone by, which the practitioner needs to know before accepting. */
+function slotHasPassed(a: Appointment, today: string, nowMinutes: number): boolean {
   const diff = daysBetween(today, a.date);
-  if (diff < 0 || (diff === 0 && toMinutes(a.endTime) <= nowMinutes)) return { text: "Slot has passed", expired: true };
-  if (diff === 0) return { text: "Today", expired: false };
-  if (diff === 1) return { text: "Tomorrow", expired: false };
-  return { text: `In ${diff} days`, expired: false };
+  return diff < 0 || (diff === 0 && toMinutes(a.endTime) <= nowMinutes);
 }
 
 export function RequestsQueue({
@@ -79,7 +77,7 @@ export function RequestsQueue({
 
         <ul className="themed-scrollbar max-h-[40rem] divide-y divide-black/[0.06] overflow-auto border-t border-black/[0.06]">
           {requests.map((r) => {
-            const when = sessionWhen(r, today, nowMinutes);
+            const passed = slotHasPassed(r, today, nowMinutes);
             const cell = formatDayCell(r.date);
             const waited = daysBetween(r.createdAt.slice(0, 10), today);
             return (
@@ -87,7 +85,7 @@ export function RequestsQueue({
                 {/* Requested-date tile */}
                 <div
                   className={`flex w-16 shrink-0 flex-col items-center rounded-xl py-2.5 ${
-                    when.expired ? "bg-alert/[0.08] text-alert" : "bg-primary/[0.08] text-primary"
+                    passed ? "bg-alert/[0.08] text-alert" : "bg-primary/[0.08] text-primary"
                   }`}
                 >
                   <span className="text-[10px] font-semibold tracking-[0.08em] uppercase">{cell.weekday}</span>
@@ -105,7 +103,7 @@ export function RequestsQueue({
                     >
                       {r.sessionType === "online" ? "Online" : "On-Site"}
                     </span>
-                    {when.expired && (
+                    {passed && (
                       <span className="rounded-full bg-alert/10 px-2.5 py-0.5 text-xs font-semibold text-alert">
                         Slot passed
                       </span>
@@ -113,7 +111,6 @@ export function RequestsQueue({
                   </div>
                   <p className="mt-1 text-[15px] text-muted tabular-nums" suppressHydrationWarning>
                     {formatTime12h(r.startTime)} – {formatTime12h(r.endTime)}
-                    {!when.expired && ` · ${when.text}`}
                     <span className={waited >= 3 ? "text-alert" : ""}> · {waitingLabel(r.createdAt, today)}</span>
                   </p>
                   {r.concern && (

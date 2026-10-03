@@ -1,12 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addDocument } from "@/data/documents";
-import { requireOwnSlug, submitVerification } from "@/data/practitioners";
+import { addDocument, getDocumentsByPractitioner } from "@/data/documents";
+import { getCurrentPractitioner, requireOwnSlug, submitVerification } from "@/data/practitioners";
 import { recordReviewEvent } from "@/data/reviewEvents";
 import { requireRole } from "@/lib/session";
 import { revalidateAdminViews } from "@/lib/revalidate";
-import { DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, randomKeyPart, uploads } from "@/lib/storage";
+import {
+  DOCUMENT_TYPES,
+  MAX_DOCUMENTS_PER_PRACTITIONER,
+  MAX_DOCUMENT_BYTES,
+  matchesFileSignature,
+  randomKeyPart,
+  uploads,
+} from "@/lib/storage";
 import { DOCUMENT_CATEGORIES, type PractitionerDocument } from "@/types/document";
 
 export interface VerificationSubmitState {
@@ -28,13 +35,26 @@ export async function submitVerificationAction(
   if (!extension) return { error: "Upload a PDF, JPG, PNG or WebP file." };
   if (file.size > MAX_DOCUMENT_BYTES) return { error: "That file is too large. The limit is 10 MB." };
 
+  const bytes = await file.arrayBuffer();
+  if (!matchesFileSignature(bytes, file.type)) return { error: "That file doesn't look like a valid PDF or image." };
+  if ((await getDocumentsByPractitioner(slug)).length >= MAX_DOCUMENTS_PER_PRACTITIONER) {
+    return { error: `You can keep up to ${MAX_DOCUMENTS_PER_PRACTITIONER} documents on file. Delete one first.` };
+  }
+
   const { practitionerId } = await requireRole("practitioner");
   const key = `documents/${practitionerId}/${randomKeyPart()}.${extension}`;
-  await (await uploads()).put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
+  const bucket = await uploads();
+  await bucket.put(key, bytes, { httpMetadata: { contentType: file.type } });
 
   const name = file.name.replace(/[\u0000-\u001f]/g, "").slice(0, 150) || `document.${extension}`;
-  await addDocument({ practitionerSlug: slug, name, category, storageKey: key, contentType: file.type, sizeBytes: file.size });
-  await submitVerification(slug);
+  try {
+    await addDocument({ practitionerSlug: slug, name, category, storageKey: key, contentType: file.type, sizeBytes: file.size });
+  } catch (error) {
+    await bucket.delete(key); // don't leave an orphaned file in storage
+    throw error;
+  }
+  // Someone already verified keeps their verified status when they add another document.
+  if ((await getCurrentPractitioner()).verificationStatus !== "verified") await submitVerification(slug);
   await recordReviewEvent(slug, "verification_submitted", { note: name });
 
   revalidatePath("/dashboard/verification");

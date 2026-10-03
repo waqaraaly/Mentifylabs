@@ -237,6 +237,44 @@ export function SessionsAgenda({
 
   const top = <Tabs basePath="/dashboard/sessions" active={tab} items={tabItems} />;
 
+  // The table (md and up) and the card list (phones) never show together, but each needs its own menu
+  // id, so opening one never opens the other's copy.
+  const actionsFor = (a: Appointment, where: "table" | "card") => {
+    const id = `${a.id}:${where}`;
+    const toggle = () => setMenuOpenId(menuOpenId === id ? null : id);
+    return tab === "upcoming" ? (
+      <SessionActionsMenu
+        open={menuOpenId === id}
+        onToggle={toggle}
+        onClose={() => setMenuOpenId(null)}
+        onView={() => setViewId(a.id)}
+        onReschedule={() => setRescheduleId(a.id)}
+        onRequestComplete={() => setConfirmTarget({ appointment: a, action: "complete" })}
+        onRequestCancel={() => setConfirmTarget({ appointment: a, action: "cancel" })}
+      />
+    ) : (
+      <DeleteRecordMenu
+        appointment={a}
+        practitionerSlug={practitionerSlug}
+        open={menuOpenId === id}
+        onToggle={toggle}
+        onClose={() => setMenuOpenId(null)}
+      />
+    );
+  };
+
+  const modeBadge = (a: Appointment) => (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
+        a.sessionType === "online"
+          ? "bg-amber-500/[0.16] text-amber-800 dark:text-amber-300"
+          : "bg-primary/10 text-primary"
+      }`}
+    >
+      <span>{a.sessionType === "online" ? "Online" : "On-Site"}</span>
+    </span>
+  );
+
   if (appointments.length === 0) {
     const copy = EMPTY_COPY[tab] ?? EMPTY_COPY.upcoming;
     return (
@@ -279,7 +317,7 @@ export function SessionsAgenda({
           </span>
         </div>
 
-        <div className="themed-scrollbar max-h-[28rem] overflow-auto">
+        <div className="themed-scrollbar hidden max-h-[28rem] overflow-auto md:block">
           <table className="w-full min-w-[760px] text-left text-base">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-black/[0.07] bg-surface">
@@ -340,39 +378,9 @@ export function SessionsAgenda({
                       <p className="text-base font-semibold tracking-tight">{a.clientName}</p>
                       <p className="mt-1 text-[15px] text-muted">{a.clientContact}</p>
                     </td>
-                    <td className="px-4 py-5 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                          a.sessionType === "online"
-                            ? "bg-amber-500/[0.16] text-amber-800 dark:text-amber-300"
-                            : "bg-primary/10 text-primary"
-                        }`}
-                      >
-                        <span>{a.sessionType === "online" ? "Online" : "On-Site"}</span>
-                      </span>
-                    </td>
+                    <td className="px-4 py-5 whitespace-nowrap">{modeBadge(a)}</td>
                     <td className="py-5 pr-6 sm:pr-7">
-                      <div className="flex items-center justify-end">
-                        {tab === "upcoming" ? (
-                          <SessionActionsMenu
-                            open={menuOpenId === a.id}
-                            onToggle={() => setMenuOpenId(menuOpenId === a.id ? null : a.id)}
-                            onClose={() => setMenuOpenId(null)}
-                            onView={() => setViewId(a.id)}
-                            onReschedule={() => setRescheduleId(a.id)}
-                            onRequestComplete={() => setConfirmTarget({ appointment: a, action: "complete" })}
-                            onRequestCancel={() => setConfirmTarget({ appointment: a, action: "cancel" })}
-                          />
-                        ) : (
-                          <DeleteRecordMenu
-                            appointment={a}
-                            practitionerSlug={practitionerSlug}
-                            open={menuOpenId === a.id}
-                            onToggle={() => setMenuOpenId(menuOpenId === a.id ? null : a.id)}
-                            onClose={() => setMenuOpenId(null)}
-                          />
-                        )}
-                      </div>
+                      <div className="flex items-center justify-end">{actionsFor(a, "table")}</div>
                     </td>
                   </tr>
                   );
@@ -381,6 +389,45 @@ export function SessionsAgenda({
             </tbody>
           </table>
         </div>
+
+        {/* Phones: one card per session, with the actions menu always in reach. */}
+        <ul className="divide-y divide-black/[0.06] md:hidden">
+          {rows.length === 0 ? (
+            <li className="px-5 py-10 text-center text-base text-muted">No sessions match &ldquo;{search}&rdquo;.</li>
+          ) : (
+            rows.map((a) => {
+              const overdue = tab === "upcoming" && hasEnded(a);
+              const day = formatDayCell(a.date);
+              return (
+                <li key={a.id} className="flex items-start gap-3 px-4 py-4">
+                  <div
+                    className={`flex w-14 shrink-0 flex-col items-center rounded-xl py-2 ${
+                      overdue ? "bg-alert/[0.08] text-alert" : "bg-primary/[0.08] text-primary"
+                    }`}
+                  >
+                    <span className="text-[10px] font-semibold tracking-[0.08em] uppercase">{day.weekday}</span>
+                    <span className="text-xl leading-tight font-semibold tabular-nums">{day.day}</span>
+                    <span className="text-[10px] font-medium uppercase opacity-80">{day.month}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold tabular-nums">
+                      {formatTime12h(a.startTime)} – {formatTime12h(a.endTime)}
+                      {overdue && (
+                        <span className="rounded-full bg-alert/10 px-2 py-0.5 text-[11px] font-semibold tracking-[0.04em] text-alert uppercase">
+                          Overdue
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-1.5 truncate font-semibold tracking-tight">{a.clientName}</p>
+                    <p className="truncate text-sm text-muted">{a.clientContact}</p>
+                    <div className="mt-2.5">{modeBadge(a)}</div>
+                  </div>
+                  <div className="-mt-1 -mr-1.5 shrink-0">{actionsFor(a, "card")}</div>
+                </li>
+              );
+            })
+          )}
+        </ul>
       </div>
 
       {viewTarget && <AppointmentDetailModal appointment={viewTarget} onClose={() => setViewId(null)} />}

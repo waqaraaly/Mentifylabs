@@ -10,7 +10,8 @@ import { Avatar } from "./ui/Avatar";
 import { Badge } from "./ui/Badge";
 import { KPI } from "./ui/Stat";
 import { useToast } from "./ui/ToastProvider";
-import { approveAccount } from "@/app/admin/actions";
+import { approveSubmissionAction } from "@/app/admin/actions";
+import { isAwaitingApproval } from "@/lib/verification";
 
 export function DashboardView({
   practitioners,
@@ -27,7 +28,7 @@ export function DashboardView({
 
   const totalP = practitioners.length;
   const activeP = practitioners.filter((p) => p.status === "active").length;
-  const pendingP = practitioners.filter((p) => p.status === "pending");
+  const pendingP = practitioners.filter(isAwaitingApproval);
   const suspendedP = practitioners.filter((p) => p.status === "suspended").length;
 
   const todayB = appointments.filter((a) => a.date === today);
@@ -35,7 +36,7 @@ export function DashboardView({
   const byPractitioner = new Map(practitioners.map((p) => [p.slug, p]));
 
   const approve = (slug: string, name: string) => startTransition(async () => {
-    await approveAccount(slug);
+    await approveSubmissionAction(slug);
     addToast(`${name} approved`, "ok");
     router.refresh();
   });

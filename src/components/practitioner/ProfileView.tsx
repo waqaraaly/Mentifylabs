@@ -44,7 +44,7 @@ export function ProfileView({
       {preview && (
         <div className="mx-auto mb-[7.5px] flex max-w-[1360px] items-center gap-2.5 rounded-2xl bg-foreground px-5 py-3 text-sm font-medium text-background">
           <Eye className="size-4 shrink-0" aria-hidden />
-          This is a preview only — clients can&apos;t find this page or book you here.
+          Private preview. Only you can see this page, and nobody can book from it. Clients can find and book you once you publish.
           <Link href="/dashboard/profile" className="ml-auto shrink-0 underline underline-offset-2">
             Back to portal
           </Link>
@@ -56,7 +56,7 @@ export function ProfileView({
 
         {!preview && <ProfileViewTracker slug={practitioner.slug} />}
 
-        {!preview && <BookingModal practitioner={practitioner} slots={slots} />}
+        {!preview && practitioner.acceptingBookings && <BookingModal practitioner={practitioner} slots={slots} />}
 
         <div className="sticky top-0 z-50 border-b border-(--pt-border) bg-(--pt-bg)">
           <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-4 px-[7.7px] py-[14px] sm:px-[12.8px] lg:px-[25.6px]">
@@ -68,8 +68,12 @@ export function ProfileView({
               >
                 Book a Session
               </span>
-            ) : (
+            ) : practitioner.acceptingBookings ? (
               <BookSessionButton />
+            ) : (
+              <span className="shrink-0 rounded-full bg-(--pt-icon-fill) px-6 py-2.5 text-[15px] font-semibold whitespace-nowrap text-(--pt-muted)">
+                Not taking new bookings
+              </span>
             )}
           </div>
         </div>
@@ -124,7 +128,7 @@ export function ProfileView({
         <ProfileFooter />
       </div>
 
-      {!preview && <StickyBookingBar nextSlot={nextSlot} />}
+      {!preview && <StickyBookingBar nextSlot={nextSlot} accepting={practitioner.acceptingBookings} />}
     </main>
   );
 }

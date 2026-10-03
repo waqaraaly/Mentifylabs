@@ -14,6 +14,11 @@ import { WeeklyPatternGrid } from "./WeeklyPatternGrid";
 import { CustomDatesList } from "./CustomDatesList";
 import { slotChipClass } from "./slotStyles";
 import { sessionTypeLabel } from "@/lib/sessionType";
+import {
+  AcceptingBookingsSwitch,
+  BookingsNotice,
+  useAcceptingBookings,
+} from "@/components/portal/AcceptingBookingsToggle";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 function SlotBlock({
@@ -61,6 +66,7 @@ function SlotBlock({
 }
 
 export function ManageSlotsBoard({
+  acceptingBookings,
   monthLabel,
   selectedDate,
   prevHref,
@@ -74,6 +80,7 @@ export function ManageSlotsBoard({
   customDates,
   customDateSlots,
 }: {
+  acceptingBookings: boolean;
   monthLabel: string;
   selectedDate: string;
   prevHref: string;
@@ -88,6 +95,7 @@ export function ManageSlotsBoard({
   /** Each special date's non-blocked slots, keyed by date — used for the summary line. */
   customDateSlots: Record<string, Slot[]>;
 }) {
+  const bookings = useAcceptingBookings(acceptingBookings);
   const [manageDate, setManageDate] = useState<string | null>(null);
   const [manageDateLocked, setManageDateLocked] = useState(true);
   const [blockOpen, setBlockOpen] = useState(false);
@@ -114,6 +122,7 @@ export function ManageSlotsBoard({
         }
         actions={
           <>
+            <AcceptingBookingsSwitch {...bookings} />
             <button
               type="button"
               onClick={() => setBlockOpen(true)}
@@ -133,6 +142,8 @@ export function ManageSlotsBoard({
           </>
         }
       />
+
+      <BookingsNotice {...bookings} />
 
       {view === "week" ? (
         <div className={cardClass}>
@@ -177,12 +188,9 @@ export function ManageSlotsBoard({
           </div>
 
           <div className="p-4">
-            {/* One scroll for the whole calendar; the day headers stay put while the slots scroll. */}
-            <div
-              className="themed-scrollbar overflow-auto rounded-lg ring-1 ring-border"
-              style={{ height: "clamp(440px, calc(100vh - 375px), 760px)" }}
-            >
-            <div className="grid min-h-full min-w-[980px] grid-cols-7 divide-x divide-border">
+            {/* Phones and tablets: a plain day-by-day list. lg and up: one scroll for the whole 7-column calendar, with the day headers staying put while the slots scroll. */}
+            <div className="themed-scrollbar rounded-lg ring-1 ring-border lg:h-[clamp(440px,calc(100vh-375px),760px)] lg:overflow-auto">
+            <div className="grid min-h-full grid-cols-1 divide-y divide-border lg:min-w-[900px] lg:grid-cols-7 lg:divide-x lg:divide-y-0">
               {days.map(({ date, slots: allSlots }) => {
                 const slots = allSlots.filter((s) => s.status !== "unavailable");
                 const cell = formatDayCell(date);
@@ -203,7 +211,7 @@ export function ManageSlotsBoard({
                       type="button"
                       onClick={() => openDate(date, true)}
                       aria-label={`Manage slots for ${cell.weekday} ${cell.day}`}
-                      className={`sticky top-0 z-10 flex h-[56px] w-full flex-col items-center justify-center border-b border-border px-2 text-center transition hover:brightness-95 ${
+                      className={`flex h-12 w-full flex-row items-center justify-start gap-2.5 border-b border-border px-4 text-left transition hover:brightness-95 lg:sticky lg:top-0 lg:z-10 lg:h-[56px] lg:flex-col lg:justify-center lg:gap-0 lg:px-2 lg:text-center ${
                         today
                           ? "bg-primary text-primary-foreground"
                           : "bg-[color-mix(in_srgb,var(--foreground)_4%,var(--surface))]"
@@ -212,7 +220,7 @@ export function ManageSlotsBoard({
                       <p className="text-sm font-bold tracking-wide">
                         {cell.day} {cell.month}
                       </p>
-                      <p className={`mt-0.5 text-[11px] uppercase ${today ? "text-primary-foreground/85" : "text-muted"}`}>
+                      <p className={`text-[11px] uppercase lg:mt-0.5 ${today ? "text-primary-foreground/85" : "text-muted"}`}>
                         {cell.weekday.slice(0, 3)}
                         {today && <span className="ml-1 font-bold">· Today</span>}
                         {override?.type === "custom" && (

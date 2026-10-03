@@ -4,15 +4,17 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
   completeOnboarding,
+  getCurrentPractitioner,
   dismissVerificationPrompt,
   requireOwnSlug,
   submitVerification,
   updatePractitionerProfile,
 } from "@/data/practitioners";
 import { addDocument } from "@/data/documents";
+import { resolveCurrency } from "@/lib/currencies";
 import { revalidateAdminViews } from "@/lib/revalidate";
 import { requireRole } from "@/lib/session";
-import { DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, randomKeyPart, uploads } from "@/lib/storage";
+import { DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, matchesFileSignature, randomKeyPart, uploads } from "@/lib/storage";
 import { DOCUMENT_CATEGORIES, type PractitionerDocument } from "@/types/document";
 import type { SessionType } from "@/types/practitioner";
 
@@ -34,12 +36,21 @@ async function submitOnboardingCredential(slug: string, formData: FormData): Pro
   const extension = DOCUMENT_TYPES[file.type];
   if (!extension || file.size > MAX_DOCUMENT_BYTES) return;
 
+  const bytes = await file.arrayBuffer();
+  if (!matchesFileSignature(bytes, file.type)) return;
+
   const { practitionerId } = await requireRole("practitioner");
   const key = `documents/${practitionerId}/${randomKeyPart()}.${extension}`;
-  await (await uploads()).put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
+  const bucket = await uploads();
+  await bucket.put(key, bytes, { httpMetadata: { contentType: file.type } });
 
   const name = file.name.replace(/[\u0000-\u001f]/g, "").slice(0, 150) || `document.${extension}`;
-  await addDocument({ practitionerSlug: slug, name, category, storageKey: key, contentType: file.type, sizeBytes: file.size });
+  try {
+    await addDocument({ practitionerSlug: slug, name, category, storageKey: key, contentType: file.type, sizeBytes: file.size });
+  } catch (error) {
+    await bucket.delete(key);
+    throw error;
+  }
   await submitVerification(slug);
 }
 
@@ -57,9 +68,11 @@ export async function finishOnboardingAction(formData: FormData) {
     ...(professionalTitle ? { professionalTitle } : {}),
     shortBio: formData.get("shortBio")?.toString().trim() || undefined,
     specializations: stringList(formData, "specializations"),
-    sessionType: (formData.get("sessionType")?.toString() as SessionType) || "both",
+    sessionType: (["online", "offline", "both"] as SessionType[]).includes(formData.get("sessionType") as SessionType)
+      ? (formData.get("sessionType") as SessionType)
+      : "both",
     feeRange: {
-      currency: "PKR",
+      currency: resolveCurrency(formData.get("feeCurrency"), (await getCurrentPractitioner()).feeRange.currency),
       min: Math.min(feeMin, feeMax),
       max: Math.max(feeMin, feeMax),
     },

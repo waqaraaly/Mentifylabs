@@ -87,6 +87,10 @@ async function bookSlot(input: {
   concern?: string;
   sessionType?: BookedSessionType;
   status: AppointmentStatus;
+  /** When set, the slot must belong to this practitioner. */
+  practitionerSlug?: string;
+  /** Public bookings can't take a slot whose date has already passed (a day of slack covers time zones). */
+  futureOnly?: boolean;
 }): Promise<Appointment | null> {
   const [inserted] = await batch([
     await prepare(
@@ -98,6 +102,8 @@ async function bookSlot(input: {
               CASE WHEN s.session_type = 'both' THEN COALESCE(?, 'online') ELSE s.session_type END, ?
          FROM slots s
         WHERE s.id = ? AND s.status = 'open'
+          AND (? IS NULL OR s.practitioner_slug = ?)
+          AND (? = 0 OR s.date >= date('now', '-1 day'))
        RETURNING *`,
       input.clientName,
       input.clientContact,
@@ -105,21 +111,32 @@ async function bookSlot(input: {
       input.sessionType,
       input.status,
       input.slotId,
+      input.practitionerSlug,
+      input.practitionerSlug,
+      input.futureOnly ? 1 : 0,
     ),
-    await prepare("UPDATE slots SET status = 'booked' WHERE id = ? AND status = 'open'", input.slotId),
+    // Only flips the slot if the insert above actually took it, so a refused booking leaves it open.
+    await prepare(
+      `UPDATE slots SET status = 'booked'
+        WHERE id = ? AND status = 'open'
+          AND EXISTS (SELECT 1 FROM appointments a WHERE a.slot_id = slots.id AND a.status <> 'cancelled')`,
+      input.slotId,
+    ),
   ]);
   return firstRow(inserted);
 }
 
 export async function createAppointmentFromSlot(input: {
   slotId: string;
+  /** The practitioner whose page the booking came from; the slot must be theirs. */
+  practitionerSlug: string;
   clientName: string;
   clientContact: string;
   concern?: string;
   /** The format the client picked — only used when the slot offers both. */
   sessionType?: BookedSessionType;
 }): Promise<Appointment | null> {
-  return bookSlot({ ...input, status: "pending" });
+  return bookSlot({ ...input, status: "pending", futureOnly: true });
 }
 
 /** Practitioner manually scheduling a session on a client's behalf (phone/walk-in booking) —
@@ -137,6 +154,7 @@ export async function createManualAppointment(
   if ("slotId" in input) {
     return bookSlot({
       slotId: input.slotId,
+      practitionerSlug: input.practitionerSlug,
       clientName: input.clientName,
       clientContact: input.clientContact,
       sessionType: input.sessionType,
@@ -178,11 +196,14 @@ export async function rescheduleAppointment(
   id: string,
   next: { slotId: string } | { date: string; startTime: string; endTime: string; sessionType: "online" | "offline" },
 ): Promise<Appointment | null> {
-  if (!(await getAppointmentById(id))) return null;
+  const current = await getAppointmentById(id);
+  if (!current) return null;
 
   if ("slotId" in next) {
     const slot = await getSlotById(next.slotId);
-    if (!slot) return null;
+    if (!slot || slot.practitionerSlug !== current.practitionerSlug) return null;
+    // Only a free slot, or the one this appointment already holds, so another client's booking is never displaced.
+    if (slot.status !== "open" && slot.id !== current.slotId) return null;
     const results = await batch([
       await releaseHeldSlot(id),
       await prepare("UPDATE slots SET status = 'booked' WHERE id = ?", slot.id),

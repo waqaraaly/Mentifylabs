@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 import { LoadingOverlay } from "@/components/ui/BrainLoader";
 import { AuthError, AuthField, AuthInput, authButtonClass } from "@/components/auth/AuthShell";
+import { ResendConfirmation } from "@/components/auth/ResendConfirmation";
 import { signInAction, type LoginState } from "./actions";
 
 export function LoginForm({ next }: { next?: string }) {
@@ -40,6 +41,7 @@ export function LoginForm({ next }: { next?: string }) {
       </AuthField>
 
       <AuthError message={state.error} />
+      {state.unverified && state.email && <ResendConfirmation email={state.email} />}
 
       <button type="submit" disabled={pending} className={authButtonClass}>
         {pending ? "Signing in…" : "Sign in"}
