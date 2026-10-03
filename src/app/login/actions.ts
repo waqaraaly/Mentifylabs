@@ -6,6 +6,8 @@ import { homeFor, signIn, signOut } from "@/lib/session";
 export interface LoginState {
   error?: string;
   email?: string;
+  /** The password was right but the address isn't confirmed yet, so the form offers to resend the link. */
+  unverified?: boolean;
 }
 
 /** Only same-site paths, so the ?next= link can't send someone to another website after signing in. */
@@ -18,7 +20,7 @@ export async function signInAction(_prev: LoginState, formData: FormData): Promi
   const email = formData.get("email")?.toString() ?? "";
   const password = formData.get("password")?.toString() ?? "";
   const result = await signIn(email, password);
-  if (!result.ok) return { error: result.message, email };
+  if (!result.ok) return { error: result.message, email, unverified: result.unverified };
 
   const home = homeFor(result.role);
   const next = safeNext(formData.get("next"));

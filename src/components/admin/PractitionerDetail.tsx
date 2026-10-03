@@ -289,7 +289,7 @@ function OverviewTab({
         <Row label="Account status"><Badge kind={p.status} /></Row>
         <Row label="Profile status"><Badge kind={p.profileStatus} /></Row>
         <Row label="Verification">
-          <Link href={`/admin/verification/${p.slug}`} className="btn btn-ghost btn-sm" style={{ padding: "2px 8px", marginLeft: -8 }}>
+          <Link href={`/admin/pending/${p.slug}`} className="btn btn-ghost btn-sm" style={{ padding: "2px 8px", marginLeft: -8 }}>
             <Badge kind={p.verificationStatus} />
           </Link>
         </Row>
@@ -324,11 +324,14 @@ function OverviewTab({
       <Section icon={<Briefcase size={15} />} title="Practice">
         <Row label="Experience">{`${p.experienceYears} ${p.experienceYears === 1 ? "year" : "years"}`}</Row>
         <Row label="Fee range">{formatFeeRange(p.feeRange) ?? dash}</Row>
-        <Row label="Session type">
+        <Row label="Session mode">
           <span style={{ display: "flex", gap: 6 }}>
-            {p.sessionType !== "offline" && <Badge kind="info" dot={false}>Online</Badge>}
-            {p.sessionType !== "online" && <Badge kind="active" dot={false}>Onsite</Badge>}
+            {p.sessionType !== "offline" && <Badge kind="online" dot={false} />}
+            {p.sessionType !== "online" && <Badge kind="onsite" dot={false} />}
           </span>
+        </Row>
+        <Row label="New bookings">
+          {p.acceptingBookings ? <Badge kind="active">Accepting</Badge> : <Badge kind="suspended">Paused by practitioner</Badge>}
         </Row>
         <Row label="Languages">{p.languages.length ? p.languages.join(" · ") : dash}</Row>
       </Section>
@@ -406,7 +409,7 @@ function BookingsTab({
               <div className="mono" style={{ fontSize: 12, color: "var(--ml-ink-muted)" }}>{b.clientId}</div>
               <div style={{ fontSize: 12, color: "var(--ml-ink-muted)", display: "flex", alignItems: "center", gap: 5 }}>
                 {b.sessionType === "online" ? <Video size={12} /> : <MapPin size={12} />}
-                {b.sessionType === "online" ? "Online" : "Onsite"}
+                {b.sessionType === "online" ? "Online" : "On-Site"}
               </div>
               <Badge kind={b.status} />
             </div>

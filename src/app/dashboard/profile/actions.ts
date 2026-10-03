@@ -1,21 +1,30 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentPractitioner, publishOwnProfile, requireOwnSlug, updatePractitionerProfile } from "@/data/practitioners";
+import { getCurrentPractitioner, publishOwnProfile, requireOwnSlug, unpublishOwnProfile, updatePractitionerProfile } from "@/data/practitioners";
 import { requireRole } from "@/lib/session";
-import { MAX_PHOTO_BYTES, PHOTO_TYPES, photoKeyFromUrl, photoUrlFor, randomKeyPart, uploads } from "@/lib/storage";
+import { MAX_PHOTO_BYTES, PHOTO_TYPES, matchesFileSignature, photoKeyFromUrl, photoUrlFor, randomKeyPart, uploads } from "@/lib/storage";
 import { renamePractitionerSlug } from "@/data/rename";
 import { revalidateAdminViews } from "@/lib/revalidate";
+import { resolveCurrency } from "@/lib/currencies";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
 import { DEFAULT_COLOR_THEME, isColorThemeId } from "@/lib/themes";
 import { safeHttpUrl } from "@/lib/url";
 import type { ContactMethod, SessionType, SocialLink } from "@/types/practitioner";
 
+/** Generous limits that still stop someone storing megabytes in a profile field. */
+const MAX = { name: 120, title: 120, shortBio: 300, bio: 5000, note: 1500, item: 200, items: 30, location: 160, currency: 6, years: 80 };
+
+const SESSION_TYPES: SessionType[] = ["online", "offline", "both"];
+
+const clip = (value: FormDataEntryValue | null, max: number) => value?.toString().trim().slice(0, max) ?? "";
+
 function stringList(formData: FormData, name: string): string[] {
   return formData
     .getAll(name)
-    .map((value) => value.toString().trim())
-    .filter(Boolean);
+    .map((value) => value.toString().trim().slice(0, MAX.item))
+    .filter(Boolean)
+    .slice(0, MAX.items);
 }
 
 export async function updateProfileAction(formData: FormData) {
@@ -31,12 +40,13 @@ export async function updateProfileAction(formData: FormData) {
   const contactPublic = formData.getAll("contactPublic").map((v) => v.toString());
   const contactMethods: ContactMethod[] = contactLabels
     .map((label, i) => ({
-      label: label.trim(),
-      value: (contactValues[i] ?? "").trim(),
+      label: label.trim().slice(0, 40),
+      value: (contactValues[i] ?? "").trim().slice(0, 200),
       isPublic: contactPublic[i] === "true",
     }))
     // Empty values are kept, so clearing a field doesn't fall back to the account's email/phone.
-    .filter((c) => c.label);
+    .filter((c) => c.label)
+    .slice(0, 10);
 
   const feeMin = Math.max(0, Number(formData.get("feeMin")) || 0);
   const feeMax = Math.max(0, Number(formData.get("feeMax")) || 0);
@@ -45,24 +55,25 @@ export async function updateProfileAction(formData: FormData) {
   const colorTheme = isColorThemeId(requestedTheme) ? requestedTheme : DEFAULT_COLOR_THEME;
 
   await updatePractitionerProfile(slug, {
-    fullName: formData.get("fullName")?.toString().trim() || "",
-    professionalTitle: formData.get("professionalTitle")?.toString().trim() || "",
-    shortBio: formData.get("shortBio")?.toString().trim() || undefined,
-    bio: formData.get("bio")?.toString().trim() || "",
-    noteForClients: formData.get("noteForClients")?.toString().trim() || undefined,
+    fullName: clip(formData.get("fullName"), MAX.name),
+    professionalTitle: clip(formData.get("professionalTitle"), MAX.title),
+    shortBio: clip(formData.get("shortBio"), MAX.shortBio) || undefined,
+    bio: clip(formData.get("bio"), MAX.bio),
+    noteForClients: clip(formData.get("noteForClients"), MAX.note) || undefined,
     specializations: stringList(formData, "specializations"),
     services: stringList(formData, "services"),
-    experienceYears: Number(formData.get("experienceYears")) || 0,
+    experienceYears: Math.min(MAX.years, Math.max(0, Math.trunc(Number(formData.get("experienceYears")) || 0))),
     education: stringList(formData, "education"),
     workExperience: stringList(formData, "workExperience"),
-    sessionType: (formData.get("sessionType")?.toString() as SessionType) || "both",
+    sessionType: SESSION_TYPES.includes(formData.get("sessionType") as SessionType) ? (formData.get("sessionType") as SessionType) : "both",
     feeRange: {
-      currency: formData.get("feeCurrency")?.toString().trim() || "PKR",
+      // A valid choice, or the one already saved: a missing or odd value never resets it.
+      currency: resolveCurrency(formData.get("feeCurrency"), (await getCurrentPractitioner()).feeRange.currency),
       // Tolerate the two being entered the wrong way round.
       min: Math.min(feeMin, feeMax),
       max: Math.max(feeMin, feeMax),
     },
-    location: formData.get("location")?.toString().trim() || undefined,
+    location: clip(formData.get("location"), MAX.location) || undefined,
     socialLinks,
     websiteUrl: safeHttpUrl(formData.get("websiteUrl")?.toString()),
     contactMethods,
@@ -93,6 +104,19 @@ export async function publishProfileAction(
   return {};
 }
 
+/** Takes the practitioner's own profile offline. They can publish again whenever they like. */
+export async function unpublishProfileAction(slug: string): Promise<{ error?: string }> {
+  const own = await requireOwnSlug(slug);
+  const result = await unpublishOwnProfile(own);
+  if (!result.ok) return { error: result.message };
+
+  revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard", "layout");
+  revalidatePath(`/${own}`);
+  revalidateAdminViews();
+  return {};
+}
+
 /** Stores a new profile photo in R2 and removes the previous one. Returns an error message on failure. */
 export async function uploadProfilePhotoAction(formData: FormData): Promise<{ error?: string }> {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
@@ -102,10 +126,13 @@ export async function uploadProfilePhotoAction(formData: FormData): Promise<{ er
   if (!extension) return { error: "Use a JPG, PNG or WebP image." };
   if (file.size > MAX_PHOTO_BYTES) return { error: "That image is too large. Use one under 2 MB." };
 
+  const bytes = await file.arrayBuffer();
+  if (!matchesFileSignature(bytes, file.type)) return { error: "That file isn't a valid image." };
+
   const { practitionerId } = await requireRole("practitioner");
   const key = `photos/${practitionerId}/${randomKeyPart()}.${extension}`;
   const bucket = await uploads();
-  await bucket.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
+  await bucket.put(key, bytes, { httpMetadata: { contentType: file.type } });
 
   const previous = (await getCurrentPractitioner()).photoUrl;
   await updatePractitionerProfile(slug, { photoUrl: photoUrlFor(key) });
@@ -141,4 +168,14 @@ export async function updateSlugAction(currentSlug: string, nextSlug: string) {
     revalidatePath(`/${nextSlug.trim().toLowerCase()}`);
   }
   return result;
+}
+
+/** Pauses or resumes new bookings. The public page is cached, so it has to be refreshed for the change to show. */
+export async function setAcceptingBookingsAction(accepting: boolean): Promise<{ ok: boolean }> {
+  const practitioner = await getCurrentPractitioner();
+  await updatePractitionerProfile(practitioner.slug, { acceptingBookings: accepting });
+  revalidatePath(`/${practitioner.slug}`);
+  revalidatePath("/dashboard", "layout");
+  revalidateAdminViews();
+  return { ok: true };
 }

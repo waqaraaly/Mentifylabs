@@ -1,70 +1,148 @@
+"use client";
+
+import { useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, Clock, XCircle } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { AlertTriangle, BadgeCheck, Clock, X, XCircle } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import { isVerificationRejected } from "@/lib/verification";
 
+const STORAGE_PREFIX = "banner-dismissed:";
+
+// Dismissals live in sessionStorage (so they last for the browser session), with an in-memory copy for
+// when storage is blocked. The store lets every render read them without setting state in an effect.
+const closed = new Set<string>();
+const listeners = new Set<() => void>();
+
+function isClosed(key: string | null): boolean {
+  if (!key) return false;
+  if (closed.has(key)) return true;
+  try {
+    return sessionStorage.getItem(STORAGE_PREFIX + key) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function close(key: string) {
+  closed.add(key);
+  try {
+    sessionStorage.setItem(STORAGE_PREFIX + key, "1");
+  } catch {
+    // Not remembered across pages, but it is closed for now.
+  }
+  listeners.forEach((notify) => notify());
+}
+
+function subscribe(notify: () => void) {
+  listeners.add(notify);
+  return () => {
+    listeners.delete(notify);
+  };
+}
+
+interface BannerSpec {
+  /** Changes whenever the message does, so a new situation (e.g. a fresh rejection) shows again after a dismissal. */
+  key: string;
+  tone: "accent" | "alert";
+  icon: ReactNode;
+  text: ReactNode;
+  action: string;
+}
+
 /**
- * Linked to /dashboard/verification, driven by verificationStatus:
+ * Which notice, if any, this practitioner should see above the page:
  * - verified: nothing.
- * - rejected: the admin's reason, with a link to submit again (shown even if held).
- * - pending: a quiet "under review" note (documents already submitted, nothing to do).
- * - unverified, "held": Super Admin has taken the profile offline pending verification — prominent, not dismissable.
- * - a quiet, persistent reminder that publishing and accepting bookings both need verification first.
+ * - pending: a quiet "under review" note.
+ * - rejected: the admin's reason, with a link to submit again.
+ * - held: Super Admin took the profile offline pending verification.
+ * - otherwise a reminder that publishing and accepting bookings need verification first.
  */
-export function VerificationBanner({ practitioner }: { practitioner: Practitioner }) {
+function bannerFor(practitioner: Practitioner): BannerSpec | null {
   if (practitioner.verificationStatus === "verified") return null;
 
   if (practitioner.verificationStatus === "pending") {
-    return (
-      <Link
-        href="/dashboard/verification"
-        className="mb-6 flex items-center gap-3 rounded-xl bg-accent/[0.1] px-4 py-3 text-sm font-medium text-accent-strong ring-1 ring-accent/20 transition hover:bg-accent/[0.14]"
-      >
-        <Clock className="size-4 shrink-0" aria-hidden />
-        Your credentials are under review. We&apos;ll let you know once they&apos;re verified.
-        <span className="ml-auto shrink-0 underline">View status</span>
-      </Link>
-    );
+    return {
+      key: "pending",
+      tone: "accent",
+      icon: <Clock className="size-4 shrink-0" aria-hidden />,
+      text: "Your credentials are under review. We'll let you know once they're verified.",
+      action: "View status",
+    };
   }
 
   if (isVerificationRejected(practitioner)) {
-    return (
-      <Link
-        href="/dashboard/verification"
-        className="mb-6 flex items-center gap-3 rounded-xl bg-alert/[0.1] px-4 py-3 text-sm font-medium text-alert ring-1 ring-alert/20 transition hover:bg-alert/[0.14]"
-      >
-        <XCircle className="size-4 shrink-0" aria-hidden />
-        <span className="min-w-0">Your verification wasn&apos;t approved: {practitioner.verificationNote}</span>
-        <span className="ml-auto shrink-0 underline">Submit again</span>
-      </Link>
-    );
+    return {
+      key: `rejected:${practitioner.verificationNote}`,
+      tone: "alert",
+      icon: <XCircle className="size-4 shrink-0" aria-hidden />,
+      text: <span className="min-w-0">Your verification wasn&apos;t approved: {practitioner.verificationNote}</span>,
+      action: "Submit again",
+    };
   }
 
-  const held = practitioner.profileStatus === "hidden";
-  if (held) {
-    return (
-      <Link
-        href="/dashboard/verification"
-        className="mb-6 flex items-center gap-3 rounded-xl bg-alert/[0.1] px-4 py-3 text-sm font-medium text-alert ring-1 ring-alert/20 transition hover:bg-alert/[0.14]"
-      >
-        <AlertTriangle className="size-4 shrink-0" aria-hidden />
-        Your profile access has been held — please verify your account to restore it.
-        <span className="ml-auto shrink-0 underline">Verify now</span>
-      </Link>
-    );
+  if (practitioner.profileStatus === "hidden") {
+    return {
+      key: "held",
+      tone: "alert",
+      icon: <AlertTriangle className="size-4 shrink-0" aria-hidden />,
+      text: "Your profile access has been held — please verify your account to restore it.",
+      action: "Verify now",
+    };
   }
 
   // Only a quiet reminder once they've seen the first-login popup; it covers the initial nudge.
   if (!practitioner.verificationPromptSeenAt) return null;
 
+  return {
+    key: "unverified",
+    tone: "accent",
+    icon: <BadgeCheck className="size-4 shrink-0" aria-hidden />,
+    text: "Verify your credentials to publish your profile and accept bookings.",
+    action: "Verify now",
+  };
+}
+
+const TONES = {
+  accent: "bg-accent/[0.1] text-accent-strong ring-accent/20 hover:bg-accent/[0.14]",
+  alert: "bg-alert/[0.1] text-alert ring-alert/20 hover:bg-alert/[0.14]",
+} as const;
+
+/**
+ * Shown above every portal page. Can be closed with the X; that is remembered for the rest of the browser
+ * session, and the notice comes back next time (or straight away if its message changes).
+ */
+export function VerificationBanner({ practitioner }: { practitioner: Practitioner }) {
+  const pathname = usePathname();
+  const spec = bannerFor(practitioner);
+  const key = spec?.key ?? null;
+
+  // Hidden on the server and during hydration, so a dismissed banner never flashes back in on each page.
+  const dismissed = useSyncExternalStore(
+    subscribe,
+    () => isClosed(key),
+    () => true,
+  );
+
+  // The Verification page already shows the full status, so the banner would only repeat it there.
+  if (!spec || dismissed || pathname.startsWith("/dashboard/verification")) return null;
+
   return (
-    <Link
-      href="/dashboard/verification"
-      className="mb-6 flex items-center gap-3 rounded-xl bg-accent/[0.1] px-4 py-3 text-sm font-medium text-accent-strong ring-1 ring-accent/20 transition hover:bg-accent/[0.14]"
-    >
-      <BadgeCheck className="size-4 shrink-0" aria-hidden />
-      Verify your credentials to publish your profile and accept bookings.
-      <span className="ml-auto shrink-0 underline">Verify now</span>
-    </Link>
+    <div className={`mb-6 flex items-center gap-1 rounded-xl text-sm font-medium ring-1 transition ${TONES[spec.tone]}`}>
+      <Link href="/dashboard/verification" className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-2 pl-4">
+        {spec.icon}
+        {spec.text}
+        <span className="ml-auto shrink-0 underline">{spec.action}</span>
+      </Link>
+      <button
+        type="button"
+        onClick={() => close(spec.key)}
+        aria-label="Dismiss this notice"
+        title="Dismiss"
+        className="mr-2 flex size-8 shrink-0 items-center justify-center rounded-lg opacity-70 transition hover:bg-black/[0.06] hover:opacity-100"
+      >
+        <X className="size-4" aria-hidden />
+      </button>
+    </div>
   );
 }

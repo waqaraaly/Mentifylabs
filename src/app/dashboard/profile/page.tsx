@@ -14,6 +14,10 @@ import { SessionModeFields } from "@/components/portal/SessionModeFields";
 import { SettingsRow, settingsInputClass } from "@/components/portal/SettingsRow";
 import { SlugEditor } from "@/components/portal/SlugEditor";
 import { PublishProfileButton } from "@/components/portal/PublishProfileButton";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { currencyOptions } from "@/lib/currencies";
+import { UnpublishProfileButton } from "@/components/portal/UnpublishProfileButton";
+import { publishBlockReason } from "@/lib/verification";
 import { ThemePicker } from "@/components/portal/ThemePicker";
 import { BRAND_BACKGROUND, PLATFORM_ICON_PATH } from "@/components/practitioner/ContactLinks";
 import { updateProfileAction } from "./actions";
@@ -22,27 +26,19 @@ export const metadata = { title: "Public Profile" };
 
 const iconClass = "size-4";
 
-const NOT_LIVE_REASON: Record<string, string> = {
-  hidden: "Your profile is hidden by an admin.",
-  suspended: "Your account is suspended.",
-};
-
 export default async function PublicProfilePage() {
   const practitioner = await getCurrentPractitioner();
   const contactDetails = getContactDetails(practitioner);
   const socials = Object.fromEntries(practitioner.socialLinks.map((link) => [link.platform, link.url]));
 
   const isLive = isPubliclyVisible(practitioner);
-  const isVerified = practitioner.verificationStatus === "verified";
-  const isPublished = practitioner.profileStatus === "published";
-  const accountPending = practitioner.status === "pending";
-  const notLiveReason =
-    NOT_LIVE_REASON[practitioner.profileStatus] ??
-    (!isVerified
-      ? "Verify your credentials to publish your profile."
-      : isPublished && accountPending
-        ? "Published — waiting on your account to be approved before it's visible."
-        : "You're verified — publish when you're ready.");
+  // Why publishing isn't possible right now (null when it is). The server checks the same rule again on click.
+  const blockedReason = publishBlockReason(practitioner);
+  const adminOffline = practitioner.profileStatus === "hidden" || practitioner.profileStatus === "suspended";
+  // The specific reason sits beside the Publish button; the line under the title stays general so it isn't said twice.
+  const notLiveReason = blockedReason
+    ? "Your profile isn't public yet. Clients can't find or book you until you publish it."
+    : "You're verified. Preview how your profile will look, then publish it when you're ready.";
 
   const sections: ProfileSection[] = [
     {
@@ -223,13 +219,13 @@ export default async function PublicProfilePage() {
             description="Your general fee range, shown to clients before they book. It applies to every session type."
           >
             <div className="grid grid-cols-3 gap-3">
-              <input
+              <ThemedSelect
                 id="feeCurrency"
                 name="feeCurrency"
-                placeholder="Currency"
-                aria-label="Currency"
+                ariaLabel="Currency"
                 defaultValue={practitioner.feeRange.currency}
-                className={settingsInputClass}
+                options={currencyOptions(practitioner.feeRange.currency)}
+                triggerClassName={`${settingsInputClass} flex w-full items-center text-left`}
               />
               <input
                 id="feeMin"
@@ -310,7 +306,7 @@ export default async function PublicProfilePage() {
                     type="url"
                     placeholder={`https://${platform}.com/…`}
                     defaultValue={socials[platform] ?? ""}
-                    className="min-w-[10rem] flex-1 rounded-lg bg-surface px-3 py-2 text-sm ring-1 ring-black/[0.06] transition outline-none focus:ring-primary/40"
+                    className="min-w-0 flex-1 rounded-lg bg-surface px-3 py-2 text-sm ring-1 ring-black/[0.06] transition outline-none focus:ring-primary/40"
                   />
                 </div>
               ))}
@@ -354,33 +350,42 @@ export default async function PublicProfilePage() {
         }
         description={isLive ? "What clients see when they find you. Changes appear as soon as you save." : notLiveReason}
         actions={
-          isLive ? (
-            <a
-              href={`/${practitioner.slug}`}
-              target="_blank"
-              rel="noopener"
-              className={`${liveButtonClass} bg-primary text-primary-foreground hover:opacity-90`}
-            >
-              View live profile
-              <ArrowUpRight className="size-4" aria-hidden />
-            </a>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-start justify-end gap-2.5">
+            {/* Only while the profile isn't live: once it is, saving updates it straight away, so the live page is the preview. */}
+            {!isLive && (
               <a
                 href={`/preview/${practitioner.slug}`}
                 target="_blank"
                 rel="noopener"
-                title="Only you can see this — it's not your published link"
-                className={`${liveButtonClass} bg-black/[0.05] text-muted hover:bg-black/[0.08]`}
+                title="Only you can see this. It's a private preview, and nobody can book from it."
+                className={`${liveButtonClass} ring-1 ring-black/[0.14] hover:bg-black/[0.04]`}
               >
                 <Eye className="size-4" aria-hidden />
                 Preview profile
               </a>
-              {NOT_LIVE_REASON[practitioner.profileStatus] === undefined && !isPublished && (
-                <PublishProfileButton slug={practitioner.slug} />
-              )}
-            </div>
-          )
+            )}
+
+            {isLive ? (
+              <>
+                <UnpublishProfileButton slug={practitioner.slug} />
+                <a
+                  href={`/${practitioner.slug}`}
+                  target="_blank"
+                  rel="noopener"
+                  className={`${liveButtonClass} bg-primary text-primary-foreground hover:opacity-90`}
+                >
+                  View live profile
+                  <ArrowUpRight className="size-4" aria-hidden />
+                </a>
+              </>
+            ) : (
+              <PublishProfileButton
+                slug={practitioner.slug}
+                blockedReason={blockedReason}
+                fixHref={blockedReason && !adminOffline && practitioner.status === "active" ? "/dashboard/verification" : undefined}
+              />
+            )}
+          </div>
         }
       />
 

@@ -86,4 +86,7 @@ export interface Practitioner {
 
   /** Set once they finish (or skip) the guided first-login setup at /onboarding. Gates dashboard access. */
   onboardedAt?: string;
+
+  /** False while the practitioner has paused new bookings: the profile stays up, but nobody can book. */
+  acceptingBookings: boolean;
 }

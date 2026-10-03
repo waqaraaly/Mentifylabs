@@ -2,7 +2,7 @@ import "server-only";
 import { first, run } from "@/lib/db";
 import { sendBrandedEmail } from "@/lib/notifications";
 import { MIN_PASSWORD_LENGTH, hashPassword } from "@/lib/password";
-import { homeFor, randomToken, sha256Hex, startSession, type Role } from "@/lib/session";
+import { MAX_PASSWORD_LENGTH, homeFor, randomToken, sha256Hex, startSession, type Role } from "@/lib/session";
 import { siteOrigin } from "@/lib/siteOrigin";
 
 const SELF_SERVE_MINUTES = 60;
@@ -81,6 +81,9 @@ export async function resetPassword(
   if (newPassword.length < MIN_PASSWORD_LENGTH) {
     return { ok: false, message: `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.` };
   }
+  if (newPassword.length > MAX_PASSWORD_LENGTH) {
+    return { ok: false, message: `Choose a password of at most ${MAX_PASSWORD_LENGTH} characters.` };
+  }
   const reset = await findValidReset(token);
   if (!reset) return { ok: false, message: "This link has expired or was already used. Ask for a new one." };
 
@@ -91,9 +94,16 @@ export async function resetPassword(
   if (used === 0) return { ok: false, message: "This link was already used. Ask for a new one." };
 
   await run("UPDATE users SET password_hash = ? WHERE id = ?", await hashPassword(newPassword), reset.user_id);
+  // The link only ever reached their inbox, so using it also confirms the address.
+  await run(
+    "UPDATE users SET email_verified_at = COALESCE(email_verified_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) WHERE id = ?",
+    reset.user_id,
+  );
   await run("DELETE FROM sessions WHERE user_id = ?", reset.user_id);
   await run(
-    "DELETE FROM login_attempts WHERE email = (SELECT email FROM users WHERE id = ?)",
+    `DELETE FROM login_attempts
+      WHERE email IN (SELECT email FROM users WHERE id = ?1)
+         OR (email >= (SELECT email || '|' FROM users WHERE id = ?1) AND email < (SELECT email || '}' FROM users WHERE id = ?1))`,
     reset.user_id,
   );
   await startSession(reset.user_id);

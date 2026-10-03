@@ -152,9 +152,9 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
 
           <div className="mt-12 space-y-3.5 border-t border-(--pt-accent-foreground)/15 pt-7 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs tracking-[0.1em] text-(--pt-accent-foreground)/50 uppercase">Mode</span>
+              <span className="text-xs tracking-[0.1em] text-(--pt-accent-foreground)/50 uppercase">Session mode</span>
               <span className="text-base font-medium">
-                {activeFormat ? (activeFormat === "online" ? "Online" : "Onsite") : "—"}
+                {activeFormat ? (activeFormat === "online" ? "Online" : "On-Site") : "—"}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -224,7 +224,7 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
                             : "border-(--pt-border) text-(--pt-text) hover:border-(--pt-accent)/40"
                         }`}
                       >
-                        Onsite
+                        On-Site
                       </button>
                     </div>
                   </div>
@@ -309,7 +309,7 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
                 <FormField id="contactNumber" name="contactNumber" label="Contact number" type="tel" required />
                 <div>
                   <label htmlFor="concern" className="text-xs font-medium tracking-[0.1em] text-(--pt-muted) uppercase">
-                    What would you like help with ? <span className="normal-case">(optional)</span>
+                    What would you like help with? <span className="normal-case">(optional)</span>
                   </label>
                   <textarea
                     id="concern"

@@ -56,7 +56,8 @@ export function EntryListEditor({
   addLabel: string;
 }) {
   const [entries, setEntries] = useState<Entry[]>(() =>
-    initialItems.map((raw) => ({ id: crypto.randomUUID(), ...parse(raw) })),
+    // Stable ids for the first render, so the server and browser agree; new rows get a random one when added.
+    initialItems.map((raw, i) => ({ id: `initial-${i}`, ...parse(raw) })),
   );
 
   const update = (id: string, patch: Partial<Entry>) =>

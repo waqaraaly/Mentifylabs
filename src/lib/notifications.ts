@@ -93,12 +93,16 @@ export async function notifyAccountReactivated(slug: string): Promise<void> {
   }));
 }
 
+/** Credentials approved: they are verified and can now publish, but nothing goes live until they do. */
 export async function notifyVerificationApproved(slug: string): Promise<void> {
   await deliver(await practitionerRecipient(slug), "Your credentials are verified", (origin) => ({
     eyebrow: "Verification",
-    heading: "Your credentials are verified",
-    body: ["The verified badge now shows on your public profile, and you can publish it and accept bookings."],
-    button: { label: "Open your dashboard", url: `${origin}/dashboard` },
+    heading: "You're verified",
+    body: [
+      "Your credentials are verified and your account is active. Your profile isn't public yet. Use Preview to see how it will look, and publish it when you're ready.",
+    ],
+    button: { label: "Open your profile", url: `${origin}/dashboard/profile` },
+    footnote: "You can take your profile offline again at any time from the same page.",
   }));
 }
 

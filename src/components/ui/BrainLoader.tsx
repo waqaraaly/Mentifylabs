@@ -30,7 +30,7 @@ function loadBrainScript(): Promise<void> {
 
 /** The animated brain, centered by its parent. Colors are the palette the
  * loader was designed with: softened moss tubes, moss fluid, teal signal. */
-export function BrainLoader({ size = 110, onReady }: { size?: number; onReady?: () => void }) {
+export function BrainLoader({ size = 132, onReady }: { size?: number; onReady?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -129,7 +129,7 @@ export function LoaderScreen({ message }: { message?: string }) {
         <BrainLoader onReady={() => setReady(true)} />
         {message && (
           <p
-            className={`absolute top-full left-1/2 mt-4 -translate-x-1/2 text-center text-sm font-medium whitespace-nowrap text-muted transition-opacity duration-300 ${ready ? "opacity-100" : "opacity-0"}`}
+            className={`absolute top-full left-1/2 mt-5 -translate-x-1/2 text-center text-[17px] font-medium whitespace-nowrap text-muted transition-opacity duration-300 ${ready ? "opacity-100" : "opacity-0"}`}
           >
             {message}
           </p>

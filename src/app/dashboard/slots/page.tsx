@@ -64,6 +64,7 @@ export default async function ManageSlotsPage({ searchParams }: Props) {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
       <ManageSlotsBoard
+        acceptingBookings={practitioner.acceptingBookings}
         monthLabel={monthLabel}
         selectedDate={selectedDate}
         prevHref={prevHref}

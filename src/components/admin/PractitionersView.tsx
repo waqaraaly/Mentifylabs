@@ -14,13 +14,7 @@ import { TopBar } from "./TopBar";
 
 const isIncomplete = (p: Practitioner) => ["incomplete", "draft"].includes(p.profileStatus);
 
-export function PractitionersView({
-  practitioners,
-  defaultSkipVerification,
-}: {
-  practitioners: Practitioner[];
-  defaultSkipVerification: boolean;
-}) {
+export function PractitionersView({ practitioners }: { practitioners: Practitioner[] }) {
   const [statusTab, setStatusTab] = useState("all");
   const [q, setQ] = useState("");
   const router = useRouter();
@@ -83,7 +77,7 @@ export function PractitionersView({
           {filtered.length === 0 ? (
             <EmptyState title="No practitioners match" body="Try a different status or search term." />
           ) : (
-            <div className="table-scroll">
+            <div className="table-scroll scroll-y">
               <table className="table" style={{ border: "none" }}>
                 <thead>
                   <tr>
@@ -120,7 +114,7 @@ export function PractitionersView({
         </div>
       </div>
 
-      <AddPractitionerModal open={addOpen} onClose={() => setAddOpen(false)} defaultSkipVerification={defaultSkipVerification} />
+      <AddPractitionerModal open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
   );
 }

@@ -4,11 +4,18 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { first, run } from "@/lib/db";
 import { MIN_PASSWORD_LENGTH, hashPassword, verifyPassword } from "@/lib/password";
+import { clientIp, recordHit } from "@/lib/rateLimit";
 
 const COOKIE = "ml_session";
 const SESSION_DAYS = 30;
-const MAX_FAILED_ATTEMPTS = 10;
+// Failed sign-ins are counted per email + network address, so a stranger typing wrong passwords for
+// someone's email can only lock that address out for themselves, not the real owner. The other two caps
+// bound a single address spraying many accounts, and many addresses hammering one account.
+const MAX_FAILED_PER_PAIR = 10;
+const MAX_FAILED_PER_IP = 30;
+const MAX_FAILED_PER_EMAIL = 60;
 const ATTEMPT_WINDOW_MINUTES = 15;
+export const MAX_PASSWORD_LENGTH = 128;
 
 export type Role = "practitioner" | "admin";
 
@@ -30,6 +37,7 @@ interface UserRow {
   practitioner_id: string | null;
   password_hash: string;
   disabled_at: string | null;
+  email_verified_at: string | null;
 }
 
 const toUser = (r: UserRow): SessionUser => ({
@@ -54,9 +62,9 @@ export function randomToken(): string {
 /**
  * Suspended or rejected practitioners can't sign in or keep using an existing
  * session, and neither can any account (of either role) Super Admin has
- * disabled from Manage Users.
+ * disabled from Manage Users, or one whose email address hasn't been confirmed yet.
  */
-const ACCOUNT_ALLOWED = `u.disabled_at IS NULL AND (u.role = 'admin' OR EXISTS (
+const ACCOUNT_ALLOWED = `u.disabled_at IS NULL AND u.email_verified_at IS NOT NULL AND (u.role = 'admin' OR EXISTS (
   SELECT 1 FROM practitioners p WHERE p.id = u.practitioner_id AND p.status NOT IN ('suspended', 'rejected')))`;
 
 /** The signed-in user for this request, or null. Cached so every component shares one lookup. */
@@ -100,14 +108,25 @@ export async function requireRole(role: Role): Promise<SessionUser> {
 
 export const requireAdmin = () => requireRole("admin");
 
-async function tooManyAttempts(email: string): Promise<boolean> {
-  const row = await first<{ n: number }>(
-    `SELECT count(*) AS n FROM login_attempts
-      WHERE email = ? AND at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)`,
-    email,
+const pairKey = (email: string, ip: string) => `${email}|${ip}`;
+
+async function tooManyAttempts(email: string, ip: string): Promise<boolean> {
+  // "email|" up to "email}" ("}" is the character right after "|") is every pair key for this email.
+  const row = await first<{ pair: number; ip: number; email: number }>(
+    `SELECT sum(email = ?1) AS pair, sum(email = ?2) AS ip, sum(email >= ?3 AND email < ?4) AS email
+       FROM login_attempts
+      WHERE at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?5)`,
+    pairKey(email, ip),
+    `ip:${ip}`,
+    `${email}|`,
+    `${email}}`,
     `-${ATTEMPT_WINDOW_MINUTES} minutes`,
   );
-  return (row?.n ?? 0) >= MAX_FAILED_ATTEMPTS;
+  return (
+    (row?.pair ?? 0) >= MAX_FAILED_PER_PAIR ||
+    (row?.ip ?? 0) >= MAX_FAILED_PER_IP ||
+    (row?.email ?? 0) >= MAX_FAILED_PER_EMAIL
+  );
 }
 
 // Verifying against a throwaway hash when the email is unknown keeps the response time
@@ -131,12 +150,14 @@ async function blockedAccountMessage(user: UserRow): Promise<string> {
   return `This account is suspended. ${help}`;
 }
 
-export type SignInResult = { ok: true; role: Role } | { ok: false; message: string };
+export type SignInResult = { ok: true; role: Role } | { ok: false; message: string; unverified?: boolean };
 
 export async function signIn(emailInput: string, password: string): Promise<SignInResult> {
   const email = emailInput.trim().toLowerCase();
   if (!email || !password) return { ok: false, message: "Enter your email and password." };
-  if (await tooManyAttempts(email)) {
+  if (password.length > MAX_PASSWORD_LENGTH) return { ok: false, message: "That email and password don't match." };
+  const ip = await clientIp();
+  if (await tooManyAttempts(email, ip)) {
     return { ok: false, message: `Too many attempts. Try again in ${ATTEMPT_WINDOW_MINUTES} minutes.` };
   }
 
@@ -144,11 +165,20 @@ export async function signIn(emailInput: string, password: string): Promise<Sign
   decoyHash ??= hashPassword(randomToken());
   const valid = await verifyPassword(password, row?.password_hash ?? (await decoyHash));
   if (!row || !valid) {
-    await run("INSERT INTO login_attempts (email) VALUES (?)", email);
+    await recordHit(pairKey(email, ip));
+    await run("INSERT INTO login_attempts (email) VALUES (?)", `ip:${ip}`);
     return { ok: false, message: "That email and password don't match." };
   }
 
-  await run("DELETE FROM login_attempts WHERE email = ?", email);
+  await run("DELETE FROM login_attempts WHERE email = ?", pairKey(email, ip));
+  // The password is right, but the address was never confirmed, so no session until it is.
+  if (!row.email_verified_at) {
+    return {
+      ok: false,
+      unverified: true,
+      message: "Please confirm your email address first. We sent a confirmation link when you signed up.",
+    };
+  }
   if (!(await first(`SELECT 1 FROM users u WHERE u.id = ? AND ${ACCOUNT_ALLOWED}`, row.id))) {
     return { ok: false, message: await blockedAccountMessage(row) };
   }
@@ -179,6 +209,9 @@ export async function changePassword(
   if (newPassword.length < MIN_PASSWORD_LENGTH) {
     return { ok: false, message: `New password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
   }
+  if (newPassword.length > MAX_PASSWORD_LENGTH) {
+    return { ok: false, message: `New password must be at most ${MAX_PASSWORD_LENGTH} characters.` };
+  }
   if (newPassword === currentPassword) {
     return { ok: false, message: "Choose a different password from the current one." };
   }
@@ -188,24 +221,29 @@ export async function changePassword(
   return { ok: true, message: "Password updated." };
 }
 
-/** Updates the signed-in user's own account details (the sign-in email, name and phone). */
+/**
+ * Updates the signed-in user's own account details. A new email address doesn't replace the sign-in address
+ * yet: it waits as `pending_email` until its owner clicks the link sent to it, so a typo can never lock
+ * anyone out and nobody can claim an address they don't own. The caller sends that link.
+ */
 export async function updateUserDetails(
   user: SessionUser,
   details: { name: string; email: string; phone: string },
-): Promise<{ ok: boolean; message: string }> {
+): Promise<{ ok: boolean; message: string; pendingEmail?: string }> {
   const email = details.email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, message: "Enter a valid email address." };
   const taken = await first("SELECT 1 FROM users WHERE email = ? AND id <> ?", email, user.id);
   if (taken) return { ok: false, message: "Another account already uses that email." };
-  // A changed email hasn't been confirmed, so it goes back to unverified — the
-  // caller is responsible for sending a fresh verification link.
+
   const emailChanged = email !== user.email;
   await run(
-    `UPDATE users SET name = ?, email = ?, phone = ?${emailChanged ? ", email_verified_at = NULL" : ""} WHERE id = ?`,
+    "UPDATE users SET name = ?, phone = ?, pending_email = ? WHERE id = ?",
     details.name,
-    email,
     details.phone,
+    emailChanged ? email : null,
     user.id,
   );
-  return { ok: true, message: "Saved." };
+  return emailChanged
+    ? { ok: true, message: `Saved. Confirm ${email} with the link we just sent. Until then you sign in with your current email.`, pendingEmail: email }
+    : { ok: true, message: "Saved." };
 }

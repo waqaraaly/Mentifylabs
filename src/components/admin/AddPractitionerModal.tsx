@@ -7,17 +7,17 @@ import { Modal } from "./ui/Overlays";
 import { useToast } from "./ui/ToastProvider";
 import { createPractitionerAction } from "@/app/admin/actions";
 
-export function AddPractitionerModal({ open, onClose, defaultSkipVerification = true }: { open: boolean; onClose: () => void; defaultSkipVerification?: boolean }) {
+export function AddPractitionerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   // Mounting only while open gives the form fresh state each time it opens,
   // without an effect-based reset.
-  return open ? <AddPractitionerModalForm onClose={onClose} defaultSkipVerification={defaultSkipVerification} /> : null;
+  return open ? <AddPractitionerModalForm onClose={onClose} /> : null;
 }
 
-function AddPractitionerModalForm({ onClose, defaultSkipVerification }: { onClose: () => void; defaultSkipVerification: boolean }) {
+function AddPractitionerModalForm({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [title, setTitle] = useState("");
-  const [skipVerification, setSkipVerification] = useState(defaultSkipVerification);
+  const [skipVerification, setSkipVerification] = useState(true);
   const [pending, startTransition] = useTransition();
   const addToast = useToast();
   const router = useRouter();
@@ -32,7 +32,7 @@ function AddPractitionerModalForm({ onClose, defaultSkipVerification }: { onClos
         skipVerification,
       });
       if (!result.ok) { addToast(result.message, "danger"); return; }
-      addToast(`${name} created` + (skipVerification ? " · access granted immediately" : ""), "ok");
+      addToast(`${name} created` + (skipVerification ? " · verified, they can publish right away" : " · pending, they need to submit credentials"), "ok");
       router.refresh();
       onClose();
     });
@@ -69,7 +69,11 @@ function AddPractitionerModalForm({ onClose, defaultSkipVerification }: { onClos
         <label style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 12, border: "1px solid var(--ml-border)", borderRadius: 8, background: "var(--ml-surface-2)", cursor: "pointer" }}>
           <input type="checkbox" checked={skipVerification} onChange={(e) => setSkipVerification(e.target.checked)} style={{ accentColor: "var(--ml-accent)", marginTop: 2 }} />
           <div>
-            <div style={{ fontSize: 13.5, fontWeight: 500 }}>Skip verification, grant immediate access</div>
+            <div style={{ fontSize: 13.5, fontWeight: 500 }}>Skip verification and mark as verified</div>
+            <div style={{ fontSize: 12.5, color: "var(--ml-ink-muted)", marginTop: 3, lineHeight: 1.5 }}>
+              You vouch for them, so they can publish their own profile straight away. Left unticked, they start pending and
+              must submit credentials for approval first.
+            </div>
           </div>
         </label>
       </div>

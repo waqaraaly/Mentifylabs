@@ -5,7 +5,7 @@ import { sessionTypeLabel } from "@/lib/sessionType";
 import { useRouter } from "next/navigation";
 import { CalendarHeart, MapPin, Phone, Plus, User, Video, X } from "lucide-react";
 import type { Slot } from "@/types/slot";
-import { formatDateFull, todayIsoDate } from "@/lib/format";
+import { formatDateFull, isPastStart, todayIsoDate } from "@/lib/format";
 import { scheduleSessionAction } from "@/app/dashboard/sessions/actions";
 
 const fieldClass =
@@ -26,7 +26,7 @@ export function ScheduleSessionButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
       >
         <Plus className="size-4" aria-hidden />
         Schedule session
@@ -45,7 +45,7 @@ export function ScheduleSessionButton({
 
 function ScheduleSessionModal({
   practitionerSlug,
-  openSlots,
+  openSlots: allOpenSlots,
   onClose,
 }: {
   practitionerSlug: string;
@@ -54,6 +54,9 @@ function ScheduleSessionModal({
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+
+  // A session can't be scheduled for a time that has already gone by, so slots that have started aren't offered.
+  const openSlots = allOpenSlots.filter((s) => !isPastStart(s.date, s.startTime));
 
   const hasOpenSlots = openSlots.length > 0;
   const [mode, setMode] = useState<"slot" | "custom">(hasOpenSlots ? "slot" : "custom");
@@ -84,12 +87,13 @@ function ScheduleSessionModal({
   const preview =
     mode === "slot" && selectedSlot
       ? { date: selectedSlot.date, start: selectedSlot.startTime, end: selectedSlot.endTime, type: selectedSlot.sessionType === "both" ? customType : selectedSlot.sessionType }
-      : mode === "custom" && customDate && customStart && customEnd
+      : mode === "custom" && customDate && customStart && customEnd && customDate >= todayIsoDate() && !isPastStart(customDate, customStart)
         ? { date: customDate, start: customStart, end: customEnd, type: customType }
         : null;
 
+  const customInPast = !!customDate && (customDate < todayIsoDate() || (!!customStart && isPastStart(customDate, customStart)));
   const canSubmit =
-    mode === "slot" ? !!selectedSlot : !!(customDate && customStart && customEnd);
+    mode === "slot" ? !!selectedSlot : !!(customDate && customStart && customEnd) && !customInPast;
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -228,7 +232,7 @@ function ScheduleSessionModal({
                     {selectedSlot?.sessionType === "both" && (
                       <div className="col-span-2">
                         <label htmlFor="schedule-slot-format" className="text-xs text-muted">
-                          Session format
+                          Session mode
                         </label>
                         <select
                           id="schedule-slot-format"
@@ -252,6 +256,7 @@ function ScheduleSessionModal({
                       type="date"
                       name="date"
                       required
+                      min={todayIsoDate()}
                       value={customDate}
                       onChange={(e) => setCustomDate(e.target.value)}
                       className={`col-span-2 ${fieldClass} sm:col-span-1`}
@@ -281,6 +286,11 @@ function ScheduleSessionModal({
                       onChange={(e) => setCustomEnd(e.target.value)}
                       className={fieldClass}
                     />
+                    {customInPast && (
+                      <p className="col-span-2 text-xs text-alert">
+                        That time has already passed. Pick a date and time that are still ahead.
+                      </p>
+                    )}
                   </div>
                 )}
                 {!hasOpenSlots && (

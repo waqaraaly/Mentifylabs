@@ -426,6 +426,102 @@ body {
   --pt-tile-5-hover: #186a7a;
 }
 
+/* Fog Teal — clinical but soft. A soft tinted surface with one deep, low-saturation accent (22%), light throughout.
+   The Reach Out card is filled with the accent itself, white text. */
+[data-pt-theme="fog-teal"] {
+  --pt-outer: #d3e2e3;
+  --pt-bg: #f6f8f8;
+  --pt-text: #1a2323;
+  --pt-tagline: #404e4f;
+  --pt-muted: #607071;
+  /* Label text inside the (dark) Reach Out card. */
+  --pt-muted-light: #dce9ea;
+  --pt-accent: #3e5e60;
+  --pt-accent-hover: #324c4e;
+  /* Icon glyphs inside the Reach Out card. */
+  --pt-accent-light: #ffffff;
+  --pt-accent-foreground: #ffffff;
+  --pt-tint2: #e8eded;
+  --pt-border: #dbe1e1;
+  /* Reach Out card: a filled panel in this theme's accent, white text. */
+  --pt-dark-card: #3e5e60;
+  --pt-dark-divider: rgba(255, 255, 255, 0.16);
+  --pt-dark-card-foreground: #ffffff;
+  --pt-dark-card-border: #3e5e60;
+  --pt-dark-card-shadow: rgba(62, 94, 96, 0.4);
+  --pt-icon-fill: rgba(255, 255, 255, 0.08);
+  --pt-icon-border: rgba(255, 255, 255, 0.38);
+  --pt-tile-border: #3e5e60;
+  --pt-modal-sidebar: #3e5e60;
+  --pt-toggle-track: transparent;
+  --pt-toggle-border: #1a2323;
+  --pt-input-bg: #eef2f2;
+  --pt-input-border: #d4dddd;
+  --pt-tile-text-size: 19px;
+  --pt-tile-text-size-sm: 19px;
+  --pt-tile-text-weight: 500;
+
+  /* All tiles match --pt-accent, like the Book a Session button. */
+  --pt-tile-1: #3e5e60;
+  --pt-tile-1-hover: #324c4e;
+  --pt-tile-2: #3e5e60;
+  --pt-tile-2-hover: #324c4e;
+  --pt-tile-3: #3e5e60;
+  --pt-tile-3-hover: #324c4e;
+  --pt-tile-4: #3e5e60;
+  --pt-tile-4-hover: #324c4e;
+  --pt-tile-5: #3e5e60;
+  --pt-tile-5-hover: #324c4e;
+}
+
+/* Olive Grove — natural and steady. A soft tinted surface with one deep, low-saturation accent (22%), light throughout.
+   The Reach Out card is filled with the accent itself, white text. */
+[data-pt-theme="olive-grove"] {
+  --pt-outer: #dee3d3;
+  --pt-bg: #f8f8f6;
+  --pt-text: #21231a;
+  --pt-tagline: #4a4f40;
+  --pt-muted: #6c7160;
+  /* Label text inside the (dark) Reach Out card. */
+  --pt-muted-light: #e6eadc;
+  --pt-accent: #56603e;
+  --pt-accent-hover: #454e32;
+  /* Icon glyphs inside the Reach Out card. */
+  --pt-accent-light: #ffffff;
+  --pt-accent-foreground: #ffffff;
+  --pt-tint2: #ecede8;
+  --pt-border: #dfe1db;
+  /* Reach Out card: a filled panel in this theme's accent, white text. */
+  --pt-dark-card: #56603e;
+  --pt-dark-divider: rgba(255, 255, 255, 0.16);
+  --pt-dark-card-foreground: #ffffff;
+  --pt-dark-card-border: #56603e;
+  --pt-dark-card-shadow: rgba(86, 96, 62, 0.4);
+  --pt-icon-fill: rgba(255, 255, 255, 0.08);
+  --pt-icon-border: rgba(255, 255, 255, 0.38);
+  --pt-tile-border: #56603e;
+  --pt-modal-sidebar: #56603e;
+  --pt-toggle-track: transparent;
+  --pt-toggle-border: #21231a;
+  --pt-input-bg: #f1f2ee;
+  --pt-input-border: #dbddd4;
+  --pt-tile-text-size: 19px;
+  --pt-tile-text-size-sm: 19px;
+  --pt-tile-text-weight: 500;
+
+  /* All tiles match --pt-accent, like the Book a Session button. */
+  --pt-tile-1: #56603e;
+  --pt-tile-1-hover: #454e32;
+  --pt-tile-2: #56603e;
+  --pt-tile-2-hover: #454e32;
+  --pt-tile-3: #56603e;
+  --pt-tile-3-hover: #454e32;
+  --pt-tile-4: #56603e;
+  --pt-tile-4-hover: #454e32;
+  --pt-tile-5: #56603e;
+  --pt-tile-5-hover: #454e32;
+}
+
 /* The loader script sizes its canvas in device pixels and leaves display size
    to CSS — without this, a 125%/150%/200% display scale draws the brain larger
    than its box and pushes it off-center. */

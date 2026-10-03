@@ -2,13 +2,12 @@
 
 import {
   approvePractitioner,
-  approveProfile,
-  approveVerification,
+  approveSubmission,
   createPractitionerManually,
+  getPractitionerBySlug,
   hideProfile,
   reactivatePractitioner,
   rejectPractitioner,
-  rejectProfile,
   rejectVerification,
   suspendPractitioner,
 } from "@/data/practitioners";
@@ -66,37 +65,37 @@ export async function reactivateAccount(slug: string) {
   revalidateAdmin(slug);
 }
 
-export async function approveProfileAction(slug: string) {
-  await requireAdmin();
-  await approveProfile(slug);
+/**
+ * The one approval: verifies the credentials, activates the account if it was still pending, and tells the
+ * practitioner. It does not publish: going live is the practitioner's own step. Only valid while their
+ * submission is waiting for a decision.
+ */
+export async function approveSubmissionAction(slug: string) {
+  const admin = await requireAdmin();
+  const current = await getPractitionerBySlug(slug);
+  if (!current || current.verificationStatus !== "pending") return;
+  await approveSubmission(slug);
+  await recordReviewEvent(slug, "verification_approved", { actorName: admin.name });
+  if (current.status === "pending") await recordReviewEvent(slug, "account_approved", { actorName: admin.name });
+  await notifyVerificationApproved(slug);
+  revalidateAdmin(slug);
+}
+
+/** Sends a submission back with feedback; the practitioner re-uploads and it returns to the queue. */
+export async function rejectSubmissionAction(slug: string, note: string) {
+  const admin = await requireAdmin();
+  const current = await getPractitionerBySlug(slug);
+  if (!current || current.verificationStatus !== "pending") return;
+  const reason = note.trim() || "Please resubmit your credentials";
+  await rejectVerification(slug, reason);
+  await recordReviewEvent(slug, "verification_rejected", { note: reason, actorName: admin.name });
+  await notifyVerificationRejected(slug, reason);
   revalidateAdmin(slug);
 }
 
 export async function hideProfileAction(slug: string) {
   await requireAdmin();
   await hideProfile(slug);
-  revalidateAdmin(slug);
-}
-
-export async function rejectProfileAction(slug: string, note: string) {
-  await requireAdmin();
-  await rejectProfile(slug, note);
-  revalidateAdmin(slug);
-}
-
-export async function approveVerificationAction(slug: string) {
-  const admin = await requireAdmin();
-  await approveVerification(slug);
-  await recordReviewEvent(slug, "verification_approved", { actorName: admin.name });
-  await notifyVerificationApproved(slug);
-  revalidateAdmin(slug);
-}
-
-export async function rejectVerificationAction(slug: string, note: string) {
-  const admin = await requireAdmin();
-  await rejectVerification(slug, note);
-  await recordReviewEvent(slug, "verification_rejected", { note, actorName: admin.name });
-  await notifyVerificationRejected(slug, note);
   revalidateAdmin(slug);
 }
 

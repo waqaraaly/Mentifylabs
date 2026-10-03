@@ -10,14 +10,14 @@ export function Tabs({
   items: { value: string; label: string; count?: number }[];
 }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-full bg-black/[0.03] p-1">
+    <div className="flex w-full gap-1 overflow-x-auto rounded-full bg-black/[0.03] p-1 sm:inline-flex sm:w-auto">
       {items.map((item) => {
         const isActive = item.value === active;
         return (
           <Link
             key={item.value}
             href={`${basePath}?tab=${item.value}`}
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium whitespace-nowrap transition sm:flex-none sm:px-3.5 ${
               isActive
                 ? "bg-surface text-foreground shadow-sm"
                 : "text-muted hover:text-foreground"

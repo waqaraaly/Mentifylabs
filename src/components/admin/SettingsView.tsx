@@ -2,9 +2,8 @@
 
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import type { AdminSettings } from "@/data/adminSettings";
 import { useToast } from "./ui/ToastProvider";
-import { changePasswordAction, saveAccountAction, savePreferencesAction } from "@/app/admin/settings/actions";
+import { changePasswordAction, saveAccountAction } from "@/app/admin/settings/actions";
 
 function Section({ title, description, children, footer }: { title: string; description: string; children: ReactNode; footer: ReactNode }) {
   return (
@@ -32,31 +31,13 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function Toggle({ checked, onChange, title, description }: { checked: boolean; onChange: (v: boolean) => void; title: string; description: string }) {
-  return (
-    <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, cursor: "pointer" }}>
-      <span>
-        <span style={{ display: "block", fontSize: 13.5, fontWeight: 500 }}>{title}</span>
-        <span style={{ display: "block", fontSize: 12.5, color: "var(--ml-ink-muted)", marginTop: 2 }}>{description}</span>
-      </span>
-      <input type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} className="switch" />
-    </label>
-  );
-}
-
-export function SettingsView({ settings }: { settings: AdminSettings }) {
+export function SettingsView({ account }: { account: { name: string; email: string; pendingEmail: string | null } }) {
   const addToast = useToast();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [name, setName] = useState(settings.name);
-  const [email, setEmail] = useState(settings.email);
-  const [prefs, setPrefs] = useState({
-    skipVerificationByDefault: settings.skipVerificationByDefault,
-    notifyNewSignup: settings.notifyNewSignup,
-    notifyProfileSubmitted: settings.notifyProfileSubmitted,
-    notifyDailyDigest: settings.notifyDailyDigest,
-  });
+  const [name, setName] = useState(account.name);
+  const [email, setEmail] = useState(account.email);
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
 
   const saveAccount = () => startTransition(async () => {
@@ -65,19 +46,11 @@ export function SettingsView({ settings }: { settings: AdminSettings }) {
     if (r.ok) router.refresh();
   });
 
-  const savePrefs = () => startTransition(async () => {
-    const r = await savePreferencesAction(prefs);
-    addToast(r.message, "ok");
-    router.refresh();
-  });
-
   const changePassword = () => startTransition(async () => {
     const r = await changePasswordAction(pw.current, pw.next, pw.confirm);
     addToast(r.message, r.ok ? "ok" : "danger");
     if (r.ok) setPw({ current: "", next: "", confirm: "" });
   });
-
-  const setPref = (key: keyof typeof prefs) => (v: boolean) => setPrefs((p) => ({ ...p, [key]: v }));
 
   return (
     <div style={{ padding: "0 32px 40px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 760 }}>
@@ -91,6 +64,11 @@ export function SettingsView({ settings }: { settings: AdminSettings }) {
         </Field>
         <Field label="Email">
           <input className="input input-plain" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          {account.pendingEmail && (
+            <span style={{ fontSize: 12.5, color: "var(--ml-ink-muted)", lineHeight: 1.5 }}>
+              Waiting for you to confirm <strong>{account.pendingEmail}</strong>. Until then you sign in with {account.email}. Save again to resend the link.
+            </span>
+          )}
         </Field>
       </Section>
 
@@ -112,30 +90,6 @@ export function SettingsView({ settings }: { settings: AdminSettings }) {
         <Field label="Confirm new password">
           <input className="input input-plain" type="password" autoComplete="new-password" value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} />
         </Field>
-      </Section>
-
-      <Section
-        title="Preferences"
-        description="Defaults for adding practitioners and which alerts you want."
-        footer={
-          <>
-            <span style={{ fontSize: 12, color: "var(--ml-ink-subtle)", marginRight: "auto" }}>
-              Email delivery isn&apos;t connected yet, so alert choices are saved but nothing is sent.
-            </span>
-            <button className="btn btn-primary" disabled={pending} onClick={savePrefs}>Save preferences</button>
-          </>
-        }
-      >
-        <Toggle
-          checked={prefs.skipVerificationByDefault}
-          onChange={setPref("skipVerificationByDefault")}
-          title="Skip verification when adding practitioners"
-          description="Pre-ticks “grant immediate access” in the Add practitioner form."
-        />
-        <div className="divider" />
-        <Toggle checked={prefs.notifyNewSignup} onChange={setPref("notifyNewSignup")} title="New practitioner sign-up" description="When someone applies to join." />
-        <Toggle checked={prefs.notifyProfileSubmitted} onChange={setPref("notifyProfileSubmitted")} title="Profile submitted for review" description="When a practitioner sends their profile for approval." />
-        <Toggle checked={prefs.notifyDailyDigest} onChange={setPref("notifyDailyDigest")} title="Daily summary" description="One email each morning with bookings and pending items." />
       </Section>
     </div>
   );

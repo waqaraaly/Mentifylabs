@@ -7,6 +7,9 @@ INSERT INTO practitioners (id, slug, full_name, professional_title, email, phone
   (lower(hex(randomblob(16))), 'sara-malik', 'Sara Malik', 'Counselling Psychologist', 'sara.malik@example.com', '+92 300 9988776', NULL, NULL, 'Sara Malik works with young adults navigating academic stress, self-esteem, and identity concerns, using a warm, strengths-based approach.', '["Academic Stress","Self-Esteem","Young Adults"]', '["Individual Counselling","Student Counselling"]', 3, '["MSc Counselling Psychology, LUMS"]', NULL, '[]', '["English","Urdu"]', 'online', 'PKR', 2000, 3000, 'Lahore, Pakistan', '[]', NULL, '[{"label":"Email","value":"sara.malik@example.com","isPublic":true},{"label":"Phone","value":"+92 300 9988776","isPublic":true}]', NULL, 'active', 'published', 'super_admin', '2026-09-05', '2026-09-10T07:00:00.000Z', '2026-09-06', NULL, NULL, '2026-01-01T00:00:03.000Z'),
   (lower(hex(randomblob(16))), 'bilal-anwar', 'Bilal Anwar', 'Counsellor', 'bilal.anwar@example.com', '+92 300 5551212', NULL, NULL, '', '["Career Counselling"]', '[]', 2, '["PG Diploma in Counselling, AIOU"]', NULL, '[]', '["English","Urdu"]', 'online', 'PKR', 0, 0, 'Faisalabad, Pakistan', '[]', NULL, '[{"label":"Email","value":"bilal.anwar@example.com","isPublic":true},{"label":"Phone","value":"+92 300 5551212","isPublic":true}]', NULL, 'pending', 'incomplete', 'self', '2026-09-16', NULL, NULL, NULL, NULL, '2026-01-01T00:00:04.000Z');
 
+-- A profile is only public once the credentials are verified, so the published demo profiles are verified.
+UPDATE practitioners SET verification_status = 'verified', verified_on = approved_on WHERE profile_status = 'published';
+
 INSERT INTO slots (id, practitioner_slug, date, start_time, end_time, session_type, status) VALUES
   ('slot-6', 'dr-ali', '2026-09-15', '17:00', '17:50', 'online', 'booked'),
   ('slot-1', 'dr-ali', '2026-09-18', '10:00', '10:50', 'online', 'open'),

@@ -1,13 +1,13 @@
 import { all, first, run } from "@/lib/db";
 import { randomToken, sha256Hex } from "@/lib/session";
 import type { DeviceKind } from "@/lib/trafficSource";
+import { STATS_RANGES, type StatsRange } from "@/lib/statsRanges";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** The same visitor reloading or revisiting inside this window is one view, not many. */
 const REPEAT_WINDOW_MINUTES = 30;
 
-export const STATS_RANGES = [7, 30, 90] as const;
-export type StatsRange = (typeof STATS_RANGES)[number];
+export { STATS_RANGES, type StatsRange };
 
 const utcDay = (date: Date) => date.toISOString().slice(0, 10);
 
@@ -166,5 +166,127 @@ export async function getProfileStats(slug: string, range: StatsRange): Promise<
     devices,
     bookingRequests: bookings?.requests ?? 0,
     confirmedBookings: bookings?.confirmed ?? 0,
+  };
+}
+
+// ---- Super Admin: every practitioner at a glance ----
+
+export interface PractitionerStatsRow {
+  slug: string;
+  views: number;
+  visitors: number;
+  previousViews: number;
+  bookingRequests: number;
+  confirmedBookings: number;
+  /** The source that sent the most views in this period, if any. */
+  topSource: string | null;
+}
+
+export interface PlatformStats {
+  range: StatsRange;
+  daily: DailyPoint[];
+  views: number;
+  visitors: number;
+  previousViews: number;
+  previousVisitors: number;
+  bookingRequests: number;
+  confirmedBookings: number;
+  sources: BreakdownRow[];
+  /** Only practitioners with any views or booking requests in the period; the page fills in the rest with zeros. */
+  rows: PractitionerStatsRow[];
+}
+
+/** Profile stats for the whole platform and per practitioner, for the last `range` days (UTC) and the period before. */
+export async function getPlatformStats(range: StatsRange): Promise<PlatformStats> {
+  const today = new Date();
+  const to = utcDay(today);
+  const from = utcDay(new Date(today.getTime() - (range - 1) * DAY_MS));
+  const previousTo = utcDay(new Date(today.getTime() - range * DAY_MS));
+  const previousFrom = utcDay(new Date(today.getTime() - (2 * range - 1) * DAY_MS));
+
+  const [current, previous, previousVisitors, bookings, sourceRows, dailyRows] = await Promise.all([
+    all<{ slug: string; views: number; visitors: number }>(
+      `SELECT practitioner_slug AS slug, count(*) AS views, count(DISTINCT day || ':' || visitor) AS visitors
+         FROM profile_views WHERE day BETWEEN ? AND ? GROUP BY practitioner_slug`,
+      from,
+      to,
+    ),
+    all<{ slug: string; views: number }>(
+      `SELECT practitioner_slug AS slug, count(*) AS views
+         FROM profile_views WHERE day BETWEEN ? AND ? GROUP BY practitioner_slug`,
+      previousFrom,
+      previousTo,
+    ),
+    first<{ n: number }>(
+      `SELECT count(*) AS n FROM (SELECT DISTINCT practitioner_slug, day, visitor FROM profile_views
+        WHERE day BETWEEN ? AND ?)`,
+      previousFrom,
+      previousTo,
+    ),
+    all<{ slug: string; requests: number; confirmed: number }>(
+      `SELECT practitioner_slug AS slug, count(*) AS requests,
+              coalesce(sum(status IN ('confirmed', 'completed')), 0) AS confirmed
+         FROM appointments WHERE substr(created_at, 1, 10) BETWEEN ? AND ? GROUP BY practitioner_slug`,
+      from,
+      to,
+    ),
+    all<{ slug: string; label: string; count: number }>(
+      `SELECT practitioner_slug AS slug, source AS label, count(*) AS count
+         FROM profile_views WHERE day BETWEEN ? AND ? GROUP BY practitioner_slug, source`,
+      from,
+      to,
+    ),
+    all<DailyPoint>(
+      `SELECT day, count(*) AS views, count(DISTINCT practitioner_slug || ':' || visitor) AS visitors
+         FROM profile_views WHERE day BETWEEN ? AND ? GROUP BY day`,
+      from,
+      to,
+    ),
+  ]);
+
+  const rows = new Map<string, PractitionerStatsRow>();
+  const row = (slug: string): PractitionerStatsRow => {
+    let r = rows.get(slug);
+    if (!r) {
+      r = { slug, views: 0, visitors: 0, previousViews: 0, bookingRequests: 0, confirmedBookings: 0, topSource: null };
+      rows.set(slug, r);
+    }
+    return r;
+  };
+  for (const c of current) Object.assign(row(c.slug), { views: c.views, visitors: c.visitors });
+  for (const p of previous) row(p.slug).previousViews = p.views;
+  for (const b of bookings) Object.assign(row(b.slug), { bookingRequests: b.requests, confirmedBookings: b.confirmed });
+
+  const best = new Map<string, number>();
+  const totalsBySource = new Map<string, number>();
+  for (const s of sourceRows) {
+    totalsBySource.set(s.label, (totalsBySource.get(s.label) ?? 0) + s.count);
+    if (s.count > (best.get(s.slug) ?? 0)) {
+      best.set(s.slug, s.count);
+      row(s.slug).topSource = s.label;
+    }
+  }
+
+  const byDay = new Map(dailyRows.map((r) => [r.day, r]));
+  const daily: DailyPoint[] = Array.from({ length: range }, (_, i) => {
+    const day = utcDay(new Date(today.getTime() - (range - 1 - i) * DAY_MS));
+    return byDay.get(day) ?? { day, views: 0, visitors: 0 };
+  });
+
+  const list = [...rows.values()];
+  return {
+    range,
+    daily,
+    views: list.reduce((n, r) => n + r.views, 0),
+    visitors: list.reduce((n, r) => n + r.visitors, 0),
+    previousViews: previous.reduce((n, r) => n + r.views, 0),
+    previousVisitors: previousVisitors?.n ?? 0,
+    bookingRequests: list.reduce((n, r) => n + r.bookingRequests, 0),
+    confirmedBookings: list.reduce((n, r) => n + r.confirmedBookings, 0),
+    sources: [...totalsBySource.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+      .slice(0, 6),
+    rows: list,
   };
 }

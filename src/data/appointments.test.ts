@@ -20,46 +20,70 @@ afterEach(async () => {
 
 describe("createAppointmentFromSlot", () => {
   it("books an open slot and marks it booked", async () => {
-    const slot = await addSlot({ practitionerSlug: slug, date: "2026-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
 
-    const appt = await createAppointmentFromSlot({ slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
+    const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
 
     expect(appt).toMatchObject({ slotId: slot.id, status: "pending", clientName: "Ali" });
     expect((await getSlotById(slot.id))?.status).toBe("booked");
   });
 
   it("refuses to double-book an already-taken slot", async () => {
-    const slot = await addSlot({ practitionerSlug: slug, date: "2026-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
 
-    const first = await createAppointmentFromSlot({ slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
-    const second = await createAppointmentFromSlot({ slotId: slot.id, clientName: "Sara", clientContact: "sara@example.com" });
+    const first = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
+    const second = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Sara", clientContact: "sara@example.com" });
 
     expect(first).not.toBeNull();
     expect(second).toBeNull();
   });
 
   it("survives concurrent booking attempts on the same slot — exactly one wins", async () => {
-    const slot = await addSlot({ practitionerSlug: slug, date: "2026-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
 
     const results = await Promise.all(
       Array.from({ length: 5 }, (_, i) =>
-        createAppointmentFromSlot({ slotId: slot.id, clientName: `Client ${i}`, clientContact: `c${i}@example.com` }),
+        createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: `Client ${i}`, clientContact: `c${i}@example.com` }),
       ),
     );
 
     expect(results.filter((r) => r !== null)).toHaveLength(1);
   });
 
+  it("refuses a slot that belongs to a different practitioner", async () => {
+    const other = await createTestPractitioner();
+    try {
+      const slot = await addSlot({ practitionerSlug: other, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+
+      const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
+
+      expect(appt).toBeNull();
+      // The refused booking must leave the slot open.
+      expect((await getSlotById(slot.id))?.status).toBe("open");
+    } finally {
+      await deleteTestPractitioner(other);
+    }
+  });
+
+  it("refuses a slot whose date has already passed", async () => {
+    const slot = await addSlot({ practitionerSlug: slug, date: "2020-01-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+
+    const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
+
+    expect(appt).toBeNull();
+    expect((await getSlotById(slot.id))?.status).toBe("open");
+  });
+
   it("returns null for a slot that doesn't exist", async () => {
     await expect(
-      createAppointmentFromSlot({ slotId: "slot-doesnotexist", clientName: "Ali", clientContact: "ali@example.com" }),
+      createAppointmentFromSlot({ practitionerSlug: slug, slotId: "slot-doesnotexist", clientName: "Ali", clientContact: "ali@example.com" }),
     ).resolves.toBeNull();
   });
 });
 
 describe("createManualAppointment", () => {
   it("lands straight in 'confirmed' when booking an open slot", async () => {
-    const slot = await addSlot({ practitionerSlug: slug, date: "2026-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
 
     const appt = await createManualAppointment({
       practitionerSlug: slug,
@@ -88,8 +112,8 @@ describe("createManualAppointment", () => {
 
 describe("setAppointmentStatus", () => {
   it("cancelling releases the held slot back to 'open'", async () => {
-    const slot = await addSlot({ practitionerSlug: slug, date: "2026-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
-    const appt = await createAppointmentFromSlot({ slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
+    const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
 
     await setAppointmentStatus(appt!.id, "cancelled");
 
@@ -97,18 +121,18 @@ describe("setAppointmentStatus", () => {
   });
 
   it("a cancelled appointment's old slot can be booked again", async () => {
-    const slot = await addSlot({ practitionerSlug: slug, date: "2026-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
-    const first = await createAppointmentFromSlot({ slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
+    const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const first = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
     await setAppointmentStatus(first!.id, "cancelled");
 
-    const second = await createAppointmentFromSlot({ slotId: slot.id, clientName: "Sara", clientContact: "sara@example.com" });
+    const second = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Sara", clientContact: "sara@example.com" });
 
     expect(second).not.toBeNull();
   });
 
   it("confirming doesn't touch the slot", async () => {
-    const slot = await addSlot({ practitionerSlug: slug, date: "2026-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
-    const appt = await createAppointmentFromSlot({ slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
+    const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
 
     await setAppointmentStatus(appt!.id, "confirmed");
 
@@ -118,9 +142,9 @@ describe("setAppointmentStatus", () => {
 
 describe("rescheduleAppointment", () => {
   it("moving to a new slot frees the old one and books the new one", async () => {
-    const oldSlot = await addSlot({ practitionerSlug: slug, date: "2026-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const oldSlot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
     const newSlot = await addSlot({ practitionerSlug: slug, date: "2026-10-02", startTime: "11:00", endTime: "12:00", sessionType: "online" });
-    const appt = await createAppointmentFromSlot({ slotId: oldSlot.id, clientName: "Ali", clientContact: "ali@example.com" });
+    const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: oldSlot.id, clientName: "Ali", clientContact: "ali@example.com" });
 
     const rescheduled = await rescheduleAppointment(appt!.id, { slotId: newSlot.id });
 
@@ -130,8 +154,8 @@ describe("rescheduleAppointment", () => {
   });
 
   it("moving to a free-form time clears slot_id", async () => {
-    const oldSlot = await addSlot({ practitionerSlug: slug, date: "2026-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
-    const appt = await createAppointmentFromSlot({ slotId: oldSlot.id, clientName: "Ali", clientContact: "ali@example.com" });
+    const oldSlot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: oldSlot.id, clientName: "Ali", clientContact: "ali@example.com" });
 
     const rescheduled = await rescheduleAppointment(appt!.id, {
       date: "2026-10-05",
@@ -142,6 +166,16 @@ describe("rescheduleAppointment", () => {
 
     expect(rescheduled).toMatchObject({ slotId: null, date: "2026-10-05", sessionType: "offline" });
     expect((await getSlotById(oldSlot.id))?.status).toBe("open");
+  });
+
+  it("refuses to move onto a slot another client already holds", async () => {
+    const mine = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const taken = await addSlot({ practitionerSlug: slug, date: "2030-10-02", startTime: "09:00", endTime: "10:00", sessionType: "online" });
+    const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: mine.id, clientName: "Ali", clientContact: "ali@example.com" });
+    await createAppointmentFromSlot({ practitionerSlug: slug, slotId: taken.id, clientName: "Sara", clientContact: "sara@example.com" });
+
+    await expect(rescheduleAppointment(appt!.id, { slotId: taken.id })).resolves.toBeNull();
+    expect((await getSlotById(mine.id))?.status).toBe("booked");
   });
 
   it("returns null for an appointment that doesn't exist", async () => {

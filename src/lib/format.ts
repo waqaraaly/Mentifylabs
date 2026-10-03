@@ -69,6 +69,11 @@ export function isToday(iso: string) {
   return iso === todayIsoDate();
 }
 
+/** Whether a session starting on this date and time (on the practitioner's own clock) is already in the past. */
+export function isPastStart(date: string, startTime: string, now: Date = new Date()): boolean {
+  return new Date(`${date}T${startTime}:00`) < now;
+}
+
 export function daysBetween(fromIso: string, toIso: string): number {
   const from = new Date(`${fromIso}T00:00:00`);
   const to = new Date(`${toIso}T00:00:00`);
@@ -134,6 +139,26 @@ export function diffMinutes(startTime: string, endTime: string): number {
 }
 
 // "14:00" -> "2:00 PM"
+/** The calendar day (viewer's local time) a timestamp falls on, as YYYY-MM-DD. */
+export function localDayOf(iso: string): string {
+  return toIsoDate(new Date(iso));
+}
+
+/** A day for a group heading: "today", "yesterday", or "Friday, Sep 12". */
+export function formatDayHeading(dayIso: string): string {
+  const days = daysBetween(dayIso, todayIsoDate());
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return formatDateFull(dayIso);
+}
+
+/** The exact moment a request came in, in the viewer's local time: "Fri, Sep 12 at 3:42 PM". */
+export function formatRequestedAt(createdAtIso: string): string {
+  const d = new Date(createdAtIso);
+  const year = d.getFullYear() === new Date().getFullYear() ? "" : `, ${d.getFullYear()}`;
+  return `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}${year} at ${formatTime12h(`${d.getHours()}:${d.getMinutes()}`)}`;
+}
+
 export function formatTime12h(time: string): string {
   const [h, m] = time.split(":").map(Number);
   const period = h >= 12 ? "PM" : "AM";

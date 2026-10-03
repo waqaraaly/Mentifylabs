@@ -26,9 +26,9 @@ export async function updateAccountAction(formData: FormData) {
   });
   if (!result.ok) redirect(`/dashboard/settings?error=${encodeURIComponent(result.message)}`);
 
-  // The practitioner record keeps the account's contact details for Super Admin's
-  // own use; these fields are never sent to the public page.
-  await updatePractitionerProfile(slug, { email: email.toLowerCase(), phone: phone || undefined });
+  // The practitioner record keeps the account's contact details for Super Admin's own use; these fields are
+  // never sent to the public page. The email follows only once the new address is confirmed.
+  await updatePractitionerProfile(slug, { phone: phone || undefined });
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");

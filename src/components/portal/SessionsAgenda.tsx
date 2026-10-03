@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition, type ReactNode } from "react";
+import { useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { Check, Eye, MoreHorizontal, CalendarClock, Search, Trash2, X } from "lucide-react";
@@ -12,11 +12,16 @@ import { RescheduleModal } from "./RescheduleModal";
 import { AppointmentDetailModal } from "./AppointmentDetailModal";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Tabs } from "@/components/ui/Tabs";
+import { ModeBadge } from "@/components/ui/ModeBadge";
 
 const EMPTY_COPY: Record<string, { title: string; body: string }> = {
   upcoming: {
     title: "Nothing scheduled",
     body: "Approved sessions will show up here once clients are booked in.",
+  },
+  overdue: {
+    title: "Nothing overdue",
+    body: "Sessions whose time has passed without being marked completed or cancelled will show up here.",
   },
   completed: {
     title: "No completed sessions yet",
@@ -175,19 +180,37 @@ function DeleteRecordMenu({
   );
 }
 
+const subscribeNever = () => () => {};
+
 export function SessionsAgenda({
-  appointments,
+  appointments: tabAppointments,
   tab,
   practitionerSlug,
   openSlots,
-  tabItems,
+  confirmedEnds,
+  tabItems: serverTabItems,
 }: {
   appointments: Appointment[];
   tab: string;
   practitionerSlug: string;
   openSlots: Slot[];
+  /** When every confirmed session ends, so the tab counts can be split into upcoming and overdue. */
+  confirmedEnds: { date: string; endTime: string }[];
   tabItems: { value: string; label: string; count?: number }[];
 }) {
+  // Whether a session has ended depends on the viewer's own clock, which the server doesn't know. So the server
+  // and the first browser render treat nothing as ended, and the real split happens once the page is in the browser.
+  const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const now = new Date();
+  const endedAt = (date: string, endTime: string) => inBrowser && new Date(`${date}T${endTime}:00`) < now;
+  const hasEnded = (a: Appointment) => endedAt(a.date, a.endTime);
+  const overdueCount = confirmedEnds.filter((c) => endedAt(c.date, c.endTime)).length;
+  const tabItems = serverTabItems.map((t) =>
+    !inBrowser ? t : t.value === "overdue" ? { ...t, count: overdueCount } : t.value === "upcoming" ? { ...t, count: confirmedEnds.length - overdueCount } : t,
+  );
+  const appointments =
+    tab === "upcoming" ? tabAppointments.filter((a) => !hasEnded(a)) : tab === "overdue" ? tabAppointments.filter(hasEnded) : tabAppointments;
+
   const [search, setSearch] = useState("");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
@@ -217,25 +240,51 @@ export function SessionsAgenda({
     return a.clientName.toLowerCase().includes(q) || a.clientContact.toLowerCase().includes(q);
   });
 
-  const now = new Date();
-  const hasEnded = (a: Appointment) => new Date(`${a.date}T${a.endTime}:00`) < now;
-
-  // Upcoming: soonest session first — anything whose end time has already passed (stale
-  // "confirmed" data) sinks below everything that's actually still ahead of us.
-  const rows =
-    tab === "upcoming"
-      ? [...filtered].sort((a, b) => {
-          const aPast = hasEnded(a) ? 1 : 0;
-          const bPast = hasEnded(b) ? 1 : 0;
-          if (aPast !== bPast) return aPast - bPast;
-          return (a.date + a.startTime).localeCompare(b.date + b.startTime);
-        })
-      : [...filtered].reverse();
+  // Upcoming and Overdue read oldest-first (the page already sorts that way); the closed tabs show the latest first.
+  const rows = tab === "upcoming" || tab === "overdue" ? filtered : [...filtered].reverse();
 
   const rescheduleTarget = appointments.find((a) => a.id === rescheduleId) ?? null;
   const viewTarget = appointments.find((a) => a.id === viewId) ?? null;
 
   const top = <Tabs basePath="/dashboard/sessions" active={tab} items={tabItems} />;
+
+  // The table (md and up) and the card list (phones) never show together, but each needs its own menu
+  // id, so opening one never opens the other's copy.
+  const actionsFor = (a: Appointment, where: "table" | "card") => {
+    const id = `${a.id}:${where}`;
+    const toggle = () => setMenuOpenId(menuOpenId === id ? null : id);
+    return tab === "upcoming" || tab === "overdue" ? (
+      <SessionActionsMenu
+        open={menuOpenId === id}
+        onToggle={toggle}
+        onClose={() => setMenuOpenId(null)}
+        onView={() => setViewId(a.id)}
+        onReschedule={() => setRescheduleId(a.id)}
+        onRequestComplete={() => setConfirmTarget({ appointment: a, action: "complete" })}
+        onRequestCancel={() => setConfirmTarget({ appointment: a, action: "cancel" })}
+      />
+    ) : (
+      <DeleteRecordMenu
+        appointment={a}
+        practitionerSlug={practitionerSlug}
+        open={menuOpenId === id}
+        onToggle={toggle}
+        onClose={() => setMenuOpenId(null)}
+      />
+    );
+  };
+
+  const modeBadge = (a: Appointment) => <ModeBadge mode={a.sessionType} />;
+
+  // The Overdue list can only be known in the browser, so until then hold the space instead of flashing "nothing overdue".
+  if (tab === "overdue" && !inBrowser) {
+    return (
+      <div className="space-y-6">
+        {top}
+        <div className="h-64 rounded-2xl bg-surface ring-1 ring-black/[0.07]" aria-hidden />
+      </div>
+    );
+  }
 
   if (appointments.length === 0) {
     const copy = EMPTY_COPY[tab] ?? EMPTY_COPY.upcoming;
@@ -279,7 +328,7 @@ export function SessionsAgenda({
           </span>
         </div>
 
-        <div className="themed-scrollbar max-h-[28rem] overflow-auto">
+        <div className="themed-scrollbar hidden max-h-[28rem] overflow-auto md:block">
           <table className="w-full min-w-[760px] text-left text-base">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-black/[0.07] bg-surface">
@@ -290,7 +339,7 @@ export function SessionsAgenda({
                   Client
                 </th>
                 <th className="px-4 py-4 text-xs font-semibold tracking-[0.08em] text-foreground/55 uppercase">
-                  Mode
+                  Session mode
                 </th>
                 <th className="py-4 pr-6 text-right text-xs font-semibold tracking-[0.08em] text-foreground/55 uppercase sm:pr-7">
                   Actions
@@ -306,7 +355,7 @@ export function SessionsAgenda({
                 </tr>
               ) : (
                 rows.map((a) => {
-                  const overdue = tab === "upcoming" && hasEnded(a);
+                  const overdue = tab === "overdue";
                   return (
                   <tr key={a.id} className="transition hover:bg-black/[0.02]">
                     <td className="px-4 py-4 pl-6 whitespace-nowrap sm:pl-7">
@@ -328,11 +377,6 @@ export function SessionsAgenda({
                           <p className="font-semibold tabular-nums">
                             {formatTime12h(a.startTime)} – {formatTime12h(a.endTime)}
                           </p>
-                          {overdue && (
-                            <span className="mt-1 inline-block rounded-full bg-alert/10 px-2 py-0.5 text-[11px] font-semibold tracking-[0.04em] text-alert uppercase">
-                              Overdue
-                            </span>
-                          )}
                         </div>
                       </div>
                     </td>
@@ -340,39 +384,9 @@ export function SessionsAgenda({
                       <p className="text-base font-semibold tracking-tight">{a.clientName}</p>
                       <p className="mt-1 text-[15px] text-muted">{a.clientContact}</p>
                     </td>
-                    <td className="px-4 py-5 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                          a.sessionType === "online"
-                            ? "bg-amber-500/[0.16] text-amber-800 dark:text-amber-300"
-                            : "bg-primary/10 text-primary"
-                        }`}
-                      >
-                        <span>{a.sessionType === "online" ? "Online" : "On-Site"}</span>
-                      </span>
-                    </td>
+                    <td className="px-4 py-5 whitespace-nowrap">{modeBadge(a)}</td>
                     <td className="py-5 pr-6 sm:pr-7">
-                      <div className="flex items-center justify-end">
-                        {tab === "upcoming" ? (
-                          <SessionActionsMenu
-                            open={menuOpenId === a.id}
-                            onToggle={() => setMenuOpenId(menuOpenId === a.id ? null : a.id)}
-                            onClose={() => setMenuOpenId(null)}
-                            onView={() => setViewId(a.id)}
-                            onReschedule={() => setRescheduleId(a.id)}
-                            onRequestComplete={() => setConfirmTarget({ appointment: a, action: "complete" })}
-                            onRequestCancel={() => setConfirmTarget({ appointment: a, action: "cancel" })}
-                          />
-                        ) : (
-                          <DeleteRecordMenu
-                            appointment={a}
-                            practitionerSlug={practitionerSlug}
-                            open={menuOpenId === a.id}
-                            onToggle={() => setMenuOpenId(menuOpenId === a.id ? null : a.id)}
-                            onClose={() => setMenuOpenId(null)}
-                          />
-                        )}
-                      </div>
+                      <div className="flex items-center justify-end">{actionsFor(a, "table")}</div>
                     </td>
                   </tr>
                   );
@@ -381,6 +395,40 @@ export function SessionsAgenda({
             </tbody>
           </table>
         </div>
+
+        {/* Phones: one card per session, with the actions menu always in reach. */}
+        <ul className="divide-y divide-black/[0.06] md:hidden">
+          {rows.length === 0 ? (
+            <li className="px-5 py-10 text-center text-base text-muted">No sessions match &ldquo;{search}&rdquo;.</li>
+          ) : (
+            rows.map((a) => {
+              const overdue = tab === "overdue";
+              const day = formatDayCell(a.date);
+              return (
+                <li key={a.id} className="flex items-start gap-3 px-4 py-4">
+                  <div
+                    className={`flex w-14 shrink-0 flex-col items-center rounded-xl py-2 ${
+                      overdue ? "bg-alert/[0.08] text-alert" : "bg-primary/[0.08] text-primary"
+                    }`}
+                  >
+                    <span className="text-[10px] font-semibold tracking-[0.08em] uppercase">{day.weekday}</span>
+                    <span className="text-xl leading-tight font-semibold tabular-nums">{day.day}</span>
+                    <span className="text-[10px] font-medium uppercase opacity-80">{day.month}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold tabular-nums">
+                      {formatTime12h(a.startTime)} – {formatTime12h(a.endTime)}
+                    </p>
+                    <p className="mt-1.5 truncate font-semibold tracking-tight">{a.clientName}</p>
+                    <p className="truncate text-sm text-muted">{a.clientContact}</p>
+                    <div className="mt-2.5">{modeBadge(a)}</div>
+                  </div>
+                  <div className="-mt-1 -mr-1.5 shrink-0">{actionsFor(a, "card")}</div>
+                </li>
+              );
+            })
+          )}
+        </ul>
       </div>
 
       {viewTarget && <AppointmentDetailModal appointment={viewTarget} onClose={() => setViewId(null)} />}

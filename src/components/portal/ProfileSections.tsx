@@ -40,8 +40,8 @@ export function ProfileSections({ sections }: { sections: ProfileSection[] }) {
   const doneCount = sections.filter((s) => s.done).length;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[230px_1fr] lg:items-start">
-      <nav aria-label="Profile sections" className="lg:sticky lg:top-8">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[230px_minmax(0,1fr)] lg:items-start">
+      <nav aria-label="Profile sections" className="min-w-0 lg:sticky lg:top-8">
         <div className="rounded-2xl bg-surface p-4 ring-1 ring-black/[0.07]">
           <div className="flex items-baseline justify-between px-2">
             <p className="text-sm font-semibold">Profile strength</p>

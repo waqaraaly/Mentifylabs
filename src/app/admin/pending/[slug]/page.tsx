@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/session";
 import { notFound } from "next/navigation";
 import { getAllPractitioners } from "@/data/practitioners";
 import { getDocumentsByPractitioner } from "@/data/documents";
+import { getReviewEvents } from "@/data/reviewEvents";
 import { siteConfig } from "@/lib/site";
 import { TopBar } from "@/components/admin/TopBar";
 import { ProfileReview } from "@/components/admin/ProfileReview";
@@ -18,13 +19,13 @@ export default async function AdminProfileReviewPage({ params }: PageProps<"/adm
   const practitioner = (await getAllPractitioners()).find((p) => p.slug === slug);
   if (!practitioner) notFound();
 
-  const documents = await getDocumentsByPractitioner(slug);
+  const [documents, history] = await Promise.all([getDocumentsByPractitioner(slug), getReviewEvents(slug)]);
 
   return (
     <div>
-      <TopBar title="Profile review" subtitle="Check the profile, then approve or send it back" />
+      <TopBar title="Review & approve" subtitle="Check their details and documents, then approve or send it back" />
       <div style={{ padding: "0 32px 40px" }}>
-        <ProfileReview p={practitioner} documents={documents} siteUrl={siteConfig.url} />
+        <ProfileReview p={practitioner} documents={documents} history={history} siteUrl={siteConfig.url} />
       </div>
     </div>
   );

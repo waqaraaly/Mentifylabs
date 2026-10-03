@@ -11,15 +11,15 @@ import { profileExists, recordProfileView } from "@/data/profileStats";
 export async function POST(request: Request) {
   const done = new Response(null, { status: 204 });
 
-  // Same-site requests only.
+  // Same-site browser requests only. Browsers always send Origin on a POST, so a request without
+  // one is a script and isn't counted.
   const origin = request.headers.get("origin");
   const host = request.headers.get("host") ?? "";
-  if (origin) {
-    try {
-      if (new URL(origin).host !== host) return done;
-    } catch {
-      return done;
-    }
+  if (!origin) return done;
+  try {
+    if (new URL(origin).host !== host) return done;
+  } catch {
+    return done;
   }
 
   let body: { slug?: unknown; referrer?: unknown; utm?: unknown };
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
   await recordProfileView({
     slug,
-    ip: request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for") ?? "",
+    ip: request.headers.get("cf-connecting-ip") ?? "",
     userAgent: userAgent!,
     source: classifySource(
       typeof body.referrer === "string" ? body.referrer : null,
