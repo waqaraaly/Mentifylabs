@@ -53,6 +53,23 @@ function SlotBlock({
     );
   }
 
+  if (slot.status === "unavailable") {
+    return (
+      <button
+        type="button"
+        onClick={() => onManageSlot(slot)}
+        title="Blocked. Click to reopen it."
+        style={{ backgroundImage: "repeating-linear-gradient(135deg, color-mix(in srgb, var(--foreground) 7%, transparent) 0 6px, transparent 6px 12px)" }}
+        className="w-full shrink-0 rounded-lg px-2 py-2.5 text-center text-[12px] font-semibold whitespace-nowrap text-muted ring-1 ring-border transition hover:brightness-95"
+      >
+        <span className="flex flex-col items-center leading-tight">
+          <span className="line-through">{time}</span>
+          <span className="text-[11px] font-medium">Unavailable</span>
+        </span>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -99,11 +116,11 @@ export function ManageSlotsBoard({
   const [manageDate, setManageDate] = useState<string | null>(null);
   const [manageDateLocked, setManageDateLocked] = useState(true);
   const [blockOpen, setBlockOpen] = useState(false);
-  const [focusSlotId, setFocusSlotId] = useState<string | undefined>(undefined);
+  const [focusSlot, setFocusSlot] = useState<Slot | undefined>(undefined);
 
-  function openDate(date: string, locked: boolean, slotId?: string) {
+  function openDate(date: string, locked: boolean, slot?: Slot) {
     setManageDateLocked(locked);
-    setFocusSlotId(slotId);
+    setFocusSlot(slot);
     setManageDate(date);
   }
 
@@ -192,7 +209,7 @@ export function ManageSlotsBoard({
             <div className="themed-scrollbar rounded-lg ring-1 ring-border lg:h-[clamp(440px,calc(100vh-375px),760px)] lg:overflow-auto">
             <div className="grid min-h-full grid-cols-1 divide-y divide-border lg:min-w-[900px] lg:grid-cols-7 lg:divide-x lg:divide-y-0">
               {days.map(({ date, slots: allSlots }) => {
-                const slots = allSlots.filter((s) => s.status !== "unavailable");
+                const slots = allSlots;
                 const cell = formatDayCell(date);
                 const today = isToday(date);
                 const override = dayOverrideByDate.get(date);
@@ -248,8 +265,8 @@ export function ManageSlotsBoard({
                             key={slot.id}
                             slot={slot}
                             appointment={appointmentBySlotId.get(slot.id)}
-                            onViewAppointment={(s) => openDate(s.date, true, s.id)}
-                            onManageSlot={(s) => openDate(s.date, true, s.id)}
+                            onViewAppointment={(s) => openDate(s.date, true, s)}
+                            onManageSlot={(s) => openDate(s.date, true, s)}
                           />
                         ),
                       )}
@@ -293,10 +310,10 @@ export function ManageSlotsBoard({
 
       {manageDate && (
         <DayPanel
-          key={`${manageDate}-${focusSlotId ?? ""}`}
+          key={`${manageDate}-${focusSlot?.id ?? ""}`}
           initialDate={manageDate}
           dateLocked={manageDateLocked}
-          focusSlotId={focusSlotId}
+          focusSlot={focusSlot}
           practitionerSlug={practitionerSlug}
           getAppointment={(slotId) => appointmentBySlotId.get(slotId)}
           variant="modal"
