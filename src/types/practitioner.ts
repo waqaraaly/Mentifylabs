@@ -2,7 +2,7 @@ import type { ColorThemeId } from "@/lib/themes";
 
 export type SessionType = "online" | "offline" | "both";
 
-export type PractitionerStatus = "pending" | "active" | "suspended" | "rejected";
+export type PractitionerStatus = "active" | "suspended";
 
 /**
  * Independent from `status` (the account's ability to sign in). This tracks
@@ -86,6 +86,11 @@ export interface Practitioner {
 
   /** Set once they finish (or skip) the guided first-login setup at /onboarding. Gates dashboard access. */
   onboardedAt?: string;
+
+  /** True while the sign-in email has not been confirmed yet, so they cannot sign in. Only loaded for Super Admin lists. */
+  emailUnconfirmed?: boolean;
+  /** Whether a sign-in account exists yet. Practitioners added by Super Admin get one when the invite is sent. Only loaded for Super Admin lists. */
+  hasLogin?: boolean;
 
   /** False while the practitioner has paused new bookings: the profile stays up, but nobody can book. */
   acceptingBookings: boolean;

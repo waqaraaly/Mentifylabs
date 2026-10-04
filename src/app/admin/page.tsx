@@ -3,6 +3,7 @@ import { getAllPractitioners } from "@/data/practitioners";
 import { getAllAppointments } from "@/data/appointments";
 import { todayIsoDate } from "@/lib/format";
 import { TopBar } from "@/components/admin/TopBar";
+import { LayoutDashboard } from "lucide-react";
 import { DashboardView } from "@/components/admin/DashboardView";
 
 export const metadata = { title: "Super Admin Dashboard" };
@@ -19,6 +20,7 @@ export default async function AdminDashboardPage() {
   return (
     <div>
       <TopBar
+        icon={LayoutDashboard}
         title="Dashboard"
         subtitle={`Platform health at a glance · ${new Date().toDateString()}`}
       />

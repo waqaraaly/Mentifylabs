@@ -2,7 +2,7 @@ import { updatePractitionerSlug } from "./practitioners";
 
 /**
  * Renames a practitioner's slug. Appointments, slots, availability, documents and
- * feature access follow automatically through ON UPDATE CASCADE foreign keys.
+ * documents follow automatically through ON UPDATE CASCADE foreign keys.
  * Both the practitioner portal and Super Admin rename through here.
  */
 export async function renamePractitionerSlug(

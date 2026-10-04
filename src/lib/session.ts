@@ -60,12 +60,12 @@ export function randomToken(): string {
 }
 
 /**
- * Suspended or rejected practitioners can't sign in or keep using an existing
+ * Suspended practitioners can't sign in or keep using an existing
  * session, and neither can any account (of either role) Super Admin has
  * disabled from Manage Users, or one whose email address hasn't been confirmed yet.
  */
 const ACCOUNT_ALLOWED = `u.disabled_at IS NULL AND u.email_verified_at IS NOT NULL AND (u.role = 'admin' OR EXISTS (
-  SELECT 1 FROM practitioners p WHERE p.id = u.practitioner_id AND p.status NOT IN ('suspended', 'rejected')))`;
+  SELECT 1 FROM practitioners p WHERE p.id = u.practitioner_id AND p.status <> 'suspended'))`;
 
 /** The signed-in user for this request, or null. Cached so every component shares one lookup. */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
@@ -137,16 +137,6 @@ let decoyHash: Promise<string> | undefined;
 async function blockedAccountMessage(user: UserRow): Promise<string> {
   const help = "Contact the MentifyLabs team for help.";
   if (user.disabled_at) return `This account has been deactivated. ${help}`;
-  const p = user.practitioner_id
-    ? await first<{ status: string; rejection_note: string | null }>(
-        "SELECT status, rejection_note FROM practitioners WHERE id = ?",
-        user.practitioner_id,
-      )
-    : null;
-  if (p?.status === "rejected") {
-    const reason = p.rejection_note ? ` Reason: ${p.rejection_note}.` : "";
-    return `Your application wasn't approved.${reason} ${help}`;
-  }
   return `This account is suspended. ${help}`;
 }
 

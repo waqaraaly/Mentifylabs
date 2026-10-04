@@ -6,11 +6,11 @@ import type { ReactNode } from "react";
 export function Section({ icon, title, children, span = 1 }: { icon: ReactNode; title: string; children: ReactNode; span?: 1 | 2 }) {
   return (
     <section className="card" style={{ gridColumn: span === 2 ? "1 / -1" : undefined, overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 20px", borderBottom: "1px solid var(--ml-border-soft)" }}>
-        <span className="kpi-icon" style={{ width: 28, height: 28, borderRadius: 8 }}>{icon}</span>
-        <h3 className="h3" style={{ fontSize: 14 }}>{title}</h3>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 24px", borderBottom: "1px solid rgba(0, 0, 0, 0.06)" }}>
+        <span className="kpi-icon">{icon}</span>
+        <h3 className="h3" style={{ fontSize: 16, letterSpacing: "-0.01em" }}>{title}</h3>
       </div>
-      <div style={{ padding: "6px 20px 12px" }}>{children}</div>
+      <div style={{ padding: "6px 24px 14px" }}>{children}</div>
     </section>
   );
 }
@@ -24,11 +24,11 @@ export function Row({ label, children }: { label: string; children: ReactNode })
   );
 }
 
-export function SummaryItem({ label, value }: { label: string; value: string }) {
+export function SummaryItem({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div style={{ padding: "14px 24px" }}>
       <div style={{ fontSize: 12, color: "var(--ml-ink-muted)" }}>{label}</div>
-      <div className="tnum" style={{ fontSize: 15, fontWeight: 600, marginTop: 3 }}>{value}</div>
+      <div className="tnum" style={{ fontSize: 15, fontWeight: 600, marginTop: 5, minHeight: 22, display: "flex", alignItems: "center" }}>{value}</div>
     </div>
   );
 }

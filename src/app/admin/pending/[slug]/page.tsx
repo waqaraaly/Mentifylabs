@@ -5,6 +5,7 @@ import { getDocumentsByPractitioner } from "@/data/documents";
 import { getReviewEvents } from "@/data/reviewEvents";
 import { siteConfig } from "@/lib/site";
 import { TopBar } from "@/components/admin/TopBar";
+import { ShieldCheck } from "lucide-react";
 import { ProfileReview } from "@/components/admin/ProfileReview";
 
 export async function generateMetadata({ params }: PageProps<"/admin/pending/[slug]">) {
@@ -23,8 +24,8 @@ export default async function AdminProfileReviewPage({ params }: PageProps<"/adm
 
   return (
     <div>
-      <TopBar title="Review & approve" subtitle="Check their details and documents, then approve or send it back" />
-      <div style={{ padding: "0 32px 40px" }}>
+      <TopBar icon={ShieldCheck} title="Review & approve" subtitle="Check their details and documents, then approve or send it back" />
+      <div style={{ padding: "0 var(--ml-gutter) 40px" }}>
         <ProfileReview p={practitioner} documents={documents} history={history} siteUrl={siteConfig.url} />
       </div>
     </div>

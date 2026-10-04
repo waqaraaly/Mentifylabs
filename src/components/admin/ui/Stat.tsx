@@ -12,11 +12,11 @@ export function KPI({
 }) {
   return (
     <div className="card kpi">
+      <div className="stat-label">{label}</div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", fontWeight: 500 }}>{label}</div>
+        <div className="tnum kpi-value">{value}</div>
         {icon && <div className="kpi-icon">{icon}</div>}
       </div>
-      <div className="tnum kpi-value">{value}</div>
     </div>
   );
 }
@@ -35,9 +35,9 @@ export function BigStat({
   accent?: string;
 }) {
   return (
-    <div className="card" style={{ padding: "14px 16px", minHeight: 132 }}>
-      <div style={{ fontSize: 12.5, color: "var(--ml-ink-muted)" }}>{label}</div>
-      <div className="tnum" style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.05, marginTop: 4 }}>{value}</div>
+    <div className="card" style={{ padding: 20, minHeight: 132 }}>
+      <div className="stat-label">{label}</div>
+      <div className="tnum" style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.05, marginTop: 12 }}>{value}</div>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: 10, gap: 8 }}>
         <div style={{ fontSize: 11.5, color: "var(--ml-ink-subtle)" }}>{delta}</div>
         {series && (

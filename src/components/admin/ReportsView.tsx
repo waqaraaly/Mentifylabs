@@ -1,8 +1,9 @@
 "use client";
 
+import { isLive } from "@/lib/practitionerState";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Calendar } from "lucide-react";
+import { AlertTriangle, Calendar, BarChart3 } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import type { Appointment, AppointmentStatus } from "@/types/appointment";
 import { Avatar } from "./ui/Avatar";
@@ -35,7 +36,7 @@ export function ReportsView({
   const completed = appointments.filter((a) => a.status === "completed").length;
   const pending = appointments.filter((a) => a.status === "pending").length;
 
-  const incomplete = practitioners.filter((p) => ["incomplete", "draft"].includes(p.profileStatus));
+  const incomplete = practitioners.filter((p) => p.status === "active" && !isLive(p));
   const noBookings = practitioners.filter((p) => p.status === "active" && !appointments.some((a) => a.practitionerSlug === p.slug));
 
   // Real monthly growth for the trailing 7 months — no fabricated data.
@@ -49,7 +50,7 @@ export function ReportsView({
     return months.map(({ key, label }) => ({
       m: label,
       new: practitioners.filter((p) => p.dateJoined.startsWith(key)).length,
-      active: practitioners.filter((p) => p.dateJoined <= `${key}-31` && p.status !== "rejected").length,
+      active: practitioners.filter((p) => p.dateJoined <= `${key}-31`).length,
     }));
   }, [practitioners, currentMonth]);
 
@@ -72,9 +73,9 @@ export function ReportsView({
 
   return (
     <div>
-      <TopBar title="Reports &amp; analytics" subtitle="Platform activity, growth, and outliers" />
+      <TopBar icon={BarChart3} title="Reports &amp; analytics" subtitle="Platform activity, growth, and outliers" />
 
-      <div style={{ padding: "0 32px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ padding: "0 var(--ml-gutter) 32px", display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
           <BigStat label="Total practitioners" value={total} delta="all-time" />
           <BigStat label="Active practitioners" value={active} delta={total ? `${Math.round((active / total) * 100)}% of total` : "—"} />
@@ -177,11 +178,11 @@ export function ReportsView({
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <ListCard
-            title="Signed up but profile incomplete"
+            title="Signed up but profile not live"
             icon={<AlertTriangle size={14} />}
             accent="var(--ml-warn)"
             items={incomplete}
-            emptyTitle="No incomplete profiles"
+            emptyTitle="Every profile is live"
             right={(p) => <span className="mono" style={{ fontSize: 10.5, color: "var(--ml-ink-subtle)" }}>Joined {p.dateJoined}</span>}
             onClick={() => router.push("/admin/practitioners")}
           />

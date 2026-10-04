@@ -31,7 +31,7 @@ export async function requestPasswordReset(emailInput: string): Promise<void> {
     `SELECT u.id FROM users u
       WHERE u.email = ?
         AND (u.role = 'admin' OR EXISTS (SELECT 1 FROM practitioners p
-              WHERE p.id = u.practitioner_id AND p.status NOT IN ('suspended', 'rejected')))
+              WHERE p.id = u.practitioner_id AND p.status <> 'suspended'))
         AND NOT EXISTS (SELECT 1 FROM password_resets r
               WHERE r.user_id = u.id AND r.created_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?))`,
     email,

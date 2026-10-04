@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Ban, RotateCcw, ShieldCheck, Trash2, User, UserPlus } from "lucide-react";
+import { Ban, RotateCcw, ShieldCheck, Trash2, User, UserPlus, UserCog } from "lucide-react";
 import type { AdminUser } from "@/data/users";
 import { Avatar } from "./ui/Avatar";
 import { Badge } from "./ui/Badge";
@@ -50,6 +50,7 @@ export function ManageUsersView({ users, currentUserId }: { users: AdminUser[]; 
   return (
     <div>
       <TopBar
+        icon={UserCog}
         title="Manage Users"
         subtitle="Every sign-in account on the platform — Super Admins and practitioners."
         actions={
@@ -59,7 +60,7 @@ export function ManageUsersView({ users, currentUserId }: { users: AdminUser[]; 
         }
       />
 
-      <div style={{ padding: "0 32px 32px" }}>
+      <div style={{ padding: "0 var(--ml-gutter) 32px" }}>
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--ml-border)", gap: 12, flexWrap: "wrap" }}>
             <div>

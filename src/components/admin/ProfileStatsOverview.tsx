@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, CalendarCheck, Eye, MousePointerClick, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarCheck, Eye, MousePointerClick, Users, LineChart } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import type { PlatformStats, PractitionerStatsRow } from "@/data/profileStats";
 import { STATS_RANGES } from "@/lib/statsRanges";
@@ -125,6 +125,7 @@ export function ProfileStatsOverview({ practitioners, stats }: { practitioners: 
   return (
     <div>
       <TopBar
+        icon={LineChart}
         title="Profile stats"
         subtitle="How each practitioner's public profile is performing"
         actions={
@@ -143,7 +144,7 @@ export function ProfileStatsOverview({ practitioners, stats }: { practitioners: 
         }
       />
 
-      <div style={{ padding: "0 32px 40px" }}>
+      <div style={{ padding: "0 var(--ml-gutter) 40px" }}>
         <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           <KPI label="Profile views" value={count(stats.views)} icon={<Eye size={17} />} />
           <KPI label="Visitors" value={count(stats.visitors)} icon={<Users size={17} />} />

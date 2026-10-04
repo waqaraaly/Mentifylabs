@@ -26,17 +26,17 @@ export function Modal({
         style={{
           position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
           width, maxWidth: "calc(100vw - 32px)", background: "var(--ml-surface)",
-          borderRadius: 12, boxShadow: "var(--ml-shadow-lg)",
+          borderRadius: 16, boxShadow: "var(--ml-shadow-lg)",
           zIndex: 61, display: "flex", flexDirection: "column", maxHeight: "85vh",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid var(--ml-border)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", borderBottom: "1px solid rgba(0, 0, 0, 0.06)" }}>
           <div className="h2">{title}</div>
           <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close"><X size={15} /></button>
         </div>
-        <div style={{ padding: 18, overflow: "auto" }}>{children}</div>
+        <div style={{ padding: 24, overflow: "auto" }}>{children}</div>
         {footer && (
-          <div style={{ padding: "12px 18px", borderTop: "1px solid var(--ml-border)", display: "flex", justifyContent: "flex-end", gap: 8, background: "var(--ml-surface-2)" }}>
+          <div style={{ padding: "14px 24px", borderTop: "1px solid rgba(0, 0, 0, 0.06)", display: "flex", justifyContent: "flex-end", gap: 8, background: "rgba(0, 0, 0, 0.02)", borderRadius: "0 0 16px 16px" }}>
             {footer}
           </div>
         )}
@@ -95,7 +95,7 @@ export function EmptyState({
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 24px", gap: 8, color: "var(--ml-ink-muted)" }}>
       {icon && (
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--ml-surface-3)", display: "grid", placeItems: "center", color: "var(--ml-ink-subtle)" }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: "color-mix(in srgb, var(--ml-accent) 10%, transparent)", display: "grid", placeItems: "center", color: "var(--ml-accent)" }}>
           {icon}
         </div>
       )}

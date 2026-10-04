@@ -56,25 +56,6 @@ async function deliver(
   }
 }
 
-export async function notifyAccountApproved(slug: string): Promise<void> {
-  await deliver(await practitionerRecipient(slug), "Your MentifyLabs account is approved", (origin) => ({
-    eyebrow: "Account",
-    heading: "You're approved",
-    body: ["Your account has been approved. Sign in to finish setting up your profile and start receiving clients."],
-    button: { label: "Sign in", url: `${origin}/login` },
-  }));
-}
-
-export async function notifyAccountRejected(slug: string, reason: string): Promise<void> {
-  await deliver(await practitionerRecipient(slug), "Update on your MentifyLabs application", () => ({
-    eyebrow: "Application",
-    heading: "We couldn't approve your application",
-    body: ["Thank you for applying. After reviewing your application, we weren't able to approve it."],
-    note: { label: "Reason from our team", text: reason },
-    footnote: HELP,
-  }));
-}
-
 export async function notifyAccountSuspended(slug: string): Promise<void> {
   await deliver(await practitionerRecipient(slug), "Your MentifyLabs account has been suspended", () => ({
     eyebrow: "Account",
@@ -84,11 +65,15 @@ export async function notifyAccountSuspended(slug: string): Promise<void> {
   }));
 }
 
-export async function notifyAccountReactivated(slug: string): Promise<void> {
+export async function notifyAccountReactivated(slug: string, live = false): Promise<void> {
   await deliver(await practitionerRecipient(slug), "Your MentifyLabs account is active again", (origin) => ({
     eyebrow: "Account",
     heading: "Your account is active again",
-    body: ["Your account has been reactivated. You can sign in and pick up where you left off."],
+    body: [
+      live
+        ? "Your account has been reactivated and your public profile is live again. You can sign in and pick up where you left off."
+        : "Your account has been reactivated. Your public profile is still offline: sign in and publish it again when you are ready.",
+    ],
     button: { label: "Sign in", url: `${origin}/login` },
   }));
 }

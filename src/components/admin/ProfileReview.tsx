@@ -10,10 +10,11 @@ import type { Practitioner } from "@/types/practitioner";
 import type { PractitionerDocument } from "@/types/document";
 import type { ReviewEvent } from "@/types/reviewEvent";
 import { Avatar } from "./ui/Avatar";
-import { Badge } from "./ui/Badge";
+import { Badge, VerificationBadge } from "./ui/Badge";
 import { Modal, ConfirmDialog, type ConfirmConfig } from "./ui/Overlays";
 import { Row, dash } from "./ui/Detail";
 import { DocumentViewer } from "./ui/DocumentViewer";
+import { SlidingTabs } from "./ui/SlidingTabs";
 import { ReviewHistory } from "./ReviewHistory";
 import { useToast } from "./ui/ToastProvider";
 import { approveSubmissionAction, rejectSubmissionAction } from "@/app/admin/actions";
@@ -150,7 +151,7 @@ export function ProfileReview({
         <div style={{ flex: 1, minWidth: 240 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <h2 style={{ fontSize: 22, fontWeight: 650, letterSpacing: "-0.02em" }}>{p.fullName}</h2>
-            <Badge kind={p.verificationStatus} />
+            <VerificationBadge p={p} />
           </div>
           <div style={{ color: "var(--ml-ink-muted)", fontSize: 14, marginTop: 3 }}>{p.professionalTitle}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginTop: 6, fontSize: 13 }}>
@@ -172,22 +173,8 @@ export function ProfileReview({
       <div className="review-layout">
         {/* The evidence, in one tabbed surface */}
         <div className="card" style={{ minWidth: 0, overflow: "hidden" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--ml-border-soft)", overflowX: "auto" }}>
-            <div className="tabs review-tabs" role="tablist">
-              {tabs.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === t.id}
-                  className={"tab" + (tab === t.id ? " active" : "")}
-                  onClick={() => setTab(t.id)}
-                >
-                  {t.label}
-                  {t.count !== undefined && <span className="pill tnum">{t.count}</span>}
-                </button>
-              ))}
-            </div>
+          <div style={{ padding: "0 12px" }}>
+            <SlidingTabs label="Review sections" tabs={tabs} value={tab} onChange={setTab} />
           </div>
 
           <div style={{ padding: "4px 24px 8px" }}>
@@ -311,6 +298,12 @@ export function ProfileReview({
               })}
             </ul>
 
+            {awaiting && history.some((e) => e.kind === "verification_rejected") && (
+              <div style={{ marginTop: 14 }}>
+                <Badge kind="pending">Resubmission #{history.filter((e) => e.kind === "verification_rejected").length + 1}</Badge>
+              </div>
+            )}
+
             {p.verificationNote && (
               <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "var(--ml-surface-2)", border: "1px solid var(--ml-border-soft)", fontSize: 12.5, lineHeight: 1.55 }}>
                 <strong>Last feedback sent:</strong> {p.verificationNote}
@@ -358,7 +351,7 @@ export function ProfileReview({
         footer={
           <>
             <button className="btn" onClick={() => setRejectOpen(false)}>Cancel</button>
-            <button className="btn btn-danger" disabled={!note.trim() || pending} onClick={reject}>
+            <button className="btn btn-danger" disabled={pending} onClick={reject}>
               <X size={13} />Send back &amp; notify
             </button>
           </>
@@ -368,7 +361,7 @@ export function ProfileReview({
           Nothing is published. {p.fullName} will receive your feedback and can upload new documents or fix their profile, then resubmit.
         </div>
         <div style={{ fontSize: 12, color: "var(--ml-ink-muted)", marginBottom: 6, fontWeight: 500 }}>
-          Feedback for the practitioner <span style={{ color: "var(--ml-danger)" }}>*</span>
+          Reason for the practitioner <span style={{ color: "var(--ml-ink-subtle)", fontWeight: 400 }}>(optional)</span>
         </div>
         <textarea
           className="input input-plain"

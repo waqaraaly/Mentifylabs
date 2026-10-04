@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getAppointmentById } from "@/data/appointments";
 import { getAllPractitioners } from "@/data/practitioners";
 import { TopBar } from "@/components/admin/TopBar";
+import { Calendar } from "lucide-react";
+import { todayIsoDate } from "@/lib/format";
 import { AppointmentDetail } from "@/components/admin/AppointmentDetail";
 
 export const metadata = { title: "Appointment" };
@@ -17,10 +19,10 @@ export default async function AdminAppointmentPage({ params }: PageProps<"/admin
 
   return (
     <div>
-      <TopBar title="Appointment" subtitle="Booking details" />
-      <div style={{ padding: "0 32px 40px" }}>
+      <TopBar icon={Calendar} title="Appointment" subtitle="Booking details" />
+      <div style={{ padding: "0 var(--ml-gutter) 40px" }}>
         {/* Who the client is, and what they wrote to their practitioner, stays between the two of them, so it is dropped here. */}
-        <AppointmentDetail b={{ ...appointment, concern: undefined, clientName: "", clientContact: "" }} practitioner={practitioner} />
+        <AppointmentDetail b={{ ...appointment, concern: undefined, clientName: "", clientContact: "" }} practitioner={practitioner} today={todayIsoDate()} />
       </div>
     </div>
   );

@@ -13,7 +13,6 @@ import {
   LogOut,
   Menu,
   Settings,
-  ShieldCheck,
   UserCog,
   Users,
   X,
@@ -56,9 +55,12 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/admin/reports", label: "Reports", icon: BarChart3 },
     ],
   },
+  {
+    label: "Account",
+    items: [{ href: "/admin/settings", label: "Settings", icon: Settings }],
+  },
 ];
 
-const SETTINGS: NavItem = { href: "/admin/settings", label: "Settings", icon: Settings };
 
 export interface SidebarCounts {
   practitioners: number;
@@ -134,21 +136,19 @@ export function Sidebar({ counts, admin }: { counts: SidebarCounts; admin: { nam
           </nav>
 
           <div className="sidebar-footer">
-            {renderLink(SETTINGS)}
             <div className="sidebar-profile">
-              <div className="avatar avatar-md" style={{ background: "var(--ml-accent-soft)", color: "var(--ml-accent-2)", border: "none" }}>
+              <div className="avatar avatar-md" style={{ background: "var(--ml-sidebar-active)", color: "var(--ml-sidebar-active-fg)", boxShadow: "0 0 0 1px var(--ml-sidebar-border)", border: "none", fontWeight: 600 }}>
                 {initialsOf(admin.name)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="sidebar-profile-name truncate">{admin.name}</div>
-                <div className="sidebar-profile-email truncate">{admin.email}</div>
+                <div className="sidebar-profile-email truncate">Super Admin</div>
               </div>
-              <ShieldCheck size={17} style={{ color: "var(--ml-accent)", flexShrink: 0 }} />
             </div>
             <form action={signOutAction}>
-              <button type="submit" className="sidebar-link sidebar-signout">
-                <LogOut size={17} className="icon" />
-                <span>Sign out</span>
+              <button type="submit" className="sidebar-signout" title="Sign out">
+                <LogOut size={16} />
+                <span className="sr-only">Sign out</span>
               </button>
             </form>
           </div>
