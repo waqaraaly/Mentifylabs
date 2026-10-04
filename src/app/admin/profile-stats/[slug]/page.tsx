@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, LineChart } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { getAllPractitioners } from "@/data/practitioners";
 import { getProfileStats, STATS_RANGES, type StatsRange } from "@/data/profileStats";
@@ -35,6 +35,7 @@ export default async function AdminPractitionerStatsPage({
   return (
     <div>
       <TopBar
+        icon={LineChart}
         title="Profile stats"
         subtitle={`How ${practitioner.fullName}'s public profile is performing`}
         actions={
@@ -49,7 +50,7 @@ export default async function AdminPractitionerStatsPage({
           </>
         }
       />
-      <div style={{ padding: "0 32px 40px" }}>
+      <div style={{ padding: "0 var(--ml-gutter) 40px" }}>
         <ProfileStatsReport stats={stats} audience="admin" slug={slug} />
       </div>
     </div>

@@ -10,9 +10,10 @@ import {
   isPubliclyVisible,
   publishOwnProfile,
   reactivatePractitioner,
+  rejectVerification,
   unpublishOwnProfile,
 } from "./practitioners";
-import { publishBlockReason } from "@/lib/verification";
+import { DEFAULT_REJECTION_REASON, publishBlockReason, verificationState } from "@/lib/verification";
 
 let slug: string;
 const created: string[] = [];
@@ -55,7 +56,7 @@ describe("publishing needs verified credentials", () => {
   });
 
   it("refuses when the account isn't active", async () => {
-    await setState({ status: "pending", verification_status: "verified" });
+    await setState({ status: "suspended", verification_status: "verified" });
     expect((await publishOwnProfile(slug)).ok).toBe(false);
   });
 
@@ -91,8 +92,8 @@ describe("publishing needs verified credentials", () => {
 });
 
 describe("approving never publishes", () => {
-  it("verifies and activates a pending account but leaves the profile unpublished", async () => {
-    await setState({ status: "pending", verification_status: "pending", profile_status: "draft" });
+  it("verifies the credentials but leaves the profile unpublished", async () => {
+    await setState({ status: "active", verification_status: "pending", profile_status: "draft" });
     await approveSubmission(slug);
 
     const p = await getPractitionerBySlug(slug);
@@ -108,6 +109,43 @@ describe("approving never publishes", () => {
     expect(p).toMatchObject({ status: "active", profileStatus: "draft" });
     // a draft (not "hidden"), so they can publish it themselves
     expect(publishBlockReason(p!)).toBeNull();
+  });
+});
+
+describe("reactivating straight to live", () => {
+  it("restores the published profile for a verified practitioner", async () => {
+    await setState({ status: "suspended", profile_status: "suspended", verification_status: "verified" });
+    await reactivatePractitioner(slug, true);
+    expect(await getPractitionerBySlug(slug)).toMatchObject({ status: "active", profileStatus: "published" });
+  });
+
+  it("falls back to draft when the credentials are not verified", async () => {
+    await setState({ status: "suspended", profile_status: "suspended", verification_status: "unverified" });
+    await reactivatePractitioner(slug, true);
+    expect(await getPractitionerBySlug(slug)).toMatchObject({ status: "active", profileStatus: "draft" });
+  });
+});
+
+describe("sending credentials back", () => {
+  it("saves the reason, or a default when it is left blank, so it always reads as rejected", async () => {
+    await setState({ verification_status: "pending" });
+    await rejectVerification(slug, "Licence photo is blurry");
+    let p = await getPractitionerBySlug(slug);
+    expect(p).toMatchObject({ verificationStatus: "unverified", verificationNote: "Licence photo is blurry" });
+    expect(verificationState(p!)).toBe("rejected");
+
+    await setState({ verification_status: "pending", verification_note: null });
+    await rejectVerification(slug, "   ");
+    p = await getPractitionerBySlug(slug);
+    expect(p?.verificationNote).toBe(DEFAULT_REJECTION_REASON);
+    expect(verificationState(p!)).toBe("rejected");
+  });
+});
+
+describe("account status", () => {
+  it("a new practitioner row is active, never pending", async () => {
+    // The column's old default was 'pending'; the migration keeps that from being stored.
+    expect((await getPractitionerBySlug(slug))?.status).toBe("active");
   });
 });
 
@@ -141,12 +179,12 @@ describe("practitioners added by Super Admin", () => {
     expect(await publishOwnProfile(result.practitioner.slug)).toEqual({ ok: true });
   });
 
-  it("without 'Skip verification' they start pending and unverified, and can't publish", async () => {
+  it("without 'Skip verification' they start active but unverified, and can't publish", async () => {
     const result = await createPractitionerManually({ fullName: "Review Tester", professionalTitle: "Counsellor", email: "review@example.com", skipVerification: false });
     if (!result.ok) throw new Error(result.message);
     created.push(result.practitioner.slug);
 
-    expect(result.practitioner).toMatchObject({ status: "pending", verificationStatus: "unverified" });
+    expect(result.practitioner).toMatchObject({ status: "active", verificationStatus: "unverified" });
     expect((await publishOwnProfile(result.practitioner.slug)).ok).toBe(false);
   });
 });

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, FileText } from "lucide-react";
+import { Eye, FileText, Clock } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import { daysSinceSubmitted } from "@/lib/verification";
 import { Avatar } from "./ui/Avatar";
@@ -38,9 +38,9 @@ export function PendingView({ queue, documentCounts }: { queue: Practitioner[]; 
 
   return (
     <div>
-      <TopBar title="Pending approval" subtitle="Practitioners who have submitted their credentials and are waiting for your decision" />
+      <TopBar icon={Clock} title="Pending approval" subtitle="Practitioners who have submitted their credentials and are waiting for your decision" />
 
-      <div style={{ padding: "0 32px 32px" }}>
+      <div style={{ padding: "0 var(--ml-gutter) 32px" }}>
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--ml-border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>

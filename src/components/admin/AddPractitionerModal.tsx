@@ -32,7 +32,19 @@ function AddPractitionerModalForm({ onClose }: { onClose: () => void }) {
         skipVerification,
       });
       if (!result.ok) { addToast(result.message, "danger"); return; }
-      addToast(`${name} created` + (skipVerification ? " · verified, they can publish right away" : " · pending, they need to submit credentials"), "ok");
+      const next = skipVerification ? "verified, they can publish right away" : "they need to submit credentials before they can publish";
+      if (!result.invite.ok) {
+        addToast(`${name} created, but no invite was sent: ${result.invite.message} Fix the email, then use "Send invite" on their page.`, "danger");
+      } else {
+        let copied = false;
+        try { await navigator.clipboard.writeText(result.invite.link); copied = true; } catch { /* the toast still says what happened */ }
+        addToast(
+          `${name} created · ${next}. ` +
+            (result.invite.emailed ? `Invite emailed to ${result.invite.email}.` : "Email isn't set up, so nothing was sent.") +
+            (copied ? " Invite link copied to your clipboard." : ""),
+          result.invite.emailed ? "ok" : "info",
+        );
+      }
       router.refresh();
       onClose();
     });
@@ -54,9 +66,6 @@ function AddPractitionerModalForm({ onClose }: { onClose: () => void }) {
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", lineHeight: 1.5 }}>
-          Manually create an account for a practitioner. They&apos;ll receive an invite email with a one-time password.
-        </div>
         <FormField label="Full name *">
           <input className="input input-plain" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Dr. Riya Khanna" />
         </FormField>
@@ -70,10 +79,6 @@ function AddPractitionerModalForm({ onClose }: { onClose: () => void }) {
           <input type="checkbox" checked={skipVerification} onChange={(e) => setSkipVerification(e.target.checked)} style={{ accentColor: "var(--ml-accent)", marginTop: 2 }} />
           <div>
             <div style={{ fontSize: 13.5, fontWeight: 500 }}>Skip verification and mark as verified</div>
-            <div style={{ fontSize: 12.5, color: "var(--ml-ink-muted)", marginTop: 3, lineHeight: 1.5 }}>
-              You vouch for them, so they can publish their own profile straight away. Left unticked, they start pending and
-              must submit credentials for approval first.
-            </div>
           </div>
         </label>
       </div>

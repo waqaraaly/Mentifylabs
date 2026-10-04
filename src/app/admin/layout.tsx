@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     <div className="ml-admin shell">
       <ToastProvider>
         <Sidebar counts={counts} admin={{ name: admin.name, email: admin.email }} />
-        <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
+        <main className="shell-main">{children}</main>
       </ToastProvider>
     </div>
   );

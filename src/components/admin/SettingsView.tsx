@@ -53,7 +53,7 @@ export function SettingsView({ account }: { account: { name: string; email: stri
   });
 
   return (
-    <div style={{ padding: "0 32px 40px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 760 }}>
+    <div style={{ padding: "0 var(--ml-gutter) 40px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 760 }}>
       <Section
         title="Account"
         description="How you appear in the portal."

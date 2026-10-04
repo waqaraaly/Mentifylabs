@@ -1,23 +1,18 @@
 "use server";
 
 import {
-  approvePractitioner,
   approveSubmission,
   createPractitionerManually,
   getPractitionerBySlug,
   hideProfile,
   reactivatePractitioner,
-  rejectPractitioner,
   rejectVerification,
   suspendPractitioner,
 } from "@/data/practitioners";
 import { renamePractitionerSlug } from "@/data/rename";
 import { revalidateAdminViews, revalidatePractitionerViews } from "@/lib/revalidate";
-import { grantAccess, revokeAccess } from "@/data/features";
 import {
-  notifyAccountApproved,
   notifyAccountReactivated,
-  notifyAccountRejected,
   notifyAccountSuspended,
   notifyVerificationApproved,
   notifyVerificationRejected,
@@ -32,36 +27,26 @@ function revalidateAdmin(...slugs: string[]) {
   revalidatePractitionerViews(...slugs);
 }
 
-export async function approveAccount(slug: string) {
-  const admin = await requireAdmin();
-  await approvePractitioner(slug);
-  await recordReviewEvent(slug, "account_approved", { actorName: admin.name });
-  await notifyAccountApproved(slug);
-  revalidateAdmin(slug);
-}
-
-export async function rejectAccount(slug: string, note: string) {
-  const admin = await requireAdmin();
-  const reason = note.trim() || "Application rejected";
-  await rejectPractitioner(slug, reason);
-  await recordReviewEvent(slug, "account_rejected", { note: reason, actorName: admin.name });
-  await notifyAccountRejected(slug, reason);
-  revalidateAdmin(slug);
-}
-
+import { canDecideSubmission, canReactivate, canSuspend } from "@/lib/practitionerState";
+import { DEFAULT_REJECTION_REASON } from "@/lib/verification";
 export async function suspendAccount(slug: string) {
   const admin = await requireAdmin();
+  const current = await getPractitionerBySlug(slug);
+  if (!current || !canSuspend(current)) return;
   await suspendPractitioner(slug);
   await recordReviewEvent(slug, "account_suspended", { actorName: admin.name });
   await notifyAccountSuspended(slug);
   revalidateAdmin(slug);
 }
 
-export async function reactivateAccount(slug: string) {
+/** `goLive` restores the public profile straight away (verified practitioners only); otherwise it stays offline for them to republish. */
+export async function reactivateAccount(slug: string, goLive = false) {
   const admin = await requireAdmin();
-  await reactivatePractitioner(slug);
+  const current = await getPractitionerBySlug(slug);
+  if (!current || !canReactivate(current)) return;
+  const after = await reactivatePractitioner(slug, goLive);
   await recordReviewEvent(slug, "account_reactivated", { actorName: admin.name });
-  await notifyAccountReactivated(slug);
+  await notifyAccountReactivated(slug, after?.profileStatus === "published");
   revalidateAdmin(slug);
 }
 
@@ -73,10 +58,9 @@ export async function reactivateAccount(slug: string) {
 export async function approveSubmissionAction(slug: string) {
   const admin = await requireAdmin();
   const current = await getPractitionerBySlug(slug);
-  if (!current || current.verificationStatus !== "pending") return;
+  if (!current || !canDecideSubmission(current)) return;
   await approveSubmission(slug);
   await recordReviewEvent(slug, "verification_approved", { actorName: admin.name });
-  if (current.status === "pending") await recordReviewEvent(slug, "account_approved", { actorName: admin.name });
   await notifyVerificationApproved(slug);
   revalidateAdmin(slug);
 }
@@ -85,8 +69,8 @@ export async function approveSubmissionAction(slug: string) {
 export async function rejectSubmissionAction(slug: string, note: string) {
   const admin = await requireAdmin();
   const current = await getPractitionerBySlug(slug);
-  if (!current || current.verificationStatus !== "pending") return;
-  const reason = note.trim() || "Please resubmit your credentials";
+  if (!current || !canDecideSubmission(current)) return;
+  const reason = note.trim() || DEFAULT_REJECTION_REASON;
   await rejectVerification(slug, reason);
   await recordReviewEvent(slug, "verification_rejected", { note: reason, actorName: admin.name });
   await notifyVerificationRejected(slug, reason);
@@ -120,19 +104,13 @@ export async function createPractitionerAction(input: {
 }) {
   await requireAdmin();
   const result = await createPractitionerManually(input);
-  if (result.ok) revalidateAdmin(result.practitioner.slug);
-  else revalidateAdmin();
-  return result;
-}
-
-export async function grantFeatureAction(slug: string, featureId: string) {
-  await requireAdmin();
-  await grantAccess(slug, featureId);
-  revalidateAdmin(slug);
-}
-
-export async function revokeFeatureAction(slug: string, featureId: string) {
-  await requireAdmin();
-  await revokeAccess(slug, featureId);
-  revalidateAdmin(slug);
+  if (!result.ok) {
+    revalidateAdmin();
+    return result;
+  }
+  // The invite goes out straight away, so a practitioner can't be left with no way in. It also creates their
+  // sign-in account; "Send reset link" on their page stays available to send it again.
+  const invite = await adminResetLink(result.practitioner.slug);
+  revalidateAdmin(result.practitioner.slug);
+  return { ...result, invite };
 }

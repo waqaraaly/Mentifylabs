@@ -40,7 +40,6 @@ export interface BookingStats {
   total: number;
   completed: number;
   cancelled: number;
-  upcoming: number;
 }
 
 export function bookingStatsFor(slug: string, appointments: Appointment[]): BookingStats {
@@ -49,7 +48,6 @@ export function bookingStatsFor(slug: string, appointments: Appointment[]): Book
     total: own.length,
     completed: own.filter((a) => a.status === "completed").length,
     cancelled: own.filter((a) => a.status === "cancelled").length,
-    upcoming: own.filter((a) => a.status === "confirmed" || a.status === "pending").length,
   };
 }
 

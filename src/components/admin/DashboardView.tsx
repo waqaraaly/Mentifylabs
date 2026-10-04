@@ -42,7 +42,7 @@ export function DashboardView({
   });
 
   return (
-    <div style={{ padding: "0 32px 40px" }}>
+    <div style={{ padding: "0 var(--ml-gutter) 40px" }}>
       <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16 }}>
         <KPI label="Total registered" value={totalP} icon={<Users size={17} />} />
         <KPI label="Active" value={activeP} icon={<UserCheck size={17} />} />

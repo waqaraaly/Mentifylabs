@@ -16,10 +16,10 @@ export interface SignUpInput {
 }
 
 /**
- * Creates a practitioner (pending approval, draft profile) with its sign-in account. They are not signed in:
+ * Creates a practitioner (active, draft profile) with its sign-in account. They are not signed in:
  * the account is usable only after the emailed confirmation link is clicked.
- * Professional title is collected later, in /onboarding. Super Admin still approves the account
- * and publishes the profile before it goes public.
+ * Professional title is collected later, in /onboarding. Nobody approves the account; the profile only goes
+ * public once Super Admin has verified their credentials and they publish it themselves.
  */
 export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true } | { ok: false; message: string }> {
   const fullName = input.fullName.trim();
@@ -62,7 +62,7 @@ export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true
     `INSERT INTO practitioners
        (slug, full_name, professional_title, email, session_type, contact_methods,
         status, profile_status, creation_method, fee_currency)
-     VALUES (?, ?, ?, ?, 'both', ?, 'pending', 'draft', 'self', ?)
+     VALUES (?, ?, ?, ?, 'both', ?, 'active', 'draft', 'self', ?)
      RETURNING id`,
     slug,
     fullName,

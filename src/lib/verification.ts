@@ -8,6 +8,16 @@ export function isVerificationRejected(p: Pick<Practitioner, "verificationStatus
   return p.verificationStatus === "unverified" && !!p.verificationNote;
 }
 
+/** What anyone reading a practitioner's verification should see. "Rejected" is the stored "unverified" plus the reason it was sent back. */
+export type VerificationState = "unverified" | "pending" | "verified" | "rejected";
+
+export function verificationState(p: Pick<Practitioner, "verificationStatus" | "verificationNote">): VerificationState {
+  return isVerificationRejected(p) ? "rejected" : p.verificationStatus;
+}
+
+/** Shown to the practitioner when an admin sends a submission back without writing a reason. */
+export const DEFAULT_REJECTION_REASON = "Please resubmit your credentials";
+
 /** Whether the "please verify" reminder is worth showing at all right now. */
 export function needsVerificationReminder(p: Pick<Practitioner, "verificationStatus">): boolean {
   return p.verificationStatus !== "verified";
@@ -23,8 +33,9 @@ export function daysSinceSubmitted(submittedAt: string | undefined): number | nu
  * The one approval queue: practitioners who submitted their credentials and are waiting for a decision.
  * Approving verifies them, activates the account and publishes the profile in one step.
  */
-export function isAwaitingApproval(p: Pick<Practitioner, "verificationStatus">): boolean {
-  return p.verificationStatus === "pending";
+export function isAwaitingApproval(p: Pick<Practitioner, "verificationStatus" | "status">): boolean {
+  // A suspended account is left out: reactivate it first, then decide.
+  return p.verificationStatus === "pending" && p.status === "active";
 }
 
 /**

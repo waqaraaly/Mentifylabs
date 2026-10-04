@@ -1,3 +1,5 @@
+import { isLive } from "@/lib/practitionerState";
+import { DEFAULT_REJECTION_REASON } from "@/lib/verification";
 import type { ContactMethod, Practitioner } from "@/types/practitioner";
 import type { ColorThemeId } from "@/lib/themes";
 import { isSupportedSocialLink } from "@/lib/social";
@@ -60,6 +62,8 @@ interface PractitionerRow {
   website_url: string | null;
   contact_methods: string;
   color_theme: ColorThemeId | null;
+  email_unconfirmed?: number | null;
+  has_login?: number | null;
   status: Practitioner["status"];
   profile_status: Practitioner["profileStatus"];
   creation_method: Practitioner["creationMethod"];
@@ -124,7 +128,7 @@ function toPractitioner(r: PractitionerRow): Practitioner {
 }
 
 /** Column for each field; JSON columns are marked so their values are serialized on write. */
-const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "feeRange">, [string, "json"?]> = {
+const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "feeRange" | "emailUnconfirmed" | "hasLogin">, [string, "json"?]> = {
   fullName: ["full_name"],
   professionalTitle: ["professional_title"],
   email: ["email"],
@@ -241,8 +245,13 @@ export async function updatePractitionerProfile(
 // ---- Super Admin ----
 
 export async function getAllPractitioners(): Promise<Practitioner[]> {
-  const rows = await all<PractitionerRow>("SELECT * FROM practitioners ORDER BY created_at");
-  return rows.map(toPractitioner);
+  const rows = await all<PractitionerRow>(
+    `SELECT p.*,
+            EXISTS (SELECT 1 FROM users u WHERE u.practitioner_id = p.id AND u.email_verified_at IS NULL) AS email_unconfirmed,
+            EXISTS (SELECT 1 FROM users u WHERE u.practitioner_id = p.id) AS has_login
+       FROM practitioners p ORDER BY p.created_at`,
+  );
+  return rows.map((r) => ({ ...toPractitioner(r), emailUnconfirmed: !!r.email_unconfirmed, hasLogin: !!r.has_login }));
 }
 
 export async function setPractitionerStatus(
@@ -252,33 +261,20 @@ export async function setPractitionerStatus(
   return updateBySlug(slug, { status });
 }
 
-export async function approvePractitioner(slug: string): Promise<Practitioner | null> {
-  const current = await getPractitionerBySlug(slug);
-  if (!current) return null;
-  return updateBySlug(slug, {
-    status: "active",
-    approved_on: today(),
-    rejection_note: null,
-    ...(current.profileStatus === "draft" ? { profile_status: "in_review" } : {}),
-  });
-}
-
-export async function rejectPractitioner(slug: string, note?: string): Promise<Practitioner | null> {
-  return updateBySlug(slug, { status: "rejected", rejection_note: note ?? null });
-}
-
 export async function suspendPractitioner(slug: string): Promise<Practitioner | null> {
   return updateBySlug(slug, { status: "suspended", suspended_on: today(), profile_status: "suspended" });
 }
 
-export async function reactivatePractitioner(slug: string): Promise<Practitioner | null> {
-  // The profile stays offline after reactivation; the practitioner publishes it again themselves.
-  return updateBySlug(slug, { status: "active", suspended_on: null, profile_status: "draft" });
+export async function reactivatePractitioner(slug: string, goLive = false): Promise<Practitioner | null> {
+  // By default the profile stays offline after reactivation and the practitioner publishes it again themselves.
+  // Super Admin can restore it straight to live instead, but only for verified credentials (the same rule as publishing).
+  const current = goLive ? await getPractitionerBySlug(slug) : null;
+  const live = goLive && current?.verificationStatus === "verified";
+  return updateBySlug(slug, { status: "active", suspended_on: null, profile_status: live ? "published" : "draft" });
 }
 
 /**
- * Super Admin's one approval: marks the credentials verified and, if the account was still pending,
- * activates it. It never publishes. Going live is the practitioner's own step (publishOwnProfile).
+ * Super Admin's one approval: marks the credentials verified. It never publishes. Going live is the practitioner's own step (publishOwnProfile).
  */
 export async function approveSubmission(slug: string): Promise<Practitioner | null> {
   const current = await getPractitionerBySlug(slug);
@@ -287,7 +283,6 @@ export async function approveSubmission(slug: string): Promise<Practitioner | nu
     verification_status: "verified",
     verified_on: today(),
     verification_note: null,
-    ...(current.status === "pending" ? { status: "active", approved_on: today() } : {}),
   });
 }
 
@@ -345,16 +340,17 @@ export async function submitVerification(slug: string): Promise<Practitioner | n
 
 /** Sends the request back with feedback; the practitioner can resubmit. */
 export async function rejectVerification(slug: string, note: string): Promise<Practitioner | null> {
+  // The reason is optional for the admin, but a saved reason is what marks the submission as rejected, so it is never blank.
   return updateBySlug(slug, {
     verification_status: "unverified",
     verification_submitted_at: null,
-    verification_note: note,
+    verification_note: note.trim() || DEFAULT_REJECTION_REASON,
   });
 }
 
 /**
  * Renames the slug. Every table references practitioners(slug) with ON UPDATE CASCADE,
- * so appointments, slots, availability, documents and feature access follow automatically.
+ * so appointments, slots, availability, and documents follow automatically.
  */
 export async function updatePractitionerSlug(
   currentSlug: string,
@@ -427,7 +423,7 @@ export async function createPractitionerManually(input: {
     JSON.stringify(contactMethods),
     // Manually added by Super Admin. "Skip verification" means Super Admin vouches for them: they start active
     // and verified, so they can publish straight away. Either way the profile starts as a draft.
-    skip ? "active" : "pending",
+    "active",
     "draft",
     day,
     skip ? day : null,
@@ -442,7 +438,7 @@ export async function createPractitionerManually(input: {
 
 /** A profile is live to the public only when the account is active, the credentials are verified, and the practitioner has published it. */
 export function isPubliclyVisible(p: Practitioner): boolean {
-  return p.status === "active" && p.profileStatus === "published" && p.verificationStatus === "verified";
+  return isLive(p);
 }
 
 export const CONTACT_DETAIL_LABELS = ["Email", "Phone"] as const;
