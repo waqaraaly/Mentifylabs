@@ -54,8 +54,10 @@ export async function submitVerificationAction(
     throw error;
   }
   // Someone already verified keeps their verified status when they add another document.
-  if ((await getCurrentPractitioner()).verificationStatus !== "verified") await submitVerification(slug);
-  await recordReviewEvent(slug, "verification_submitted", { note: name });
+  if ((await getCurrentPractitioner()).verificationStatus !== "verified") {
+    await submitVerification(slug);
+    await recordReviewEvent(slug, "verification_submitted");
+  }
 
   revalidatePath("/dashboard/verification");
   revalidatePath("/dashboard");

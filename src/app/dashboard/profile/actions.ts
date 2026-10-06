@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentPractitioner, publishOwnProfile, requireOwnSlug, unpublishOwnProfile, updatePractitionerProfile } from "@/data/practitioners";
+import { getCurrentPractitioner, publishOwnProfile, requireOwnSlug, unpublishOwnProfile, updatePractitionerProfile, handleProblem } from "@/data/practitioners";
 import { requireRole } from "@/lib/session";
 import { MAX_PHOTO_BYTES, PHOTO_TYPES, matchesFileSignature, photoKeyFromUrl, photoUrlFor, randomKeyPart, uploads } from "@/lib/storage";
 import { renamePractitionerSlug } from "@/data/rename";
@@ -155,6 +155,13 @@ function revalidatePhotoViews(slug: string) {
   revalidatePath("/dashboard", "layout");
   revalidatePath(`/${slug}`);
   revalidateAdminViews();
+}
+
+/** Is this profile link free for the signed-in practitioner? Used for the live "available" hint while they type. */
+export async function checkHandleAction(handle: string): Promise<{ ok: boolean; message: string }> {
+  const me = await getCurrentPractitioner();
+  const result = await handleProblem(handle, me.slug);
+  return result.ok ? { ok: true, message: "Available" } : { ok: false, message: result.message };
 }
 
 export async function updateSlugAction(currentSlug: string, nextSlug: string) {

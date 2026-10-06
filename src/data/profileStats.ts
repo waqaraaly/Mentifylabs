@@ -183,7 +183,7 @@ export interface PractitionerStatsRow {
 }
 
 export interface PlatformStats {
-  range: StatsRange;
+  range: number;
   daily: DailyPoint[];
   views: number;
   visitors: number;
@@ -197,7 +197,7 @@ export interface PlatformStats {
 }
 
 /** Profile stats for the whole platform and per practitioner, for the last `range` days (UTC) and the period before. */
-export async function getPlatformStats(range: StatsRange): Promise<PlatformStats> {
+export async function getPlatformStats(range: number): Promise<PlatformStats> {
   const today = new Date();
   const to = utcDay(today);
   const from = utcDay(new Date(today.getTime() - (range - 1) * DAY_MS));

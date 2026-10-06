@@ -36,13 +36,13 @@ export function computeProfileGaps(p: Practitioner): string[] {
   return gaps;
 }
 
-export interface BookingStats {
+export interface AppointmentStats {
   total: number;
   completed: number;
   cancelled: number;
 }
 
-export function bookingStatsFor(slug: string, appointments: Appointment[]): BookingStats {
+export function appointmentStatsFor(slug: string, appointments: Appointment[]): AppointmentStats {
   const own = appointments.filter((a) => a.practitionerSlug === slug);
   return {
     total: own.length,

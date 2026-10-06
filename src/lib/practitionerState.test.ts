@@ -3,6 +3,7 @@ import {
   canDecideSubmission,
   canReactivate,
   canReactivateLive,
+  canResendConfirmation,
   canSuspend,
   headlineGroupOf,
   headlineKey,
@@ -100,6 +101,14 @@ describe("live or not live", () => {
 });
 
 describe("what Super Admin may do", () => {
+  it("resends a confirmation only to self sign-ups who have not confirmed", () => {
+    const base = { creationMethod: "self", emailUnconfirmed: true, hasLogin: true, status: "active" } as const;
+    expect(canResendConfirmation(base)).toBe(true);
+    expect(canResendConfirmation({ ...base, emailUnconfirmed: false })).toBe(false);
+    expect(canResendConfirmation({ ...base, creationMethod: "super_admin" })).toBe(false);
+    expect(canResendConfirmation({ ...base, status: "suspended" })).toBe(false);
+  });
+
   it("suspends active accounts and reactivates suspended ones", () => {
     expect(canSuspend({ status: "active" })).toBe(true);
     expect(canSuspend({ status: "suspended" })).toBe(false);

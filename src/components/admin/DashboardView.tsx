@@ -46,9 +46,9 @@ export function DashboardView({
       <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16 }}>
         <KPI label="Total registered" value={totalP} icon={<Users size={17} />} />
         <KPI label="Active" value={activeP} icon={<UserCheck size={17} />} />
-        <KPI label="Pending approval" value={pendingP.length} icon={<Clock size={17} />} />
+        <KPI label="Awaiting review" value={pendingP.length} icon={<Clock size={17} />} />
         <KPI label="Suspended" value={suspendedP} icon={<UserX size={17} />} />
-        <KPI label="Total bookings" value={appointments.length} icon={<CalendarDays size={17} />} />
+        <KPI label="Total appointments" value={appointments.length} icon={<CalendarDays size={17} />} />
       </div>
 
       <div className="dash-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.7fr) minmax(0, 1fr)", gap: 16, marginTop: 16, alignItems: "start" }}>
@@ -58,7 +58,7 @@ export function DashboardView({
               <div className="h2">Today&apos;s schedule</div>
               <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>{todayB.length} {todayB.length === 1 ? "appointment" : "appointments"} · {pendingReq} need attention</div>
             </div>
-            <Link href="/admin/bookings" className="btn btn-sm">View all<ArrowRight size={13} /></Link>
+            <Link href="/admin/appointments" className="btn btn-sm">View all<ArrowRight size={13} /></Link>
           </div>
           <div style={{ borderTop: "1px solid var(--ml-border-soft)" }}>
             {todayB.length === 0 && (

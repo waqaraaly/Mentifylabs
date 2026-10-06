@@ -21,6 +21,7 @@ export function LoginForm({ next }: { next?: string }) {
           icon={Mail}
           id="email"
           name="email"
+          placeholder="Email address"
           type="email"
           autoComplete="email"
           required
@@ -37,7 +38,7 @@ export function LoginForm({ next }: { next?: string }) {
           </Link>
         }
       >
-        <AuthInput icon={Lock} id="password" name="password" type="password" autoComplete="current-password" required />
+        <AuthInput icon={Lock} id="password" name="password" placeholder="Password" type="password" autoComplete="current-password" required />
       </AuthField>
 
       <AuthError message={state.error} />

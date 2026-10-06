@@ -1,258 +1,201 @@
 "use client";
 
-import { isLive } from "@/lib/practitionerState";
-import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Calendar, BarChart3 } from "lucide-react";
-import type { Practitioner } from "@/types/practitioner";
-import type { Appointment, AppointmentStatus } from "@/types/appointment";
-import { Avatar } from "./ui/Avatar";
-import { BigStat } from "./ui/Stat";
-import { DonutChart, GrowthChart } from "./ui/charts";
-import { FilterSelect, ClearFiltersButton } from "./ui/Inputs";
+import { BarChart3 } from "lucide-react";
+import type { PersonRow, Report } from "@/lib/reportMetrics";
+import { REPORT_RANGES } from "@/lib/reportRanges";
+import { GrowthChart } from "./ui/charts";
 import { EmptyState } from "./ui/Overlays";
 import { TopBar } from "./TopBar";
-import { todayIsoDate } from "@/lib/format";
 
-const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const RANGE_LABEL: Record<number, string> = { 30: "30 days", 90: "90 days", 365: "12 months" };
 
-export function ReportsView({
-  practitioners,
-  appointments,
-}: {
-  practitioners: Practitioner[];
-  appointments: Appointment[];
-}) {
+const days = (d: number | null) => (d === null ? "—" : d < 1 ? "under a day" : `${d.toFixed(1)} days`);
+
+/** What an owner wants to know: are people joining and becoming useful, are reviews keeping up, and are clients arriving. */
+export function ReportsView({ report }: { report: Report }) {
   const router = useRouter();
-  const today = todayIsoDate();
-  const currentMonth = today.slice(0, 7);
-
-  const total = practitioners.length;
-  const active = practitioners.filter((p) => p.status === "active").length;
-  const newThisMonth = practitioners.filter((p) => p.dateJoined.startsWith(currentMonth)).length;
-
-  const confirmed = appointments.filter((a) => a.status === "confirmed").length;
-  const cancelled = appointments.filter((a) => a.status === "cancelled").length;
-  const completed = appointments.filter((a) => a.status === "completed").length;
-  const pending = appointments.filter((a) => a.status === "pending").length;
-
-  const incomplete = practitioners.filter((p) => p.status === "active" && !isLive(p));
-  const noBookings = practitioners.filter((p) => p.status === "active" && !appointments.some((a) => a.practitionerSlug === p.slug));
-
-  // Real monthly growth for the trailing 7 months — no fabricated data.
-  const monthly = useMemo(() => {
-    const months: { key: string; label: string }[] = [];
-    const [y, m] = currentMonth.split("-").map(Number);
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(y, m - 1 - i, 1);
-      months.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: MONTH_LABELS[d.getMonth()] });
-    }
-    return months.map(({ key, label }) => ({
-      m: label,
-      new: practitioners.filter((p) => p.dateJoined.startsWith(key)).length,
-      active: practitioners.filter((p) => p.dateJoined <= `${key}-31`).length,
-    }));
-  }, [practitioners, currentMonth]);
-
-  const [sessionFilter, setSessionFilter] = useState<"all" | "online" | "offline">("all");
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">("all");
-
-  const ranking = practitioners
-    .map((p) => ({
-      p,
-      count: appointments.filter((a) =>
-        a.practitionerSlug === p.slug
-        && (sessionFilter === "all" || a.sessionType === sessionFilter)
-        && (statusFilter === "all" || a.status === statusFilter),
-      ).length,
-    }))
-    .filter((x) => x.count > 0)
-    .sort((a, b) => b.count - a.count);
-
-  const hasFilters = sessionFilter !== "all" || statusFilter !== "all";
+  const open = (slug: string) => router.push(`/admin/practitioners/${slug}`);
+  const period = RANGE_LABEL[report.range] ?? `${report.range} days`;
+  const { funnel, review, conversion, concentration } = report;
+  const start = funnel.cohort;
 
   return (
     <div>
-      <TopBar icon={BarChart3} title="Reports &amp; analytics" subtitle="Platform activity, growth, and outliers" />
+      <TopBar
+        icon={BarChart3}
+        title="Reports"
+        subtitle="How the platform is doing: sign-ups, reviews and appointments"
+        actions={
+          <div className="tabs">
+            {REPORT_RANGES.map((r) => (
+              <Link key={r} href={`/admin/reports?range=${r}`} className={"tab" + (r === report.range ? " active" : "")} aria-current={r === report.range ? "true" : undefined}>
+                {RANGE_LABEL[r]}
+              </Link>
+            ))}
+          </div>
+        }
+      />
 
       <div style={{ padding: "0 var(--ml-gutter) 32px", display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          <BigStat label="Total practitioners" value={total} delta="all-time" />
-          <BigStat label="Active practitioners" value={active} delta={total ? `${Math.round((active / total) * 100)}% of total` : "—"} />
-          <BigStat label="New this month" value={newThisMonth} delta={new Date().toLocaleString("en-US", { month: "long", year: "numeric" })} accent="var(--ml-info)" />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16 }}>
-          <div className="card" style={{ padding: 18 }}>
-            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-              <div>
-                <div className="h2">Practitioner growth</div>
-                <div style={{ fontSize: 12.5, color: "var(--ml-ink-subtle)", marginTop: 2 }}>New sign-ups vs. cumulative active, last 7 months</div>
-              </div>
-              <div style={{ display: "flex", gap: 14, fontSize: 11.5 }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ml-ink-muted)" }}>
-                  <span style={{ width: 8, height: 8, background: "var(--ml-accent)", borderRadius: 50 }} />New
-                </span>
-                <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ml-ink-muted)" }}>
-                  <span style={{ width: 14, height: 0, borderTop: "1.5px dashed var(--ml-ink-faint)" }} />Active total
-                </span>
-              </div>
-            </div>
-            <div style={{ marginTop: 18 }}>
-              <GrowthChart data={monthly} />
-            </div>
+        {/* The four numbers worth checking first */}
+        <div className="card metric-strip cols-4">
+          <div>
+            <div className="tnum">{report.totals.live}</div>
+            <span>Live practitioners</span>
+            <small>of {report.totals.practitioners} in total</small>
           </div>
-
-          <div className="card" style={{ padding: 18, display: "flex", flexDirection: "column" }}>
-            <div className="h2">Appointment outcomes</div>
-            <div style={{ fontSize: 12.5, color: "var(--ml-ink-subtle)", marginTop: 2 }}>Across all {appointments.length} bookings</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 18 }}>
-              <DonutChart data={[
-                { value: completed, color: "var(--ml-info)" },
-                { value: confirmed, color: "var(--ml-ok)" },
-                { value: cancelled, color: "var(--ml-danger)" },
-                { value: pending, color: "var(--ml-warn)" },
-              ]} />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-                <Outcome label="Completed" value={completed} color="var(--ml-info)" total={appointments.length} />
-                <Outcome label="Confirmed" value={confirmed} color="var(--ml-ok)" total={appointments.length} />
-                <Outcome label="Cancelled" value={cancelled} color="var(--ml-danger)" total={appointments.length} />
-                <Outcome label="Pending" value={pending} color="var(--ml-warn)" total={appointments.length} />
-              </div>
-            </div>
+          <div>
+            <div className="tnum">{review.waiting}</div>
+            <span>Awaiting review</span>
+            <small>{review.oldestWaitDays === null ? "Nobody is waiting" : `Oldest has waited ${days(review.oldestWaitDays)}`}</small>
+          </div>
+          <div>
+            <div className="tnum">{review.averageDaysToApprove === null ? "—" : review.averageDaysToApprove < 1 ? "<1" : review.averageDaysToApprove.toFixed(1)}</div>
+            <span>Days to approve</span>
+            <small>{review.approved} approved in {period}</small>
+          </div>
+          <div>
+            <div className="tnum">{conversion.rate === null ? "—" : `${conversion.rate < 10 ? conversion.rate.toFixed(1) : Math.round(conversion.rate)}%`}</div>
+            <span>Visitor to request</span>
+            <small>{conversion.requests} requests from {conversion.visitors} visitors</small>
           </div>
         </div>
 
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--ml-border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <div className="h2">Booking requests per practitioner</div>
-              <div style={{ fontSize: 12.5, color: "var(--ml-ink-subtle)", marginTop: 2 }}>Sorted by total volume</div>
-            </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <FilterSelect value={sessionFilter} onChange={(v) => setSessionFilter(v as typeof sessionFilter)} width={140} options={[
-                { value: "all", label: "All sessions" },
-                { value: "online", label: "Online" },
-                { value: "offline", label: "On-Site" },
-              ]} />
-              <FilterSelect value={statusFilter} onChange={(v) => setStatusFilter(v as typeof statusFilter)} width={150} options={[
-                { value: "all", label: "All statuses" },
-                { value: "confirmed", label: "Confirmed" },
-                { value: "pending", label: "Pending" },
-                { value: "completed", label: "Completed" },
-                { value: "cancelled", label: "Cancelled" },
-              ]} />
-              {hasFilters && <ClearFiltersButton onClick={() => { setSessionFilter("all"); setStatusFilter("all"); }} />}
-            </div>
+        {/* Where new practitioners are lost on the way to a first appointment */}
+        <div className="card" style={{ padding: 22 }}>
+          <div className="h2">Onboarding funnel</div>
+          <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>
+            {start === 0 ? `Nobody signed up in the last ${period}.` : `The ${start} ${start === 1 ? "person" : "people"} who signed up in the last ${period}, and how far they got.`}
           </div>
-          {ranking.length === 0 ? (
-            <EmptyState title="No bookings match" body="No practitioners have bookings for these filters." />
-          ) : ranking.map((x, i, arr) => {
-            const max = arr[0].count;
-            const pct = (x.count / max) * 100;
-            return (
-              <div
-                key={x.p.slug}
-                onClick={() => router.push("/admin/practitioners")}
-                style={{
-                  padding: "12px 18px", borderBottom: i === arr.length - 1 ? "none" : "1px solid var(--ml-border-soft)",
-                  display: "grid", gridTemplateColumns: "1.5fr 1fr 70px", gap: 16, alignItems: "center", cursor: "pointer",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="mono tnum" style={{ color: "var(--ml-ink-subtle)", fontSize: 11, width: 18 }}>{String(i + 1).padStart(2, "0")}</span>
-                  <Avatar name={x.p.fullName} size="sm" />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 500, fontSize: 13.5 }} className="truncate">{x.p.fullName}</div>
-                    <div className="truncate" style={{ fontSize: 11.5, color: "var(--ml-ink-subtle)" }}>{x.p.professionalTitle}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 20 }}>
+            {funnel.stages.map((stage, i) => {
+              const previous = i === 0 ? stage.count : funnel.stages[i - 1].count;
+              const lost = previous - stage.count;
+              return (
+                <div key={stage.key} style={{ display: "grid", gridTemplateColumns: "200px minmax(0, 1fr) 150px", gap: 18, alignItems: "center" }}>
+                  <div style={{ fontSize: 14, color: "var(--ml-ink)" }}>{stage.label}</div>
+                  <div style={{ height: 14, background: "var(--ml-surface-3)", borderRadius: 999, overflow: "hidden" }}>
+                    <div style={{ width: `${start ? (stage.count / start) * 100 : 0}%`, height: "100%", background: "var(--ml-accent)", borderRadius: 999, minWidth: stage.count ? 6 : 0 }} />
+                  </div>
+                  <div className="tnum" style={{ fontSize: 13.5, textAlign: "right" }}>
+                    <strong>{stage.count}</strong>
+                    <span style={{ color: "var(--ml-ink-muted)" }}> · {start ? Math.round((stage.count / start) * 100) : 0}%</span>
+                    {lost > 0 && <span style={{ color: "var(--ml-danger)" }}> · −{lost}</span>}
                   </div>
                 </div>
-                <div style={{ height: 6, background: "var(--ml-surface-3)", borderRadius: 999, overflow: "hidden" }}>
-                  <div style={{ width: pct + "%", height: "100%", background: "var(--ml-accent)", borderRadius: 999 }} />
-                </div>
-                <div className="tnum" style={{ fontSize: 13, fontWeight: 500, textAlign: "right" }}>{x.count}</div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <ListCard
-            title="Signed up but profile not live"
-            icon={<AlertTriangle size={14} />}
-            accent="var(--ml-warn)"
-            items={incomplete}
-            emptyTitle="Every profile is live"
-            right={(p) => <span className="mono" style={{ fontSize: 10.5, color: "var(--ml-ink-subtle)" }}>Joined {p.dateJoined}</span>}
-            onClick={() => router.push("/admin/practitioners")}
-          />
-          <ListCard
-            title="Active practitioners with no bookings"
-            subtitle="Approved accounts that haven't received a booking yet"
-            icon={<Calendar size={14} />}
-            accent="var(--ml-neutral)"
-            items={noBookings}
-            emptyTitle="Everyone's getting bookings"
-            right={(p) => <span className="mono" style={{ fontSize: 11, color: "var(--ml-ink-subtle)" }}>0 bookings · approved {p.approvedOn ?? "—"}</span>}
-            onClick={() => router.push("/admin/practitioners")}
-          />
+        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16 }} className="pair-grid">
+          <div className="card" style={{ padding: 22 }}>
+            <div className="h2">Joined, and live today</div>
+            <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>For each month, how many joined and how many of them are live now</div>
+            <div style={{ display: "flex", gap: 18, fontSize: 12.5, marginTop: 12, color: "var(--ml-ink-muted)" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, background: "var(--ml-accent)", borderRadius: 50 }} />Joined</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 0, borderTop: "1.5px dashed var(--ml-ink-faint)" }} />Live today</span>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <GrowthChart data={report.growth} />
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: 22 }}>
+            <div className="h2">Review queue</div>
+            <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>How fast credentials get a decision</div>
+            <dl style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "14px 16px", margin: "20px 0 0", fontSize: 14 }}>
+              <dt style={{ color: "var(--ml-ink-muted)" }}>Waiting now</dt>
+              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{review.waiting}</dd>
+              <dt style={{ color: "var(--ml-ink-muted)" }}>Longest wait</dt>
+              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{days(review.oldestWaitDays)}</dd>
+              <dt style={{ color: "var(--ml-ink-muted)" }}>Average time to approve</dt>
+              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{days(review.averageDaysToApprove)}</dd>
+              <dt style={{ color: "var(--ml-ink-muted)" }}>Approved in {period}</dt>
+              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{review.approved}</dd>
+              <dt style={{ color: "var(--ml-ink-muted)" }}>Sent back in {period}</dt>
+              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{review.sentBack}</dd>
+            </dl>
+          </div>
+        </div>
+
+        {/* How much of the demand sits with a few people */}
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--ml-border)" }}>
+            <div className="h2">Where the appointments go</div>
+            <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>
+              {concentration.top3Share === null
+                ? `No appointments were requested in the last ${period}.`
+                : `The top 3 practitioners carry ${concentration.top3Share}% of the ${concentration.total} appointments requested in the last ${period}.`}
+            </div>
+          </div>
+          {concentration.top.map((row, i) => (
+            <div
+              key={row.slug}
+              onClick={() => open(row.slug)}
+              style={{ display: "grid", gridTemplateColumns: "28px minmax(0, 1.4fr) minmax(0, 1fr) 90px", gap: 16, alignItems: "center", padding: "14px 22px", cursor: "pointer", borderBottom: i === concentration.top.length - 1 ? "none" : "1px solid rgba(0, 0, 0, 0.06)" }}
+            >
+              <span className="tnum" style={{ color: "var(--ml-ink-subtle)", fontSize: 13 }}>{i + 1}</span>
+              <div style={{ minWidth: 0 }}>
+                <div className="truncate" style={{ fontWeight: 500, color: "var(--ml-ink)" }}>{row.name}</div>
+                <div className="truncate" style={{ fontSize: 12.5, color: "var(--ml-ink-subtle)" }}>{row.title}</div>
+              </div>
+              <div style={{ height: 8, background: "var(--ml-surface-3)", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ width: `${row.share}%`, height: "100%", background: "var(--ml-accent)", borderRadius: 999 }} />
+              </div>
+              <div className="tnum" style={{ textAlign: "right", fontSize: 13.5 }}>
+                <strong>{row.count}</strong> <span style={{ color: "var(--ml-ink-muted)" }}>· {row.share}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* People to look at */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+          <ListCard title="Gone quiet" subtitle="Live, but no appointment or sign-in for a month" items={report.dormant} empty="Everyone live has been active lately" onOpen={open} />
+          <ListCard title="Live, no appointments yet" subtitle="Live profiles that never received a request" items={report.liveNoAppointments} empty="Every live profile has had a request" onOpen={open} />
+          <ListCard title="Not live yet" subtitle="Active accounts and the step they are stuck on" items={report.stuck} empty="Everyone active is live" onOpen={open} />
         </div>
       </div>
-    </div>
-  );
-}
-
-function Outcome({ label, value, color, total }: { label: string; value: number; color: string; total: number }) {
-  const pct = total ? Math.round((value / total) * 100) : 0;
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
-      <span style={{ width: 8, height: 8, background: color, borderRadius: 2 }} />
-      <span style={{ flex: 1, color: "var(--ml-ink-2)" }}>{label}</span>
-      <span className="tnum" style={{ color: "var(--ml-ink-subtle)" }}>{pct}%</span>
-      <span className="tnum" style={{ fontWeight: 500, width: 28, textAlign: "right" }}>{value}</span>
     </div>
   );
 }
 
 function ListCard({
-  title, subtitle, icon, accent, items, emptyTitle, right, onClick,
+  title, subtitle, items, empty, onOpen,
 }: {
   title: string;
-  subtitle?: string;
-  icon: React.ReactNode;
-  accent: string;
-  items: Practitioner[];
-  emptyTitle: string;
-  right: (p: Practitioner) => React.ReactNode;
-  onClick: (p: Practitioner) => void;
+  subtitle: string;
+  items: PersonRow[];
+  empty: string;
+  onOpen: (slug: string) => void;
 }) {
   return (
-    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-      <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--ml-border)", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 28, height: 28, borderRadius: 7, background: "var(--ml-surface-3)", display: "grid", placeItems: "center", color: accent }}>
-          {icon}
+    <div className="card" style={{ padding: 0, overflow: "hidden", alignSelf: "start" }}>
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--ml-border)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div>
+          <div className="h2">{title}</div>
+          <div style={{ fontSize: 12.5, color: "var(--ml-ink-muted)", marginTop: 3 }}>{subtitle}</div>
         </div>
-        <div style={{ flex: 1 }}>
-          <div className="h2" style={{ fontSize: 14.5 }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 12, color: "var(--ml-ink-subtle)", marginTop: 1 }}>{subtitle}</div>}
-        </div>
-        <span className="tnum" style={{ fontSize: 13, color: "var(--ml-ink-muted)" }}>{items.length}</span>
+        <span className="tnum" style={{ fontSize: 14, fontWeight: 600 }}>{items.length}</span>
       </div>
       {items.length === 0 ? (
-        <EmptyState title={emptyTitle} />
+        <EmptyState title={empty} />
       ) : (
-        <div>
+        <div style={{ maxHeight: 360, overflowY: "auto" }}>
           {items.map((p, i) => (
-            <div key={p.slug} onClick={() => onClick(p)} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "10px 18px",
-              borderBottom: i === items.length - 1 ? "none" : "1px solid var(--ml-border-soft)", cursor: "pointer",
-            }}>
-              <Avatar name={p.fullName} size="sm" />
+            <div
+              key={p.slug}
+              onClick={() => onOpen(p.slug)}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 20px", cursor: "pointer", borderBottom: i === items.length - 1 ? "none" : "1px solid rgba(0, 0, 0, 0.06)" }}
+            >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="truncate" style={{ fontSize: 13.5, fontWeight: 500 }}>{p.fullName}</div>
-                <div className="truncate" style={{ fontSize: 11.5, color: "var(--ml-ink-subtle)" }}>{p.professionalTitle}</div>
+                <div className="truncate" style={{ fontWeight: 500, color: "var(--ml-ink)" }}>{p.name}</div>
+                <div className="truncate" style={{ fontSize: 12.5, color: "var(--ml-ink-subtle)" }}>{p.title}</div>
               </div>
-              {right(p)}
+              <span style={{ fontSize: 12.5, color: "var(--ml-ink-muted)", whiteSpace: "nowrap" }}>{p.note}</span>
             </div>
           ))}
         </div>

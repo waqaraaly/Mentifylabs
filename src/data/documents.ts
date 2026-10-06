@@ -26,7 +26,7 @@ const toDocument = (r: DocumentRow): PractitionerDocument => ({
 
 export async function getDocumentsByPractitioner(slug: string): Promise<PractitionerDocument[]> {
   const rows = await all<DocumentRow>(
-    "SELECT * FROM practitioner_documents WHERE practitioner_slug = ? ORDER BY uploaded_at",
+    "SELECT * FROM practitioner_documents WHERE practitioner_slug = ? ORDER BY uploaded_at DESC",
     slug,
   );
   return rows.map(toDocument);

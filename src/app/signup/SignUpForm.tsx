@@ -16,6 +16,7 @@ export function SignUpForm() {
           icon={User}
           id="fullName"
           name="fullName"
+          placeholder="Full name"
           autoComplete="name"
           required
           defaultValue={state.values?.fullName}
@@ -27,6 +28,7 @@ export function SignUpForm() {
           icon={Mail}
           id="email"
           name="email"
+          placeholder="Email address"
           type="email"
           autoComplete="email"
           required
@@ -39,6 +41,7 @@ export function SignUpForm() {
           icon={Lock}
           id="password"
           name="password"
+          placeholder="Password"
           type="password"
           autoComplete="new-password"
           minLength={8}
@@ -55,7 +58,6 @@ export function SignUpForm() {
         )}
       </button>
       <p className="text-xs leading-relaxed text-muted">
-        Your profile stays private until the MentifyLabs team approves your account and publishes it.
         By creating an account, you agree to our{" "}
         <Link href="/terms" className="underline hover:text-foreground">Terms</Link> and{" "}
         <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.

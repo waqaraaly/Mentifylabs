@@ -20,7 +20,7 @@ export function ForgotPasswordForm() {
   return (
     <form action={formAction} className="space-y-5">
       <AuthField id="email" label="Email">
-        <AuthInput icon={Mail} id="email" name="email" type="email" autoComplete="email" required />
+        <AuthInput icon={Mail} id="email" name="email" placeholder="Email address" type="email" autoComplete="email" required />
       </AuthField>
       <button type="submit" disabled={pending} className={authButtonClass}>
         {pending ? "Sending…" : "Send reset link"}

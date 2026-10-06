@@ -12,7 +12,6 @@ export interface AdminUser {
   practitionerSlug: string | null;
   practitionerFullName: string | null;
   createdAt: string;
-  disabledAt: string | null;
   emailVerifiedAt: string | null;
 }
 
@@ -24,7 +23,6 @@ interface UserJoinRow {
   practitioner_slug: string | null;
   practitioner_full_name: string | null;
   created_at: string;
-  disabled_at: string | null;
   email_verified_at: string | null;
 }
 
@@ -37,24 +35,24 @@ function toAdminUser(r: UserJoinRow): AdminUser {
     practitionerSlug: r.practitioner_slug,
     practitionerFullName: r.practitioner_full_name,
     createdAt: r.created_at,
-    disabledAt: r.disabled_at,
     emailVerifiedAt: r.email_verified_at,
   };
 }
 
-/** Every sign-in account on the platform — both roles — for Manage Users. */
-export async function getAllUsers(): Promise<AdminUser[]> {
+/** Every Super Admin account, for the Super Admins page. */
+export async function getSuperAdmins(): Promise<AdminUser[]> {
   const rows = await all<UserJoinRow>(
     `SELECT u.id, u.name, u.email, u.role, p.slug AS practitioner_slug, p.full_name AS practitioner_full_name,
-            u.created_at, u.disabled_at, u.email_verified_at
+            u.created_at, u.email_verified_at
        FROM users u LEFT JOIN practitioners p ON p.id = u.practitioner_id
+     WHERE u.role = 'admin'
       ORDER BY u.created_at DESC`,
   );
   return rows.map(toAdminUser);
 }
 
-async function countActiveAdmins(): Promise<number> {
-  const row = await first<{ n: number }>("SELECT count(*) AS n FROM users WHERE role = 'admin' AND disabled_at IS NULL");
+async function countAdmins(): Promise<number> {
+  const row = await first<{ n: number }>("SELECT count(*) AS n FROM users WHERE role = 'admin'");
   return row?.n ?? 0;
 }
 
@@ -81,48 +79,22 @@ export async function createAdminUser(input: {
 }
 
 /**
- * Blocks (or restores) sign-in without deleting the account. Refuses to disable the acting
- * admin's own account, or the platform's last active Super Admin — either would lock everyone out.
- */
-export async function setUserDisabled(
-  actingUserId: string,
-  targetUserId: string,
-  disabled: boolean,
-): Promise<{ ok: boolean; message: string }> {
-  if (disabled && targetUserId === actingUserId) {
-    return { ok: false, message: "You can't disable your own account." };
-  }
-  const target = await first<{ role: Role; disabled_at: string | null }>(
-    "SELECT role, disabled_at FROM users WHERE id = ?",
-    targetUserId,
-  );
-  if (!target) return { ok: false, message: "Account not found." };
-  if (disabled && target.role === "admin" && !target.disabled_at && (await countActiveAdmins()) <= 1) {
-    return { ok: false, message: "At least one active Super Admin must remain." };
-  }
-
-  await run("UPDATE users SET disabled_at = ? WHERE id = ?", disabled ? new Date().toISOString() : null, targetUserId);
-  if (disabled) await run("DELETE FROM sessions WHERE user_id = ?", targetUserId);
-  return { ok: true, message: disabled ? "Account disabled." : "Account re-enabled." };
-}
-
-/**
- * Permanently deletes the sign-in account. For a practitioner-role account this only removes
- * their login — their public profile and business data stay intact, managed from Practitioners.
- * Refuses to delete the acting admin's own account or the platform's last active Super Admin.
+ * Permanently deletes a Super Admin's sign-in account. Practitioner logins are never deleted from here: removing one
+ * would leave a practitioner nobody can sign in as, so they are suspended from their own page instead.
+ * Refuses to delete the acting admin's own account or the platform's last Super Admin.
  */
 export async function deleteUserPermanently(
   actingUserId: string,
   targetUserId: string,
 ): Promise<{ ok: boolean; message: string }> {
   if (targetUserId === actingUserId) return { ok: false, message: "You can't delete your own account." };
-  const target = await first<{ role: Role; disabled_at: string | null }>(
-    "SELECT role, disabled_at FROM users WHERE id = ?",
-    targetUserId,
-  );
+  const target = await first<{ role: Role }>("SELECT role FROM users WHERE id = ?", targetUserId);
   if (!target) return { ok: false, message: "Account not found." };
-  if (target.role === "admin" && !target.disabled_at && (await countActiveAdmins()) <= 1) {
-    return { ok: false, message: "At least one active Super Admin must remain." };
+  if (target.role !== "admin") {
+    return { ok: false, message: "A practitioner's sign-in can't be deleted here. Suspend the practitioner instead." };
+  }
+  if ((await countAdmins()) <= 1) {
+    return { ok: false, message: "At least one Super Admin must remain." };
   }
 
   await run("DELETE FROM users WHERE id = ?", targetUserId);

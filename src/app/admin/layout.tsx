@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const counts = {
     practitioners: practitioners.length,
     pending: practitioners.filter(isAwaitingApproval).length,
-    bookingsToday: appointments.filter((a) => a.date === today).length,
+    appointmentsToday: appointments.filter((a) => a.date === today).length,
   };
 
   return (

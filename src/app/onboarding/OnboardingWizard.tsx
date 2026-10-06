@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, useState } from "react";
+import { type KeyboardEvent, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { Paperclip } from "lucide-react";
 import { EditableList } from "@/components/portal/EditableList";
@@ -11,7 +11,8 @@ import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { currencyOptions } from "@/lib/currencies";
 import { DOCUMENT_CATEGORIES } from "@/types/document";
 import type { SessionType } from "@/types/practitioner";
-import { finishOnboardingAction, skipOnboardingAction } from "./actions";
+import { checkHandleAction } from "@/app/dashboard/profile/actions";
+import { claimHandleAction, finishOnboardingAction, skipOnboardingAction } from "./actions";
 
 const SESSION_OPTIONS: { value: SessionType; label: string }[] = [
   { value: "online", label: "Online sessions" },
@@ -19,7 +20,10 @@ const SESSION_OPTIONS: { value: SessionType; label: string }[] = [
   { value: "both", label: "Both" },
 ];
 
-const STEP_COUNT = 6;
+const STEP_COUNT = 7;
+
+/** The step where they choose their profile link. */
+const HANDLE_STEP = 5;
 
 const headingClass = "text-3xl leading-tight font-semibold sm:text-[40px]";
 const subtitleClass = "mt-3 max-w-lg text-[15px] leading-relaxed text-muted";
@@ -58,6 +62,8 @@ export function OnboardingWizard({
   feeCurrency,
   feeMin,
   feeMax,
+  suggestedHandle,
+  handleChosen,
 }: {
   slug: string;
   firstName: string;
@@ -68,8 +74,16 @@ export function OnboardingWizard({
   feeCurrency: string;
   feeMin: number;
   feeMax: number;
+  suggestedHandle: string;
+  handleChosen: boolean;
 }) {
   const [step, setStep] = useState(0);
+  // The record's slug changes when they choose a link, and the rest of the form still has to refer to it.
+  const [currentSlug, setCurrentSlug] = useState(slug);
+  const [handle, setHandle] = useState(suggestedHandle);
+  const [handleStatus, setHandleStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const [claiming, startClaim] = useTransition();
+  const handleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedSessionType, setSelectedSessionType] = useState<SessionType>(sessionType);
   const [category, setCategory] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -78,10 +92,39 @@ export function OnboardingWizard({
   const next = () => setStep((s) => Math.min(s + 1, STEP_COUNT));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
+  // Moving on from the link step saves their choice first. Leaving it blank is fine: they can choose later.
+  const continueFromHandle = () => {
+    const wanted = handle.trim();
+    if (!wanted || handleChosen) {
+      next();
+      return;
+    }
+    startClaim(async () => {
+      const result = await claimHandleAction(wanted);
+      if (!result.ok) {
+        setHandleStatus({ ok: false, message: result.message });
+        return;
+      }
+      setCurrentSlug(result.slug);
+      setHandleStatus(null);
+      next();
+    });
+  };
+
+  const onHandleChange = (value: string) => {
+    const cleaned = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-{2,}/g, "-");
+    setHandle(cleaned);
+    setHandleStatus(null);
+    if (handleTimer.current) clearTimeout(handleTimer.current);
+    if (!cleaned) return;
+    handleTimer.current = setTimeout(async () => setHandleStatus(await checkHandleAction(cleaned)), 350);
+  };
+
   const advanceOnEnter = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      next();
+      if (step === HANDLE_STEP) continueFromHandle();
+      else next();
     }
   };
 
@@ -115,7 +158,7 @@ export function OnboardingWizard({
             }
           }}
         >
-          <input type="hidden" name="slug" value={slug} />
+          <input type="hidden" name="slug" value={currentSlug} />
           <input type="hidden" name="sessionType" value={selectedSessionType} />
           <input type="hidden" name="verificationCategory" value={category} />
           <PendingOverlay />
@@ -258,7 +301,32 @@ export function OnboardingWizard({
                 </div>
               </Step>
 
-              <Step show={step === 5}>
+              <Step show={step === HANDLE_STEP}>
+                <h1 className={headingClass}>Choose your profile link.</h1>
+                <p className={subtitleClass}>
+                  This is the address clients will use to find and book you.
+                </p>
+                <div className="mt-8 flex items-baseline gap-1 border-b-2 border-foreground">
+                  <span className="shrink-0 text-xl text-muted sm:text-2xl">{siteConfig.url.replace(/^https?:\/\//, "")}/</span>
+                  <input
+                    value={handleChosen ? currentSlug : handle}
+                    onChange={(e) => onHandleChange(e.target.value)}
+                    onKeyDown={advanceOnEnter}
+                    disabled={handleChosen || claiming}
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    aria-label="Profile link"
+                    placeholder="your-name"
+                    className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-xl font-medium outline-none placeholder:text-muted/50 sm:text-2xl"
+                  />
+                </div>
+                <p className={`mt-3 text-sm ${handleStatus ? (handleStatus.ok ? "text-success" : "text-alert") : "text-muted"}`}>
+                  {handleStatus ? handleStatus.message : "3 to 30 characters: lowercase letters, numbers and hyphens."}
+                </p>
+              </Step>
+
+              <Step show={step === 6}>
                 <h1 className={headingClass}>Verify your credentials.</h1>
                 <p className={subtitleClass}>
                   Upload a degree, license or certification so clients see you&apos;re verified.
@@ -333,10 +401,11 @@ export function OnboardingWizard({
             {step < STEP_COUNT ? (
               <button
                 type="button"
-                onClick={next}
-                className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                onClick={step === HANDLE_STEP ? continueFromHandle : next}
+                disabled={claiming || (step === HANDLE_STEP && handleStatus?.ok === false)}
+                className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
               >
-                Continue →
+                {claiming ? "Saving…" : "Continue →"}
               </button>
             ) : (
               <button

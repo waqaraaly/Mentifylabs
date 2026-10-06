@@ -1,14 +1,6 @@
 "use server";
 
-import {
-  approveSubmission,
-  createPractitionerManually,
-  getPractitionerBySlug,
-  hideProfile,
-  reactivatePractitioner,
-  rejectVerification,
-  suspendPractitioner,
-} from "@/data/practitioners";
+import { approveSubmission, createPractitionerManually, getPractitionerBySlug, hideProfile, reactivatePractitioner, rejectVerification, suspendPractitioner, deletePractitionerCompletely } from "@/data/practitioners";
 import { renamePractitionerSlug } from "@/data/rename";
 import { revalidateAdminViews, revalidatePractitionerViews } from "@/lib/revalidate";
 import {
@@ -19,6 +11,10 @@ import {
 } from "@/lib/notifications";
 import { recordReviewEvent } from "@/data/reviewEvents";
 import { requireAdmin } from "@/lib/session";
+import { uploads } from "@/lib/storage";
+import { revalidatePath } from "next/cache";
+import { first } from "@/lib/db";
+import { resendVerificationEmail } from "@/lib/emailVerification";
 import { adminResetLink } from "@/lib/passwordReset";
 
 /** Admin changes also reach the practitioner's portal and public profile, so refresh both sides. */
@@ -75,6 +71,44 @@ export async function rejectSubmissionAction(slug: string, note: string) {
   await recordReviewEvent(slug, "verification_rejected", { note: reason, actorName: admin.name });
   await notifyVerificationRejected(slug, reason);
   revalidateAdmin(slug);
+}
+
+/** Re-sends the email confirmation link to a practitioner who signed up and has not confirmed yet. */
+export async function resendConfirmationEmailAction(slug: string): Promise<{ ok: boolean; message: string }> {
+  await requireAdmin();
+  const user = await first<{ id: string }>(
+    "SELECT u.id FROM users u JOIN practitioners p ON p.id = u.practitioner_id WHERE p.slug = ?",
+    slug,
+  );
+  if (!user) return { ok: false, message: "This practitioner has no sign-in account yet. Send an invite instead." };
+  return resendVerificationEmail(user.id);
+}
+
+/**
+ * Permanently deletes a practitioner. The admin must type their full name, which is checked again here, so a stray
+ * request can't remove anyone. Their stored photo and documents are removed too. Cannot be undone.
+ */
+export async function deletePractitionerAction(slug: string, typedName: string): Promise<{ ok: boolean; message: string }> {
+  const admin = await requireAdmin();
+  const current = await getPractitionerBySlug(slug);
+  if (!current) return { ok: false, message: "Practitioner not found." };
+  if (typedName.trim().toLowerCase() !== current.fullName.trim().toLowerCase()) {
+    return { ok: false, message: "The name you typed doesn't match." };
+  }
+  const result = await deletePractitionerCompletely(slug);
+  if (!result.ok) return result;
+
+  try {
+    const bucket = await uploads();
+    for (const key of result.fileKeys) await bucket.delete(key);
+  } catch (error) {
+    // The record is already gone; a file that could not be removed is logged so it can be cleaned up.
+    console.error(`[delete] Could not remove stored files for ${slug}:`, result.fileKeys, error);
+  }
+  console.log(`[audit] ${admin.name} deleted practitioner ${slug} (${current.fullName})`);
+  revalidateAdmin(slug);
+  revalidatePath(`/${slug}`);
+  return { ok: true, message: `${current.fullName} was deleted.` };
 }
 
 export async function hideProfileAction(slug: string) {

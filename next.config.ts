@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
     return [
       { source: "/admin/verification", destination: "/admin/pending", permanent: false },
       { source: "/admin/verification/:slug", destination: "/admin/pending/:slug", permanent: false },
+      // Manage Users became Super Admins.
+      { source: "/admin/users", destination: "/admin/super-admins", permanent: false },
+      // Bookings was renamed Appointments.
+      { source: "/admin/bookings", destination: "/admin/appointments", permanent: false },
     ];
   },
   async headers() {

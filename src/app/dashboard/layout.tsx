@@ -47,14 +47,20 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-sidebar-strong">{practitioner.fullName}</p>
-              <Link
-                href={`/${practitioner.slug}`}
-                target="_blank"
-                className="inline-flex items-center gap-1 text-xs text-sidebar-fg transition hover:text-sidebar-strong"
-              >
-                Public profile
-                <ArrowUpRight className="size-3" aria-hidden />
-              </Link>
+              {practitioner.slugChosenAt ? (
+                <Link
+                  href={`/${practitioner.slug}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1 text-xs text-sidebar-fg transition hover:text-sidebar-strong"
+                >
+                  Public profile
+                  <ArrowUpRight className="size-3" aria-hidden />
+                </Link>
+              ) : (
+                <Link href="/dashboard/profile" className="text-xs text-sidebar-fg transition hover:text-sidebar-strong">
+                  Choose your profile link
+                </Link>
+              )}
             </div>
             <form action={signOutAction} className="ml-auto">
               <button

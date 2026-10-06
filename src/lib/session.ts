@@ -36,7 +36,6 @@ interface UserRow {
   role: Role;
   practitioner_id: string | null;
   password_hash: string;
-  disabled_at: string | null;
   email_verified_at: string | null;
 }
 
@@ -61,10 +60,9 @@ export function randomToken(): string {
 
 /**
  * Suspended practitioners can't sign in or keep using an existing
- * session, and neither can any account (of either role) Super Admin has
- * disabled from Manage Users, or one whose email address hasn't been confirmed yet.
+ * session, and neither can an account whose email address hasn't been confirmed yet.
  */
-const ACCOUNT_ALLOWED = `u.disabled_at IS NULL AND u.email_verified_at IS NOT NULL AND (u.role = 'admin' OR EXISTS (
+const ACCOUNT_ALLOWED = `u.email_verified_at IS NOT NULL AND (u.role = 'admin' OR EXISTS (
   SELECT 1 FROM practitioners p WHERE p.id = u.practitioner_id AND p.status <> 'suspended'))`;
 
 /** The signed-in user for this request, or null. Cached so every component shares one lookup. */
@@ -133,11 +131,9 @@ async function tooManyAttempts(email: string, ip: string): Promise<boolean> {
 // the same, so the form can't be used to find out which emails have accounts.
 let decoyHash: Promise<string> | undefined;
 
-/** Why a correctly-authenticated account can't sign in. Only called after the password matched. */
-async function blockedAccountMessage(user: UserRow): Promise<string> {
-  const help = "Contact the MentifyLabs team for help.";
-  if (user.disabled_at) return `This account has been deactivated. ${help}`;
-  return `This account is suspended. ${help}`;
+/** Why a correctly-authenticated account can't sign in: the only reason left is a suspension. Only called after the password matched. */
+function blockedAccountMessage(): string {
+  return "This account is suspended. Contact the MentifyLabs team for help.";
 }
 
 export type SignInResult = { ok: true; role: Role } | { ok: false; message: string; unverified?: boolean };
@@ -170,7 +166,7 @@ export async function signIn(emailInput: string, password: string): Promise<Sign
     };
   }
   if (!(await first(`SELECT 1 FROM users u WHERE u.id = ? AND ${ACCOUNT_ALLOWED}`, row.id))) {
-    return { ok: false, message: await blockedAccountMessage(row) };
+    return { ok: false, message: blockedAccountMessage() };
   }
   await startSession(row.id);
   if (row.practitioner_id) {

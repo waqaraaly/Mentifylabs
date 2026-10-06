@@ -7,6 +7,8 @@ export interface SlidingTab<T extends string> {
   label: string;
   /** A small count shown beside the label. */
   count?: number;
+  /** A small dot beside the label, for something waiting on the reader. */
+  attention?: boolean;
 }
 
 /**
@@ -56,6 +58,7 @@ export function SlidingTabs<T extends string>({
         >
           {t.label}
           {t.count !== undefined && <span className="slide-count tnum">{t.count}</span>}
+          {t.attention && <span className="slide-dot" role="img" aria-label="Needs attention" />}
         </button>
       ))}
       <span

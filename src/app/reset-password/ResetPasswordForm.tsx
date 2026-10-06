@@ -5,28 +5,30 @@ import { ArrowRight, KeyRound, Lock } from "lucide-react";
 import { AuthError, AuthField, AuthInput, authButtonClass } from "@/components/auth/AuthShell";
 import { resetPasswordAction, type ResetPasswordState } from "./actions";
 
-export function ResetPasswordForm({ token }: { token: string }) {
+export function ResetPasswordForm({ token, invite = false }: { token: string; invite?: boolean }) {
   const [state, formAction, pending] = useActionState<ResetPasswordState, FormData>(resetPasswordAction, {});
 
   return (
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="token" value={token} />
-      <AuthField id="password" label="New password" hint={<span className="text-xs text-muted">At least 8 characters</span>}>
+      <AuthField id="password" label={invite ? "Create a password" : "New password"} hint={<span className="text-xs text-muted">At least 8 characters</span>}>
         <AuthInput
           icon={Lock}
           id="password"
           name="password"
+          placeholder={invite ? "Create a password" : "New password"}
           type="password"
           autoComplete="new-password"
           minLength={8}
           required
         />
       </AuthField>
-      <AuthField id="confirm" label="Confirm new password">
+      <AuthField id="confirm" label={invite ? "Confirm password" : "Confirm new password"}>
         <AuthInput
           icon={KeyRound}
           id="confirm"
           name="confirm"
+          placeholder="Confirm password"
           type="password"
           autoComplete="new-password"
           minLength={8}
@@ -35,7 +37,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       </AuthField>
       <AuthError message={state.error} />
       <button type="submit" disabled={pending} className={authButtonClass}>
-        {pending ? "Saving…" : "Save password and sign in"}
+        {pending ? "Saving…" : invite ? "Set password and get started" : "Save password and sign in"}
         {!pending && (
           <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
         )}

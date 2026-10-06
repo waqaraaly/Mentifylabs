@@ -101,26 +101,3 @@ export async function notifyVerificationRejected(slug: string, reason: string): 
     footnote: "Upload a new document and we'll take another look.",
   }));
 }
-
-/** Manage Users disable/enable — covers any role, so it looks the account up by user id. */
-export async function notifyUserDisabledChange(userId: string, disabled: boolean): Promise<void> {
-  const to = await first<Recipient>("SELECT email, name FROM users WHERE id = ?", userId);
-  await deliver(
-    to,
-    disabled ? "Your MentifyLabs account has been deactivated" : "Your MentifyLabs account is active again",
-    (origin) =>
-      disabled
-        ? {
-            eyebrow: "Account",
-    heading: "Your account has been deactivated",
-            body: ["You can no longer sign in to MentifyLabs with this account."],
-            footnote: HELP,
-          }
-        : {
-            eyebrow: "Account",
-    heading: "Your account is active again",
-            body: ["Your account has been re-enabled. You can sign in again."],
-            button: { label: "Sign in", url: `${origin}/login` },
-          },
-  );
-}

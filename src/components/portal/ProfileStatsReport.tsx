@@ -71,14 +71,14 @@ export function ProfileStatsReport({
           footer={<Delta current={stats.visitors} previous={stats.previousVisitors} range={range} />}
         />
         <StatTile
-          label="Booking requests"
+          label="Appointment requests"
           value={formatCount(stats.bookingRequests)}
           footer={<span className="text-muted">{formatCount(stats.confirmedBookings)} confirmed</span>}
         />
         <StatTile
-          label="Booking rate"
+          label="Appointment rate"
           value={formatRate(stats.bookingRequests, stats.visitors)}
-          footer={<span className="text-muted">Visitors who requested a session</span>}
+          footer={<span className="text-muted">Visitors who requested an appointment</span>}
         />
       </div>
 

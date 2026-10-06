@@ -1,9 +1,8 @@
 "use client";
 
-import { Download, FileText, Shield, X } from "lucide-react";
+import { Download, FileText, X } from "lucide-react";
 import type { PractitionerDocument } from "@/types/document";
 import { Avatar } from "./Avatar";
-import { useToast } from "./ToastProvider";
 
 export function DocumentViewer({
   docs,
@@ -18,7 +17,6 @@ export function DocumentViewer({
   onClose: () => void;
   personName: string;
 }) {
-  const addToast = useToast();
   if (!active) return null;
   return (
     <>
@@ -34,15 +32,11 @@ export function DocumentViewer({
             <Avatar name={personName} size="sm" />
             <div style={{ minWidth: 0 }}>
               <div className="h2" style={{ fontSize: 14 }}>{personName}&apos;s documents</div>
-              <div style={{ fontSize: 11.5, color: "var(--ml-ink-subtle)" }}>{docs.length} files uploaded for verification</div>
+              <div style={{ fontSize: 11.5, color: "var(--ml-ink-subtle)" }}>{docs.length} {docs.length === 1 ? "file" : "files"} uploaded</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            {active.hasFile ? (
-              <a className="btn btn-sm" href={`/documents/${active.id}?download=1`}><Download size={13} />Download</a>
-            ) : (
-              <button className="btn btn-sm" onClick={() => addToast("This demo record has no file attached", "info")}><Download size={13} />Download</button>
-            )}
+            <a className="btn btn-sm" href={`/documents/${active.id}?download=1`}><Download size={13} />Download</a>
             <button className="btn btn-ghost btn-sm" onClick={onClose}><X size={15} /></button>
           </div>
         </div>
@@ -64,17 +58,7 @@ export function DocumentViewer({
             ))}
           </div>
           <div style={{ flex: 1, minWidth: 0, background: "var(--ml-bg-alt)", display: "flex" }}>
-            {!active.hasFile ? (
-              <div style={{ margin: "auto", textAlign: "center", maxWidth: 320, padding: 24 }}>
-                <div style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid var(--ml-border)", display: "grid", placeItems: "center", color: "var(--ml-ink-subtle)", margin: "0 auto 12px" }}>
-                  <Shield size={22} />
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{active.name}</div>
-                <div style={{ fontSize: 12.5, color: "var(--ml-ink-muted)", marginTop: 6, lineHeight: 1.6 }}>
-                  Demo record with no file attached. Files {personName} uploads from their Settings page appear here.
-                </div>
-              </div>
-            ) : active.contentType?.startsWith("image/") ? (
+            {active.contentType?.startsWith("image/") ? (
               <div style={{ flex: 1, overflow: "auto", padding: 24, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- private, access-checked file; not optimizable */}
                 <img src={`/documents/${active.id}`} alt={active.name} style={{ maxWidth: "100%", boxShadow: "0 4px 18px rgba(20,20,18,.12)", background: "#fff" }} />

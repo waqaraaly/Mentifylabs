@@ -29,10 +29,13 @@ export async function recordReviewEvent(
   }
 }
 
-/** Newest first. */
+/**
+ * Newest first. Old "account approved" entries are left out: accounts are active from sign-up now, so that was never
+ * a decision anyone makes. The rows stay in the table; they are just not shown as admin actions.
+ */
 export async function getReviewEvents(slug: string): Promise<ReviewEvent[]> {
   const rows = await all<ReviewEventRow>(
-    "SELECT * FROM review_events WHERE practitioner_slug = ? ORDER BY created_at DESC, rowid DESC",
+    "SELECT * FROM review_events WHERE practitioner_slug = ? AND kind <> 'account_approved' ORDER BY created_at DESC, rowid DESC",
     slug,
   );
   return rows.map((r) => ({
@@ -42,5 +45,17 @@ export async function getReviewEvents(slug: string): Promise<ReviewEvent[]> {
     note: r.note ?? undefined,
     actorName: r.actor_name ?? undefined,
     createdAt: r.created_at,
+  }));
+}
+
+/** Every credential submission and decision, for the Reports page's review timings. */
+export async function getReviewTimeline(): Promise<{ slug: string; kind: ReviewEventKind & ("verification_submitted" | "verification_approved" | "verification_rejected"); at: string }[]> {
+  const rows = await all<{ practitioner_slug: string; kind: ReviewEventKind; created_at: string }>(
+    "SELECT practitioner_slug, kind, created_at FROM review_events WHERE kind IN ('verification_submitted', 'verification_approved', 'verification_rejected') ORDER BY created_at",
+  );
+  return rows.map((r) => ({
+    slug: r.practitioner_slug,
+    kind: r.kind as "verification_submitted" | "verification_approved" | "verification_rejected",
+    at: r.created_at,
   }));
 }

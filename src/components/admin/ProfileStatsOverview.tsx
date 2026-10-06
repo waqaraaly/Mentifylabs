@@ -3,46 +3,25 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, CalendarCheck, Eye, MousePointerClick, Users, LineChart } from "lucide-react";
+import { ArrowDown, ArrowUp, LineChart } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import type { PlatformStats, PractitionerStatsRow } from "@/data/profileStats";
 import { STATS_RANGES } from "@/lib/statsRanges";
-import { Avatar } from "./ui/Avatar";
 import { Badge } from "./ui/Badge";
 import { SearchInput } from "./ui/Inputs";
 import { EmptyState } from "./ui/Overlays";
-import { KPI } from "./ui/Stat";
 import { TopBar } from "./TopBar";
 
-type SortKey = "name" | "views" | "visitors" | "requests" | "rate";
+type SortKey = "name" | "views" | "visitors" | "requests";
 
 interface Line {
   p: Practitioner;
   views: number;
-  previousViews: number;
   visitors: number;
   requests: number;
-  confirmed: number;
-  rate: number;
-  topSource: string | null;
 }
 
 const count = (n: number) => n.toLocaleString("en-US");
-const percent = (rate: number) => (rate <= 0 ? "—" : `${rate < 10 ? rate.toFixed(1) : Math.round(rate)}%`);
-
-function Trend({ current, previous }: { current: number; previous: number }) {
-  if (current === 0 && previous === 0) return <span className="subtle">—</span>;
-  if (previous === 0) return <span style={{ fontSize: 11.5, color: "var(--ml-ink-subtle)" }}>new</span>;
-  const change = Math.round(((current - previous) / previous) * 100);
-  if (change === 0) return <span style={{ fontSize: 11.5, color: "var(--ml-ink-subtle)" }}>±0%</span>;
-  const up = change > 0;
-  return (
-    <span style={{ fontSize: 11.5, fontWeight: 600, color: up ? "var(--ml-ok)" : "var(--ml-danger)", display: "inline-flex", alignItems: "center", gap: 2 }}>
-      {up ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
-      {Math.abs(change)}%
-    </span>
-  );
-}
 
 function SortHead({
   label,
@@ -86,12 +65,8 @@ export function ProfileStatsOverview({ practitioners, stats }: { practitioners: 
       return {
         p,
         views: r?.views ?? 0,
-        previousViews: r?.previousViews ?? 0,
         visitors,
         requests,
-        confirmed: r?.confirmedBookings ?? 0,
-        rate: visitors > 0 ? (requests / visitors) * 100 : 0,
-        topSource: r?.topSource ?? null,
       };
     });
   }, [practitioners, stats.rows]);
@@ -107,8 +82,7 @@ export function ProfileStatsOverview({ practitioners, stats }: { practitioners: 
       sort.key === "name" ? l.p.fullName.toLowerCase()
       : sort.key === "views" ? l.views
       : sort.key === "visitors" ? l.visitors
-      : sort.key === "requests" ? l.requests
-      : l.rate;
+      : l.requests;
     return [...filtered].sort((a, b) => {
       const x = value(a);
       const y = value(b);
@@ -145,20 +119,25 @@ export function ProfileStatsOverview({ practitioners, stats }: { practitioners: 
       />
 
       <div style={{ padding: "0 var(--ml-gutter) 40px" }}>
-        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-          <KPI label="Profile views" value={count(stats.views)} icon={<Eye size={17} />} />
-          <KPI label="Visitors" value={count(stats.visitors)} icon={<Users size={17} />} />
-          <KPI label="Booking requests" value={count(stats.bookingRequests)} icon={<CalendarCheck size={17} />} />
-          <KPI label="Profiles with views" value={`${withViews} / ${lines.length}`} icon={<MousePointerClick size={17} />} />
+        {/* One plain strip: a number and its name, separated by hairlines. No icons, no colour. */}
+        <div className="card metric-strip cols-4">
+          {([
+            ["Profile views", count(stats.views)],
+            ["Visitors", count(stats.visitors)],
+            ["Appointment requests", count(stats.bookingRequests)],
+            ["Profiles with views", `${withViews} of ${lines.length}`],
+          ] as const).map(([label, value]) => (
+            <div key={label}>
+              <div className="tnum">{value}</div>
+              <span>{label}</span>
+            </div>
+          ))}
         </div>
 
         <div className="card" style={{ padding: 0, overflow: "hidden", marginTop: 16 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--ml-border)", gap: 12, flexWrap: "wrap" }}>
             <div>
               <div className="h2" style={{ fontSize: 15 }}>By practitioner</div>
-              <div style={{ fontSize: 12, color: "var(--ml-ink-subtle)", marginTop: 1 }}>
-                <span className="tnum">{shown.length}</span> of <span className="tnum">{lines.length}</span> shown · click a row for the full breakdown
-              </div>
             </div>
             <SearchInput value={q} onChange={setQ} placeholder="Search by name or title…" width={260} />
           </div>
@@ -175,8 +154,6 @@ export function ProfileStatsOverview({ practitioners, stats }: { practitioners: 
                     <SortHead label="Views" k="views" sort={sort} onSort={onSort} />
                     <SortHead label="Visitors" k="visitors" sort={sort} onSort={onSort} />
                     <SortHead label="Requests" k="requests" sort={sort} onSort={onSort} />
-                    <SortHead label="Booking rate" k="rate" sort={sort} onSort={onSort} />
-                    <th className="hide-md">Top source</th>
                     <th style={{ textAlign: "right", paddingRight: 18 }} />
                   </tr>
                 </thead>
@@ -184,28 +161,21 @@ export function ProfileStatsOverview({ practitioners, stats }: { practitioners: 
                   {shown.map((l) => (
                     <tr key={l.p.slug} onClick={() => router.push(`/admin/profile-stats/${l.p.slug}`)}>
                       <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <Avatar name={l.p.fullName} size="md" />
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 500, color: "var(--ml-ink)" }}>{l.p.fullName}</div>
-                            <div className="truncate" style={{ fontSize: 12, color: "var(--ml-ink-subtle)" }}>{l.p.professionalTitle}</div>
-                          </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 500, color: "var(--ml-ink)" }}>{l.p.fullName}</div>
+                          <div className="truncate" style={{ fontSize: 12, color: "var(--ml-ink-subtle)" }}>{l.p.professionalTitle}</div>
                         </div>
                       </td>
                       <td><Badge kind={l.p.status} /></td>
                       <td style={{ textAlign: "right" }}>
                         <div className="tnum" style={{ fontWeight: 600 }}>{count(l.views)}</div>
-                        <Trend current={l.views} previous={l.previousViews} />
                       </td>
                       <td className="tnum" style={{ textAlign: "right" }}>{count(l.visitors)}</td>
                       <td className="tnum" style={{ textAlign: "right" }}>
                         {count(l.requests)}
-                        {l.confirmed > 0 && <span style={{ color: "var(--ml-ink-subtle)", fontSize: 12 }}> ({l.confirmed} ✓)</span>}
                       </td>
-                      <td className="tnum" style={{ textAlign: "right" }}>{percent(l.rate)}</td>
-                      <td className="hide-md">{l.topSource ?? <span className="subtle">—</span>}</td>
                       <td style={{ textAlign: "right", paddingRight: 18 }} onClick={(e) => e.stopPropagation()}>
-                        <Link className="btn btn-sm" href={`/admin/profile-stats/${l.p.slug}`}><Eye size={13} />Details</Link>
+                        <Link className="btn btn-sm" href={`/admin/profile-stats/${l.p.slug}`}>Details</Link>
                       </td>
                     </tr>
                   ))}

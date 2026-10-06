@@ -62,29 +62,30 @@ export function GrowthChart({ data }: { data: { m: string; new: number; active: 
   );
 }
 
-export function DonutChart({ data, size = 130 }: { data: { value: number; color: string }[]; size?: number }) {
-  const total = Math.max(1, data.reduce((s, d) => s + d.value, 0));
-  const r = size / 2 - 12;
-  const cx = size / 2, cy = size / 2;
-  const cumulative = data.reduce<number[]>((sums, d, i) => {
-    sums.push((sums[i - 1] ?? 0) + d.value);
-    return sums;
-  }, []);
-  const arcs = data.map((d, i) => {
-    const startValue = i === 0 ? 0 : cumulative[i - 1];
-    const a0 = (startValue / total) * Math.PI * 2 - Math.PI / 2;
-    const a1 = (cumulative[i] / total) * Math.PI * 2 - Math.PI / 2;
-    const large = a1 - a0 > Math.PI ? 1 : 0;
-    const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
-    const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
-    return <path key={i} d={`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`} fill={d.color} />;
-  });
+/** A solid pie: one slice per entry, starting at twelve o'clock. Zero-sized slices are skipped. */
+export function PieChart({ data, size = 170, label }: { data: { value: number; color: string }[]; size?: number; label: string }) {
+  const slices = data.filter((d) => d.value > 0);
+  const total = slices.reduce((sum, d) => sum + d.value, 0);
+  const r = size / 2 - 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  let angle = -Math.PI / 2;
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} style={{ width: size, height: size }}>
-      {arcs}
-      <circle cx={cx} cy={cy} r={r * 0.62} fill="var(--ml-surface)" />
-      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="20" fontWeight="600" fill="var(--ml-ink)" fontFamily="var(--ml-mono)" style={{ letterSpacing: "-0.02em" }}>{total}</text>
-      <text x={cx} y={cy + 13} textAnchor="middle" fontSize="9.5" fill="var(--ml-ink-subtle)" fontFamily="var(--ml-font)" style={{ letterSpacing: "0.04em" }}>TOTAL</text>
+    <svg viewBox={`0 0 ${size} ${size}`} style={{ width: size, height: size, flexShrink: 0 }} role="img" aria-label={label}>
+      {total === 0 ? (
+        <circle cx={cx} cy={cy} r={r} fill="var(--ml-surface-3)" />
+      ) : slices.length === 1 ? (
+        <circle cx={cx} cy={cy} r={r} fill={slices[0].color} />
+      ) : (
+        slices.map((d, i) => {
+          const start = angle;
+          angle += (d.value / total) * Math.PI * 2;
+          const large = angle - start > Math.PI ? 1 : 0;
+          const x0 = cx + r * Math.cos(start), y0 = cy + r * Math.sin(start);
+          const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
+          return <path key={i} d={`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`} fill={d.color} stroke="var(--ml-surface)" strokeWidth="2" />;
+        })
+      )}
     </svg>
   );
 }

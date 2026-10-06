@@ -111,15 +111,15 @@
 .ml-admin .btn-danger:hover { background: var(--ml-danger-bg); color: var(--ml-danger); }
 .ml-admin .btn-ghost { background: transparent; box-shadow: none; color: var(--ml-ink-muted); }
 .ml-admin .btn-ghost:hover { background: rgba(0, 0, 0, 0.05); color: var(--ml-ink); }
-.ml-admin .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.ml-admin .btn-sm { height: 35px; padding: 0 13px; font-size: 14.3px; }
 .ml-admin .btn-lg { height: 42px; padding: 0 22px; font-size: 14.5px; }
 
 .ml-admin .badge {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 0; background: transparent !important; border-radius: 0;
-  font-size: 12.5px; font-weight: 500; line-height: 1.5; white-space: nowrap;
+  font-size: 13.75px; font-weight: 500; line-height: 1.5; white-space: nowrap;
 }
-.ml-admin .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ml-admin .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
 .ml-admin .card { background: var(--ml-surface); border: none; border-radius: var(--ml-radius); box-shadow: 0 0 0 1px var(--ml-ring); }
 
@@ -184,15 +184,15 @@
 
 .ml-admin .table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .ml-admin .table th {
-  text-align: left; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  text-align: left; font-size: 12.65px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--ml-ink-muted);
-  padding: 11px 16px; background: color-mix(in srgb, var(--ml-surface) 97.5%, black); /* opaque, so rows scrolling under a sticky header never show through */
+  padding: 12px 18px; background: color-mix(in srgb, var(--ml-surface) 97.5%, black); /* opaque, so rows scrolling under a sticky header never show through */
   border-bottom: 1px solid rgba(0, 0, 0, 0.07);
   white-space: nowrap;
 }
 .ml-admin .table td {
-  padding: 14px 16px; border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  font-size: 13.5px; color: var(--ml-ink-2); background: var(--ml-surface);
+  padding: 15px 18px; border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 14.85px; color: var(--ml-ink-2); background: var(--ml-surface);
 }
 .ml-admin .table tbody tr:last-child td { border-bottom: none; }
 .ml-admin .table tbody tr { cursor: pointer; transition: background .1s ease; }
@@ -202,7 +202,7 @@
 /* A long list scrolls inside its card instead of stretching the page; the column headings stay in view. */
 .ml-admin .table-scroll.scroll-y { max-height: clamp(360px, calc(100vh - 330px), 780px); overflow-y: auto; }
 .ml-admin .table-scroll.scroll-y .table th { position: sticky; top: 0; z-index: 2; }
-/* The Practitioners and Bookings lists get more room. */
+/* The Practitioners and Appointments lists get more room. */
 .ml-admin .table-scroll.scroll-y.tall { max-height: clamp(480px, calc(100vh - 220px), 1100px); }
 /* The same for a list of rows that isn't a table. */
 .ml-admin .scroll-list { max-height: clamp(360px, calc(100vh - 330px), 780px); overflow-y: auto; }
@@ -379,50 +379,8 @@
 .ml-admin .detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 1000px) { .ml-admin .detail-grid { grid-template-columns: minmax(0, 1fr); } }
 
-/* Bookings: summary tiles, underline tabs, chips, sortable heads, day rows, side drawer. */
+/* Summary tiles on the practitioner Appointments tab. */
 .ml-admin .stat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-.ml-admin .stat-tile {
-  display: flex; align-items: center; gap: 12px; padding: 18px 20px; text-align: left; cursor: pointer;
-  background: var(--ml-surface); border: none; border-radius: var(--ml-radius);
-  box-shadow: 0 0 0 1px var(--ml-ring); transition: box-shadow .12s, background .12s;
-}
-.ml-admin .stat-tile:hover { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.16); }
-.ml-admin .stat-tile.active { background: var(--ml-accent-tint); box-shadow: 0 0 0 2px var(--ml-accent); }
-
-.ml-admin .tabs-line { display: flex; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--ml-border); overflow-x: auto; }
-.ml-admin .tab-line {
-  padding: 12px 12px; font-size: 13.5px; font-weight: 500; color: var(--ml-ink-muted); cursor: pointer;
-  background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
-}
-.ml-admin .tab-line:hover { color: var(--ml-ink); }
-.ml-admin .tab-line.active { color: var(--ml-accent-2); border-bottom-color: var(--ml-accent); font-weight: 600; }
-
-.ml-admin .chip {
-  height: 28px; padding: 0 10px; font-size: 12.5px; font-weight: 500; cursor: pointer; border-radius: 999px;
-  color: var(--ml-ink-muted); background: var(--ml-surface); border: 1px solid var(--ml-border-strong);
-}
-.ml-admin .chip:hover { border-color: var(--ml-accent); color: var(--ml-accent-2); background: var(--ml-accent-tint); }
-
-.ml-admin .th-sort { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; }
-.ml-admin .th-sort:hover { color: var(--ml-ink); }
-
-.ml-admin .table tbody tr.day-row { cursor: default; }
-.ml-admin .table tbody tr.day-row td { background: var(--ml-surface-2); padding: 8px 16px; font-size: 12.5px; color: var(--ml-ink-muted); }
-.ml-admin .table tbody tr.day-row:hover td { background: var(--ml-surface-2); }
-
-.ml-admin .drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61; width: 440px; max-width: 100vw;
-  display: flex; flex-direction: column; background: var(--ml-surface);
-  border-left: 1px solid var(--ml-border); box-shadow: var(--ml-shadow-lg); animation: ml-drawerIn 180ms ease;
-}
-@keyframes ml-drawerIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-.ml-admin .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--ml-border); }
-.ml-admin .drawer-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 22px; }
-.ml-admin .drawer-foot { padding: 12px 20px; border-top: 1px solid var(--ml-border); background: var(--ml-surface-2); display: flex; justify-content: flex-end; }
-
-.ml-admin .timeline { list-style: none; margin: 8px 0 0; padding: 0 0 0 18px; border-left: 1px solid var(--ml-border); display: flex; flex-direction: column; gap: 14px; }
-.ml-admin .timeline li { position: relative; }
-.ml-admin .timeline-dot { position: absolute; left: -24px; top: 5px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ml-surface); }
 
 /* Sliding tabs: a baseline with one accent bar that glides under the active tab. */
 .ml-admin .slide-tabs { position: relative; display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid rgba(0, 0, 0, 0.1); scrollbar-width: none; }
@@ -446,18 +404,58 @@
 .ml-admin .pair-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
 @media (max-width: 900px) { .ml-admin .pair-grid { grid-template-columns: minmax(0, 1fr); } }
 
-/* The profile sheet: one card, one row per section, each a label column beside its content. */
-.ml-admin .sheet { padding: 0; overflow: hidden; }
-.ml-admin .sheet-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; padding: 22px 28px; border-bottom: 1px solid rgba(0, 0, 0, 0.06); }
-.ml-admin .sheet-row:last-child { border-bottom: none; }
-.ml-admin .sheet-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ml-ink-muted); padding-top: 3px; }
-.ml-admin .sheet-body { min-width: 0; font-size: 14px; }
-.ml-admin .sheet-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px 24px; }
-.ml-admin .sheet-facts > div { display: flex; flex-direction: column; gap: 5px; font-size: 15px; font-weight: 600; }
-.ml-admin .sheet-facts > div > span:first-child { font-size: 12px; font-weight: 500; color: var(--ml-ink-muted); }
-.ml-admin .sheet-dl { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px 16px; margin: 0; }
-.ml-admin .sheet-dl dt { color: var(--ml-ink-muted); font-size: 13px; }
-.ml-admin .sheet-dl dd { margin: 0; word-break: break-word; font-size: 13.5px; }
-@media (max-width: 760px) {
-  .ml-admin .sheet-row { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 18px 20px; }
+/* The profile sheet: one card on one background. Grouped bands, then one row per field, label beside content. */
+.ml-admin .sheet { padding: 0; overflow: hidden; background: var(--ml-surface); }
+.ml-admin .sheet-group {
+  display: flex; align-items: center; gap: 10px; padding: 14px 36px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ml-ink-2);
+  background: color-mix(in srgb, var(--ml-accent) 7%, var(--ml-surface));
+  border-top: 1px solid rgba(0, 0, 0, 0.06); border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
+.ml-admin .sheet-group:first-child { border-top: none; }
+.ml-admin .sheet-row { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 40px; padding: 28px 36px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+.ml-admin .sheet-row:last-child { border-bottom: none; }
+.ml-admin .sheet-row.compact { padding: 15px 36px; align-items: center; }
+.ml-admin .sheet-row.compact .sheet-label { padding-top: 0; }
+.ml-admin .sheet-label { font-size: 13.5px; font-weight: 600; color: var(--ml-ink-muted); padding-top: 2px; }
+.ml-admin .sheet-body { min-width: 0; font-size: 14.5px; line-height: 1.65; }
+.ml-admin .sheet-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 24px 32px; }
+.ml-admin .sheet-facts > div { display: flex; flex-direction: column; gap: 8px; font-size: 16px; font-weight: 600; }
+.ml-admin .sheet-facts > div > span:first-child { font-size: 12.5px; font-weight: 500; color: var(--ml-ink-muted); }
+.ml-admin .sheet-dl { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 18px 24px; margin: 0; }
+.ml-admin .sheet-dl dt { color: var(--ml-ink-muted); font-size: 13.5px; font-weight: 500; }
+.ml-admin .sheet-dl dd { margin: 0; word-break: break-word; font-size: 14.5px; }
+@media (max-width: 760px) {
+  .ml-admin .sheet-group { padding: 12px 20px; }
+  .ml-admin .sheet-row { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 20px; }
+  .ml-admin .sheet-dl { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .ml-admin .sheet-dl dd { margin-bottom: 12px; }
+}
+
+/* Same row height as the Practitioners list. */
+.ml-admin .table.roomy td { height: 72px; }
+
+/* A single summary strip: numbers with their names, divided by hairlines. */
+.ml-admin .metric-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: hidden; }
+.ml-admin .metric-strip > div { padding: 20px 28px; border-left: 1px solid rgba(0, 0, 0, 0.07); }
+.ml-admin .metric-strip > div:first-child { border-left: none; }
+.ml-admin .metric-strip > div > div { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; color: var(--ml-ink); }
+.ml-admin .metric-strip > div > span { display: block; margin-top: 6px; font-size: 13px; color: var(--ml-ink-muted); }
+@media (max-width: 760px) {
+  .ml-admin .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ml-admin .metric-strip > div:nth-child(odd) { border-left: none; }
+  .ml-admin .metric-strip > div:nth-child(n + 3) { border-top: 1px solid rgba(0, 0, 0, 0.07); }
+}
+
+/* The Actions tab: each row says what the action is and does, with its button on the right. */
+.ml-admin .action-row { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 22px 36px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); flex-wrap: wrap; }
+.ml-admin .action-row:last-child { border-bottom: none; }
+.ml-admin .slide-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ml-warn); }
+@media (max-width: 760px) { .ml-admin .action-row { padding: 18px 20px; } }
+
+.ml-admin .metric-strip.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 760px) { .ml-admin .metric-strip.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.ml-admin .metric-strip.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ml-admin .metric-strip > div > small { display: block; margin-top: 3px; font-size: 12.5px; color: var(--ml-ink-subtle); }
+@media (max-width: 760px) { .ml-admin .metric-strip.cols-3 { grid-template-columns: minmax(0, 1fr); } .ml-admin .metric-strip.cols-3 > div { border-left: none; border-top: 1px solid rgba(0, 0, 0, 0.07); } .ml-admin .metric-strip.cols-3 > div:first-child { border-top: none; } }

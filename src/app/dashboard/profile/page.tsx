@@ -1,5 +1,5 @@
 import { ArrowUpRight, Eye, FileText, GraduationCap, Link2, Palette, User, Wallet } from "lucide-react";
-import { getContactDetails, getCurrentPractitioner, isPubliclyVisible } from "@/data/practitioners";
+import { getContactDetails, getCurrentPractitioner, isPubliclyVisible, suggestHandle } from "@/data/practitioners";
 import { hasFeeRange } from "@/lib/fees";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
 import { siteConfig } from "@/lib/site";
@@ -102,7 +102,7 @@ export default async function PublicProfilePage() {
             htmlFor="slug-editor"
             description="The web address of your professional profile. Share it with clients to let them find and book you."
           >
-            <SlugEditor slug={practitioner.slug} siteUrl={siteConfig.url} />
+            <SlugEditor slug={practitioner.slug} siteUrl={siteConfig.url} chosen={Boolean(practitioner.slugChosenAt)} suggestion={practitioner.slugChosenAt ? "" : await suggestHandle(practitioner.fullName)} />
           </SettingsRow>
         </>
       ),

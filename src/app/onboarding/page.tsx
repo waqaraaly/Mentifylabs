@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { getCurrentPractitioner } from "@/data/practitioners";
+import { getCurrentPractitioner, suggestHandle } from "@/data/practitioners";
 import { OnboardingWizard } from "./OnboardingWizard";
 
 export const metadata = { title: "Set up your account", robots: { index: false } };
@@ -23,6 +23,8 @@ export default async function OnboardingPage() {
       feeCurrency={practitioner.feeRange.currency}
       feeMin={practitioner.feeRange.min}
       feeMax={practitioner.feeRange.max}
+      suggestedHandle={practitioner.slugChosenAt ? practitioner.slug : await suggestHandle(practitioner.fullName)}
+      handleChosen={Boolean(practitioner.slugChosenAt)}
     />
   );
 }

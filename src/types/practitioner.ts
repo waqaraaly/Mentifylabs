@@ -34,8 +34,10 @@ export interface ContactMethod {
 }
 
 export interface Practitioner {
-  /** Used in the public URL, e.g. "dr-ali" -> /dr-ali */
+  /** Used in the public URL, e.g. "dr-ali" -> /dr-ali. A hidden placeholder until the practitioner chooses one (see slugChosenAt). */
   slug: string;
+  /** When the practitioner chose their profile link. Empty until they do; the profile can't be published before then. */
+  slugChosenAt?: string;
   fullName: string;
   professionalTitle: string;
   email: string;
@@ -89,6 +91,8 @@ export interface Practitioner {
 
   /** True while the sign-in email has not been confirmed yet, so they cannot sign in. Only loaded for Super Admin lists. */
   emailUnconfirmed?: boolean;
+  /** When the sign-in email was confirmed (for admin-added practitioners, when they set their password). Only loaded for Super Admin lists. */
+  emailConfirmedAt?: string;
   /** Whether a sign-in account exists yet. Practitioners added by Super Admin get one when the invite is sent. Only loaded for Super Admin lists. */
   hasLogin?: boolean;
 

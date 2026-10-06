@@ -76,7 +76,7 @@ export function PractitionersView({ practitioners }: { practitioners: Practition
                     <th>Practitioner</th>
                     <th className="hide-md">Professional title</th>
                     <th className="hide-sm">Email</th>
-                    <th>Status</th>
+                    <th>Account Status</th>
                     <th style={{ textAlign: "right", paddingRight: 18 }}>Action</th>
                   </tr>
                 </thead>

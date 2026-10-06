@@ -105,14 +105,6 @@ INSERT INTO appointments (id, client_id, practitioner_slug, slot_id, client_name
   ('appt-overdue-demo', 'CL-1000', 'dr-ali', NULL, 'Junaid Aslam (overdue demo)', '0300 4455667', NULL, '2026-09-08', '12:00', '12:50', 'online', 'confirmed', '2026-09-01T05:00:00.000Z'),
   ('appt-7', 'CL-1007', 'omar-siddiqui', NULL, 'Ahmed Raza', '0300 6677889', NULL, '2026-08-12', '14:00', '14:50', 'offline', 'cancelled', '2026-08-09T08:00:00.000Z'),
   ('appt-6', 'CL-1006', 'omar-siddiqui', NULL, 'Fatima Noor', '0300 4432211', NULL, '2026-08-05', '10:00', '10:50', 'offline', 'completed', '2026-08-01T04:00:00.000Z');
-
-INSERT INTO practitioner_documents (id, practitioner_slug, name, category, uploaded_at) VALUES
-  ('doc-1', 'dr-ali', 'Clinical Psychology License.pdf', 'License', '2026-08-01T05:00:00.000Z'),
-  ('doc-2', 'dr-ali', 'CBT Certification.pdf', 'Certification', '2026-08-01T05:05:00.000Z'),
-  ('doc-3', 'hina-farooq', 'CNIC.jpg', 'Identity Verification', '2026-09-14T03:20:00.000Z'),
-  ('doc-4', 'hina-farooq', 'Family Therapy Certificate.pdf', 'Certification', '2026-09-14T03:22:00.000Z'),
-  ('doc-5', 'omar-siddiqui', 'Psychiatry Board Certification.pdf', 'License', '2026-06-10T04:00:00.000Z');
-
-
+-- No placeholder documents: a document row only exists when a real file was uploaded.
 INSERT INTO admin_settings (id, name, email, skip_verification_by_default, notify_new_signup, notify_profile_submitted, notify_daily_digest) VALUES
   (1, 'Super Admin', 'admin@mentifylabs.com', 1, 1, 1, 0);

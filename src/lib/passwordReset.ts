@@ -4,6 +4,7 @@ import { sendBrandedEmail } from "@/lib/notifications";
 import { MIN_PASSWORD_LENGTH, hashPassword } from "@/lib/password";
 import { MAX_PASSWORD_LENGTH, homeFor, randomToken, sha256Hex, startSession, type Role } from "@/lib/session";
 import { siteOrigin } from "@/lib/siteOrigin";
+import { adminLinkEmail } from "@/lib/adminLinkEmail";
 
 const SELF_SERVE_MINUTES = 60;
 const ADMIN_LINK_DAYS = 7;
@@ -124,18 +125,18 @@ export async function adminResetLink(
   );
   if (!practitioner) return { ok: false, message: "Practitioner not found." };
 
-  let user = await first<{ id: string; email: string }>(
-    "SELECT id, email FROM users WHERE practitioner_id = ?",
+  let user = await first<{ id: string; email: string; email_verified_at: string | null }>(
+    "SELECT id, email, email_verified_at FROM users WHERE practitioner_id = ?",
     practitioner.id,
   );
   if (!user) {
     const email = practitioner.email.trim().toLowerCase();
     if (await first("SELECT 1 FROM users WHERE email = ?", email)) {
-      return { ok: false, message: `Another account already uses ${email}. Change this practitioner's email first.` };
+      return { ok: false, message: `Another account already uses ${email}, so an invite can't be created for this practitioner.` };
     }
-    user = await first<{ id: string; email: string }>(
+    user = await first<{ id: string; email: string; email_verified_at: string | null }>(
       `INSERT INTO users (email, name, password_hash, role, practitioner_id)
-       VALUES (?, ?, ?, 'practitioner', ?) RETURNING id, email`,
+       VALUES (?, ?, ?, 'practitioner', ?) RETURNING id, email, email_verified_at`,
       email,
       practitioner.full_name,
       await hashPassword(randomToken()),
@@ -143,19 +144,12 @@ export async function adminResetLink(
     );
   }
 
-  const link = await createResetLink(user!.id, ADMIN_LINK_DAYS * 24 * 60 * 60 * 1000);
-  const emailed = await sendBrandedEmail({
-    to: user!.email,
-    subject: "Set your MentifyLabs password",
-    greeting: `Hi ${practitioner.full_name},`,
-    content: {
-      eyebrow: "Password",
-      heading: "Set your password",
-      body: ["Use the button below to choose your MentifyLabs password and sign in."],
-      button: { label: "Set password", url: link },
-      footnote: `The link works once and expires in ${ADMIN_LINK_DAYS} days.`,
-    },
-  });
+  // Setting a first password is what accepts an invitation, so someone who has never done it is being invited.
+  const invite = !user!.email_verified_at;
+  const base = await createResetLink(user!.id, ADMIN_LINK_DAYS * 24 * 60 * 60 * 1000);
+  const link = invite ? `${base}&invite=1` : base;
+  const message = adminLinkEmail({ invite, link, days: ADMIN_LINK_DAYS, name: practitioner.full_name });
+  const emailed = await sendBrandedEmail({ to: user!.email, ...message });
   return { ok: true, link, emailed, email: user!.email };
 }
 
@@ -169,18 +163,40 @@ export async function adminInviteAdmin(
   email: string,
   fullName: string,
 ): Promise<{ link: string; emailed: boolean }> {
-  const link = await createResetLink(userId, ADMIN_LINK_DAYS * 24 * 60 * 60 * 1000);
+  const link = `${await createResetLink(userId, ADMIN_LINK_DAYS * 24 * 60 * 60 * 1000)}&invite=1`;
   const emailed = await sendBrandedEmail({
     to: email,
-    subject: "You've been added as a Super Admin — MentifyLabs",
+    subject: "You've been invited to MentifyLabs as a Super Admin",
     greeting: `Hi ${fullName},`,
     content: {
-      eyebrow: "Super Admin",
-      heading: "You've been added as a Super Admin",
-      body: ["You now have admin access to MentifyLabs. Set your password to sign in."],
-      button: { label: "Set password", url: link },
+      eyebrow: "Invitation",
+      heading: "You've been invited as a Super Admin",
+      body: ["You've been added as a Super Admin on MentifyLabs. Accept the invitation to create your password and get access."],
+      button: { label: "Accept invitation", url: link },
       footnote: `The link works once and expires in ${ADMIN_LINK_DAYS} days.`,
     },
   });
   return { link, emailed };
+}
+
+/**
+ * Super Admin "Send password link" for another Super Admin. Someone who has never signed in is re-invited; someone who has
+ * gets a way to choose a new password. The link is always returned so it can be passed on when email isn't set up.
+ */
+export async function adminSendAdminLink(
+  userId: string,
+): Promise<{ ok: true; link: string; emailed: boolean; email: string } | { ok: false; message: string }> {
+  const user = await first<{ id: string; email: string; name: string; role: Role; email_verified_at: string | null }>(
+    "SELECT id, email, name, role, email_verified_at FROM users WHERE id = ?",
+    userId,
+  );
+  if (!user || user.role !== "admin") return { ok: false, message: "Super Admin not found." };
+  if (!user.email_verified_at) {
+    const invited = await adminInviteAdmin(user.id, user.email, user.name);
+    return { ok: true, ...invited, email: user.email };
+  }
+  const link = await createResetLink(user.id, ADMIN_LINK_DAYS * 24 * 60 * 60 * 1000);
+  const message = adminLinkEmail({ invite: false, link, days: ADMIN_LINK_DAYS, name: user.name });
+  const emailed = await sendBrandedEmail({ to: user.email, ...message });
+  return { ok: true, link, emailed, email: user.email };
 }

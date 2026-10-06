@@ -9,8 +9,10 @@ import {
   requireOwnSlug,
   submitVerification,
   updatePractitionerProfile,
+  updatePractitionerSlug,
 } from "@/data/practitioners";
 import { addDocument } from "@/data/documents";
+import { recordReviewEvent } from "@/data/reviewEvents";
 import { resolveCurrency } from "@/lib/currencies";
 import { revalidateAdminViews } from "@/lib/revalidate";
 import { requireRole } from "@/lib/session";
@@ -52,6 +54,7 @@ async function submitOnboardingCredential(slug: string, formData: FormData): Pro
     throw error;
   }
   await submitVerification(slug);
+  await recordReviewEvent(slug, "verification_submitted");
 }
 
 /** Saves the wizard's fields, submits a credential if one was attached, and ends onboarding. */
@@ -87,6 +90,16 @@ export async function finishOnboardingAction(formData: FormData) {
   revalidatePath(`/${slug}`);
   revalidateAdminViews();
   redirect("/dashboard");
+}
+
+/** Chooses the signed-in practitioner's profile link during setup. Blank is fine: they can choose it later in Settings. */
+export async function claimHandleAction(handle: string): Promise<{ ok: true; slug: string } | { ok: false; message: string }> {
+  const me = await getCurrentPractitioner();
+  const result = await updatePractitionerSlug(me.slug, handle);
+  if (!result.ok) return result;
+  const slug = handle.trim().toLowerCase();
+  revalidateAdminViews();
+  return { ok: true, slug };
 }
 
 /** Ends onboarding without saving any of the wizard's fields. */
