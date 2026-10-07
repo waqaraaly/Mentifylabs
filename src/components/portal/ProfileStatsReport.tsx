@@ -30,6 +30,12 @@ export function Delta({ current, previous, range }: { current: number; previous:
   );
 }
 
+/** What sits under a total when it covers everything so far: where the count starts, instead of a comparison. */
+export function Since({ day }: { day: string }) {
+  const text = new Date(`${day}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  return <span className="text-muted">Since {text}</span>;
+}
+
 export function StatTile({ label, value, footer }: { label: string; value: string; footer: ReactNode }) {
   return (
     <div className="min-w-0 rounded-2xl bg-surface px-4 py-4 ring-1 ring-black/[0.07] sm:px-6 sm:py-5">
@@ -47,11 +53,9 @@ export function StatTile({ label, value, footer }: { label: string; value: strin
 export function ProfileStatsReport({
   stats,
   audience,
-  slug,
 }: {
   stats: ProfileStats;
   audience: "practitioner" | "admin";
-  slug: string;
 }) {
   const { range } = stats;
   const hasViews = stats.views > 0;
@@ -63,12 +67,12 @@ export function ProfileStatsReport({
         <StatTile
           label="Profile views"
           value={formatCount(stats.views)}
-          footer={<Delta current={stats.views} previous={stats.previousViews} range={range} />}
+          footer={stats.allTime ? <Since day={stats.daily[0].day} /> : <Delta current={stats.views} previous={stats.previousViews} range={range} />}
         />
         <StatTile
           label="Visitors"
           value={formatCount(stats.visitors)}
-          footer={<Delta current={stats.visitors} previous={stats.previousVisitors} range={range} />}
+          footer={stats.allTime ? <Since day={stats.daily[0].day} /> : <Delta current={stats.visitors} previous={stats.previousVisitors} range={range} />}
         />
         <StatTile
           label="Appointment requests"
@@ -88,13 +92,12 @@ export function ProfileStatsReport({
             <ViewsChart data={stats.daily} />
           ) : (
             <div className="py-10 text-center">
-              <p className="font-medium">No views in the last {range} days yet</p>
+              <p className="font-medium">{stats.allTime ? "No views yet" : `No views in the last ${range} days yet`}</p>
               <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-muted">
                 {mine
-                  ? "Share your profile link on Instagram, WhatsApp or your website and the numbers will start to appear here. Your own visits aren't counted."
+                  ? "Share your profile link on Instagram, WhatsApp or your website and the numbers will start to appear here."
                   : "Nobody has opened this practitioner's public profile in this period."}
               </p>
-              <p className="mt-4 text-sm font-medium text-primary">/{slug}</p>
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@ import "server-only";
 import { first, run } from "@/lib/db";
 import { sendBrandedEmail } from "@/lib/notifications";
 import { MIN_PASSWORD_LENGTH, hashPassword } from "@/lib/password";
-import { MAX_PASSWORD_LENGTH, homeFor, randomToken, sha256Hex, startSession, type Role } from "@/lib/session";
+import { MAX_PASSWORD_LENGTH, homeFor, randomToken, sha256Hex, startSession, twoFactorEnabledFor, type Role } from "@/lib/session";
 import { siteOrigin } from "@/lib/siteOrigin";
 import { adminLinkEmail } from "@/lib/adminLinkEmail";
 
@@ -50,7 +50,7 @@ export async function requestPasswordReset(emailInput: string): Promise<void> {
       heading: "Reset your password",
       body: ["Someone asked to reset the password for your MentifyLabs account. Choose a new one below."],
       button: { label: "Choose a new password", url: link },
-      footnote: `The link works once and expires in ${SELF_SERVE_MINUTES} minutes. If this wasn't you, ignore this email — your password stays the same.`,
+      footnote: `The link works once and expires in ${SELF_SERVE_MINUTES} minutes. If this wasn't you, ignore this email. Your password stays the same.`,
     },
   });
 }
@@ -107,6 +107,9 @@ export async function resetPassword(
          OR (email >= (SELECT email || '|' FROM users WHERE id = ?1) AND email < (SELECT email || '}' FROM users WHERE id = ?1))`,
     reset.user_id,
   );
+  // An account with two-step sign-in is not signed in by a link, however it reached them: a link can be issued by a
+  // Super Admin, and it would otherwise walk straight past the emailed code. They sign in normally instead.
+  if (await twoFactorEnabledFor(reset.user_id)) return { ok: true, home: "/login" };
   await startSession(reset.user_id);
   return { ok: true, home: homeFor(reset.role) };
 }

@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/session";
 import { getAllPractitioners } from "@/data/practitioners";
 import { getAllAppointments } from "@/data/appointments";
-import { todayIsoDate } from "@/lib/format";
+import { getCredentialQueue } from "@/data/credentialQueue";
 import { TopBar } from "@/components/admin/TopBar";
 import { LayoutDashboard } from "lucide-react";
 import { DashboardView } from "@/components/admin/DashboardView";
@@ -10,12 +10,11 @@ export const metadata = { title: "Super Admin Dashboard" };
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
-  const [practitioners, appointments] = await Promise.all([
+  const [practitioners, appointments, { awaiting }] = await Promise.all([
     getAllPractitioners(),
     getAllAppointments(),
+    getCredentialQueue(),
   ]);
-  const today = todayIsoDate();
-
 
   return (
     <div>
@@ -27,7 +26,7 @@ export default async function AdminDashboardPage() {
       <DashboardView
         practitioners={practitioners}
         appointments={appointments}
-        today={today}
+        queue={awaiting}
       />
     </div>
   );

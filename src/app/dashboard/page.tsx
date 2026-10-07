@@ -1,11 +1,15 @@
 import Link from "next/link";
-import { ArrowRight, ChevronRight, MapPin, Video } from "lucide-react";
-import { getCurrentPractitioner } from "@/data/practitioners";
+import { ArrowRight, ArrowUpRight, ChevronRight, MapPin, Video } from "lucide-react";
+import { getCurrentPractitioner, isPubliclyVisible } from "@/data/practitioners";
 import { getAppointmentsByPractitioner } from "@/data/appointments";
 import { getSlotsByPractitioner } from "@/data/slots";
+import { getWeeklyRules } from "@/data/availability";
+import { setupChecklist } from "@/lib/setupChecklist";
+import { SetupChecklist } from "@/components/portal/SetupChecklist";
 import { AutoRefresh } from "@/components/portal/AutoRefresh";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatDate, formatDateFull, formatTime12h, daysBetween, getDateRange, greeting, mondayOf, todayIsoDate } from "@/lib/format";
+import { formatDate, formatDateFull, formatTime12h, daysBetween, getDateRange, greeting, mondayOf } from "@/lib/format";
+import { wallClockIn } from "@/lib/time";
 
 export const metadata = { title: "Dashboard" };
 
@@ -16,12 +20,17 @@ function toMinutes(time: string): number {
 
 export default async function DashboardPage() {
   const practitioner = await getCurrentPractitioner();
-  const [appointments, slots] = await Promise.all([
+  const [appointments, slots, weeklyRules] = await Promise.all([
     getAppointmentsByPractitioner(practitioner.slug),
     getSlotsByPractitioner(practitioner.slug),
+    getWeeklyRules(practitioner.slug),
   ]);
+  const checklist = setupChecklist(practitioner, weeklyRules.length);
 
-  const today = todayIsoDate();
+  // Everything on this page is "now" on the practitioner's own clock, not the server's.
+  const zone = practitioner.timezone;
+  const here = wallClockIn(zone);
+  const today = here.date;
 
   const todaysAppointments = appointments
     .filter((a) => a.date === today)
@@ -30,8 +39,7 @@ export default async function DashboardPage() {
 
   // Stored status is only what the practitioner/client agreed to; for a
   // confirmed session today, what's shown must follow the clock.
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowMinutes = here.minutes;
   const displayStatus = (a: (typeof todaysAppointments)[number]) => {
     if (a.status !== "confirmed") return a.status;
     if (toMinutes(a.endTime) <= nowMinutes) return "completed";
@@ -117,14 +125,20 @@ export default async function DashboardPage() {
         <div>
           <p className="text-xs font-medium tracking-[0.14em] text-muted uppercase">{formatDateFull(today)}</p>
           <h1 className="mt-2.5 text-3xl font-semibold tracking-tight sm:text-4xl">
-            {greeting()}, {firstName}.
+            {greeting(zone)}, {firstName}.
           </h1>
         </div>
-        <Link href="/dashboard/slots" className={cardLink}>
-          Manage availability
-          <ArrowRight className="size-3.5" aria-hidden />
-        </Link>
+        {/* A link to the page clients see, once there is one. Until the profile is live there is nothing to link to. */}
+        {isPubliclyVisible(practitioner) && (
+          <Link href={`/${practitioner.slug}`} target="_blank" rel="noopener" className={cardLink}>
+            Public profile
+            <ArrowUpRight className="size-3.5" aria-hidden />
+          </Link>
+        )}
       </header>
+
+      {/* What is left before the profile is ready. Leaves the page by itself once everything is done. */}
+      <SetupChecklist {...checklist} />
 
       {/* Spotlight + metrics */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
@@ -162,12 +176,6 @@ export default async function DashboardPage() {
                 </p>
               </div>
 
-              {spotlight.concern && (
-                <p className="relative mt-5 max-w-md rounded-2xl bg-white/[0.1] px-4 py-3 text-sm leading-relaxed">
-                  &ldquo;{spotlight.concern}&rdquo;
-                </p>
-              )}
-
               <Link
                 href="/dashboard/sessions"
                 className="relative mt-auto inline-flex w-fit items-center gap-1.5 pt-6 text-sm font-medium opacity-90 transition hover:opacity-100"
@@ -188,7 +196,7 @@ export default async function DashboardPage() {
               <p className="relative mt-4 max-w-sm text-sm leading-relaxed opacity-80">
                 {nextOpenToday
                   ? `Your next open slot is at ${formatTime12h(nextOpenToday.startTime)} if a client wants it.`
-                  : "Nothing else is booked today — a good moment to catch up."}
+                  : "Nothing else is booked today. A good moment to catch up."}
               </p>
               <Link
                 href="/dashboard/slots"
@@ -349,7 +357,7 @@ export default async function DashboardPage() {
 
           {upcomingToday.length === 0 ? (
             <p className="px-6 pt-1 pb-7 text-sm leading-relaxed text-muted">
-              No more sessions today. Your open slots are still visible to clients if you&apos;d like to fill the space.
+              No more sessions today.
             </p>
           ) : (
             <ul className="divide-y divide-black/[0.06] border-t border-black/[0.06]">
@@ -402,11 +410,6 @@ export default async function DashboardPage() {
                         <p className="mt-0.5 text-sm text-muted">
                           {formatDate(inquiry.date)} · {formatTime12h(inquiry.startTime)}–{formatTime12h(inquiry.endTime)}
                         </p>
-                        {inquiry.concern && (
-                          <p className="mt-1.5 line-clamp-1 text-sm text-foreground/70">
-                            &ldquo;{inquiry.concern}&rdquo;
-                          </p>
-                        )}
                       </div>
                       <ChevronRight
                         className="size-4 shrink-0 text-muted transition group-hover:translate-x-0.5"

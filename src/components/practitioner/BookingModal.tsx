@@ -8,6 +8,10 @@ import { bookAppointment, type BookingFormState } from "@/app/[username]/actions
 import { formatDateFull, formatDayCell } from "@/lib/format";
 import { formatFeeRange } from "@/lib/fees";
 import { ArrowScroller } from "@/components/ui/ArrowScroller";
+import { useInBrowser } from "@/lib/useInBrowser";
+import { useViewerTimeZone } from "@/lib/useViewerTimeZone";
+import { displayZoneFor, notStarted, openingFormat, shownIn, type ShownTimes } from "@/lib/viewerTime";
+import { ViewerTimeZoneNote } from "./ViewerTimeZoneNote";
 
 export const BOOKING_MODAL_ID = "booking-modal";
 
@@ -48,7 +52,13 @@ function FormField({
   );
 }
 
-export function BookingModal({ practitioner, slots }: { practitioner: Practitioner; slots: Slot[] }) {
+export function BookingModal({ practitioner, slots: allSlots }: { practitioner: Practitioner; slots: Slot[] }) {
+  const practitionerZone = practitioner.timezone;
+  const inBrowser = useInBrowser();
+  const viewer = useViewerTimeZone(practitionerZone);
+  // The page can be a copy made up to an hour ago, so slots that have started since are dropped here, on the
+  // practitioner's clock. Until the browser has taken over, the list is exactly what the server sent.
+  const slots = inBrowser ? notStarted(allSlots, practitionerZone) : allSlots;
   const boundAction = useMemo(() => bookAppointment.bind(null, practitioner.slug), [practitioner.slug]);
   const [state, formAction, isPending] = useActionState(boundAction, initialState);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -61,19 +71,27 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
   const offersOnline = practitioner.sessionType !== "offline" && slots.some((s) => s.sessionType !== "offline");
   const offersOffline = practitioner.sessionType !== "online" && slots.some((s) => s.sessionType !== "online");
   const [format, setFormat] = useState<Format | null>(null);
-  const activeFormat = format ?? (offersOnline ? "online" : offersOffline ? "offline" : null);
+  // Opens on the format of the earliest slot, so the date the "Next available" bar names is the first one shown.
+  const activeFormat = format ?? openingFormat(slots, { online: offersOnline, offline: offersOffline });
 
+  // Online sessions are shown on the visitor's clock, sessions on-site on the practitioner's. The day can differ between
+  // the two, so the days and the times within them are grouped by what the visitor will actually see.
+  const displayZone = displayZoneFor(activeFormat, practitionerZone, viewer.zone);
   const filtered = slots.filter((s) => s.sessionType === activeFormat || s.sessionType === "both");
+  const shown = new Map<string, ShownTimes>(filtered.map((s) => [s.id, shownIn(s, practitionerZone, displayZone)]));
   const groups = new Map<string, Slot[]>();
   for (const slot of filtered) {
-    const group = groups.get(slot.date) ?? [];
+    const day = shown.get(slot.id)!.date;
+    const group = groups.get(day) ?? [];
     group.push(slot);
-    groups.set(slot.date, group);
+    groups.set(day, group);
   }
+  for (const group of groups.values()) group.sort((a, b) => shown.get(a.id)!.startTime.localeCompare(shown.get(b.id)!.startTime));
   const dateEntries = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   const activeDate = selectedDate && groups.has(selectedDate) ? selectedDate : (dateEntries[0]?.[0] ?? null);
   const timesForDate = groups.get(activeDate ?? "") ?? [];
   const selectedSlot = slots.find((s) => s.id === selectedSlotId) ?? null;
+  const selectedShown = selectedSlot ? (shown.get(selectedSlot.id) ?? shownIn(selectedSlot, practitionerZone, displayZone)) : null;
   const noSlotsAtAll = slots.length === 0;
 
   function resetWizard() {
@@ -106,22 +124,26 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
       onClick={(e) => {
         if (e.target === dialogRef.current) handleClose();
       }}
-      className="m-auto w-full max-w-4xl overflow-hidden rounded-[28px] border-0 bg-(--pt-bg) p-0 shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+      className="m-auto w-[calc(100%-1.25rem)] max-w-4xl overflow-hidden rounded-[24px] border-0 bg-(--pt-bg) p-0 shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm sm:w-full sm:rounded-[28px]"
     >
-      <div className="flex max-h-[90vh] flex-col md:flex-row">
+      <div className="flex max-h-[90dvh] flex-col md:flex-row">
         {/* Sidebar — name, step tracker, and a live summary that fills in
             as the wizard progresses. */}
-        <div className="shrink-0 bg-(--pt-modal-sidebar) p-10 text-(--pt-accent-foreground) md:w-[360px] md:p-12">
+        <div className="shrink-0 bg-(--pt-modal-sidebar) px-6 py-5 text-(--pt-accent-foreground) md:w-[360px] md:p-12">
           <div className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.2em] text-(--pt-accent-foreground)/60 uppercase">
             <Sparkles className="size-3.5" aria-hidden />
             Booking
           </div>
-          <h2 className="mt-4 font-serif text-[32px] leading-[1.2] font-semibold">
+          <h2 className="mt-2 font-serif text-2xl leading-[1.2] font-semibold md:mt-4 md:text-[32px]">
             Session with <span className="text-(--pt-accent-foreground) italic">{practitioner.fullName}</span>
           </h2>
-          <p className="mt-3 text-base text-(--pt-accent-foreground)/70">A few quick details and you&apos;re set.</p>
+          {/* On a phone the side panel shrinks to this one line, so the choices below get the room. */}
+          <p className="mt-2 text-sm text-(--pt-accent-foreground)/70 md:hidden">
+            Step {step} of {STEPS.length} · {STEPS.find((s) => s.id === step)?.label}
+          </p>
+          <p className="mt-3 hidden text-base text-(--pt-accent-foreground)/70 md:block">A few quick details and you&apos;re set.</p>
 
-          <ol className="mt-10 space-y-6">
+          <ol className="mt-10 hidden space-y-6 md:block">
             {STEPS.map((s) => {
               const isActive = step === s.id;
               const isDone = step > s.id;
@@ -150,7 +172,7 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
             })}
           </ol>
 
-          <div className="mt-12 space-y-3.5 border-t border-(--pt-accent-foreground)/15 pt-7 text-sm">
+          <div className="mt-12 hidden space-y-3.5 border-t border-(--pt-accent-foreground)/15 pt-7 text-sm md:block">
             <div className="flex items-center justify-between">
               <span className="text-xs tracking-[0.1em] text-(--pt-accent-foreground)/50 uppercase">Session mode</span>
               <span className="text-base font-medium">
@@ -160,7 +182,7 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
             <div className="flex items-center justify-between">
               <span className="text-xs tracking-[0.1em] text-(--pt-accent-foreground)/50 uppercase">When</span>
               <span className="text-base font-medium">
-                {selectedSlot ? `${formatDateFull(selectedSlot.date)}, ${selectedSlot.startTime}` : "—"}
+                {selectedShown ? `${formatDateFull(selectedShown.date)}, ${selectedShown.startTime} ${selectedShown.tag}` : "—"}
               </span>
             </div>
             <div className="flex items-center justify-between pt-2">
@@ -173,9 +195,9 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
         </div>
 
         {/* Content — swaps per step. */}
-        <div className="flex flex-1 flex-col overflow-y-auto p-10 md:p-12">
+        <div className="flex flex-1 flex-col overflow-y-auto p-5 sm:p-8 md:p-12">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="font-serif text-[28px] leading-tight font-semibold tracking-tight text-(--pt-text)">
+            <h3 className="font-serif text-2xl leading-tight font-semibold tracking-tight text-(--pt-text) md:text-[28px]">
               {state.status === "success" ? "Booking requested" : step === 1 ? "Choose a time" : "Your details"}
             </h3>
             <button
@@ -188,7 +210,7 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
             </button>
           </div>
 
-          <div className="mt-8 flex-1">
+          <div className="mt-6 flex-1 md:mt-8">
             {state.status === "success" ? (
               <div className="flex flex-col items-center py-10 text-center">
                 <span className="flex size-14 items-center justify-center rounded-full bg-(--pt-accent)/10 text-(--pt-accent)">
@@ -266,6 +288,8 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
                   </ArrowScroller>
                 </div>
 
+                <ViewerTimeZoneNote format={activeFormat} practitionerZone={practitionerZone} viewerZone={viewer.zone} />
+
                 {timesForDate.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold tracking-[0.1em] text-(--pt-muted) uppercase">Available times</p>
@@ -283,7 +307,7 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
                                 : "border-(--pt-border) text-(--pt-text) hover:border-(--pt-accent)/40"
                             }`}
                           >
-                            {slot.startTime}
+                            {shown.get(slot.id)?.startTime ?? slot.startTime}
                           </button>
                         );
                       })}
@@ -296,10 +320,10 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
                 <input type="hidden" name="slotId" value={selectedSlotId ?? ""} />
                 <input type="hidden" name="format" value={activeFormat ?? ""} />
 
-                {selectedSlot && (
+                {selectedSlot && selectedShown && (
                   <div className="rounded-xl bg-(--pt-accent)/5 px-4 py-3.5 text-sm">
                     <p className="font-medium text-(--pt-text)">
-                      {formatDateFull(selectedSlot.date)}, {selectedSlot.startTime}–{selectedSlot.endTime}
+                      {formatDateFull(selectedShown.date)}, {selectedShown.startTime}–{selectedShown.endTime} {selectedShown.tag}
                     </p>
                     <p className="mt-0.5 capitalize text-(--pt-muted)">{activeFormat} session</p>
                   </div>
@@ -339,7 +363,7 @@ export function BookingModal({ practitioner, slots }: { practitioner: Practition
             </div>
           ) : (
             !noSlotsAtAll && (
-              <div className="mt-10 flex items-center justify-between border-t border-(--pt-border) pt-6">
+              <div className="mt-8 flex items-center justify-between gap-3 border-t border-(--pt-border) pt-5 md:mt-10 md:pt-6">
                 {step > 1 ? (
                   <button
                     type="button"

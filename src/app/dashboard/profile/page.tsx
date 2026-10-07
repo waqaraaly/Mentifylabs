@@ -1,6 +1,5 @@
 import { ArrowUpRight, Eye, FileText, GraduationCap, Link2, Palette, User, Wallet } from "lucide-react";
 import { getContactDetails, getCurrentPractitioner, isPubliclyVisible, suggestHandle } from "@/data/practitioners";
-import { hasFeeRange } from "@/lib/fees";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
 import { siteConfig } from "@/lib/site";
 import { DEFAULT_COLOR_THEME } from "@/lib/themes";
@@ -19,10 +18,11 @@ import { currencyOptions } from "@/lib/currencies";
 import { UnpublishProfileButton } from "@/components/portal/UnpublishProfileButton";
 import { publishBlockReason } from "@/lib/verification";
 import { ThemePicker } from "@/components/portal/ThemePicker";
+import { LivePreviewToggle, LiveProfileEditor } from "@/components/portal/LiveProfileEditor";
 import { BRAND_BACKGROUND, PLATFORM_ICON_PATH } from "@/components/practitioner/ContactLinks";
 import { updateProfileAction } from "./actions";
 
-export const metadata = { title: "Public Profile" };
+export const metadata = { title: "Public profile" };
 
 const iconClass = "size-4";
 
@@ -35,25 +35,18 @@ export default async function PublicProfilePage() {
   // Why publishing isn't possible right now (null when it is). The server checks the same rule again on click.
   const blockedReason = publishBlockReason(practitioner);
   const adminOffline = practitioner.profileStatus === "hidden" || practitioner.profileStatus === "suspended";
-  // The specific reason sits beside the Publish button; the line under the title stays general so it isn't said twice.
-  const notLiveReason = blockedReason
-    ? "Your profile isn't public yet. Clients can't find or book you until you publish it."
-    : "You're verified. Preview how your profile will look, then publish it when you're ready.";
 
   const sections: ProfileSection[] = [
     {
       id: "basics",
       label: "Basics",
       title: "Basics",
-      description: "Your name, title and the link you share with clients.",
       icon: <User className={iconClass} aria-hidden />,
-      done: Boolean(practitioner.fullName && practitioner.professionalTitle && practitioner.shortBio),
       content: (
         <>
           <SettingsRow
             label="Profile photo"
             htmlFor="profile-photo"
-            description="Shown at the top of your public profile. A clear, well-lit headshot works best."
           >
             <ProfilePhotoUploader
               slug={practitioner.slug}
@@ -64,7 +57,6 @@ export default async function PublicProfilePage() {
           <SettingsRow
             label="Full name"
             htmlFor="fullName"
-            description="The name clients see on your public profile. Separate from your account name in Settings."
           >
             <input
               id="fullName"
@@ -84,25 +76,24 @@ export default async function PublicProfilePage() {
             />
           </SettingsRow>
           <SettingsRow
-            label="Bio"
+            label="Headline"
             htmlFor="shortBio"
-            description="A one-line summary shown right under your name."
           >
             <input
               id="shortBio"
               name="shortBio"
               maxLength={160}
-              placeholder="e.g. Helping adults manage anxiety and burnout."
+              placeholder="e.g. Clinical psychologist working with adults and couples."
               defaultValue={practitioner.shortBio}
               className={settingsInputClass}
             />
           </SettingsRow>
           <SettingsRow
-            label="Public URL"
+            label="Profile link"
             htmlFor="slug-editor"
-            description="The web address of your professional profile. Share it with clients to let them find and book you."
+            description="The link clients use to find and book you."
           >
-            <SlugEditor slug={practitioner.slug} siteUrl={siteConfig.url} chosen={Boolean(practitioner.slugChosenAt)} suggestion={practitioner.slugChosenAt ? "" : await suggestHandle(practitioner.fullName)} />
+            <SlugEditor slug={practitioner.slug} siteUrl={siteConfig.url} chosen={Boolean(practitioner.slugChosenAt)} live={isLive} suggestion={practitioner.slugChosenAt ? "" : await suggestHandle(practitioner.fullName)} />
           </SettingsRow>
         </>
       ),
@@ -111,43 +102,34 @@ export default async function PublicProfilePage() {
       id: "about",
       label: "About you",
       title: "About you",
-      description: "Your introduction and what you help clients with.",
       icon: <FileText className={iconClass} aria-hidden />,
-      done: practitioner.bio.trim().length >= 80 && practitioner.specializations.length > 0,
       content: (
         <>
-          <SettingsRow label="About you" htmlFor="bio" description="A few sentences on who you are and how you work.">
+          <SettingsRow label="Bio" htmlFor="bio">
             <textarea id="bio" name="bio" rows={7} defaultValue={practitioner.bio} className={settingsInputClass} />
           </SettingsRow>
-          <SettingsRow label="Areas of expertise" htmlFor="specializations" description="What you help clients with.">
+          <SettingsRow label="Areas of expertise" htmlFor="specializations">
             <EditableList
               name="specializations"
               initialItems={practitioner.specializations}
-              placeholder="Add an area of expertise…"
-              variant="tags"
-            />
-          </SettingsRow>
-          <SettingsRow label="Services offered" htmlFor="services" description="The types of sessions you provide.">
-            <EditableList
-              name="services"
-              initialItems={practitioner.services}
-              placeholder="Add a service, e.g. Individual Therapy…"
+              placeholder="Add an area of expertise"
               variant="list"
             />
           </SettingsRow>
-          <SettingsRow
-            label="Note for future clients"
-            htmlFor="noteForClients"
-            description="A short personal message shown in a highlighted section at the end of your public profile — optional."
-          >
-            <textarea
-              id="noteForClients"
-              name="noteForClients"
-              rows={4}
-              maxLength={400}
-              placeholder="e.g. Reaching out is the hardest step — I'm glad you're here…"
-              defaultValue={practitioner.noteForClients}
-              className={settingsInputClass}
+          <SettingsRow label="Languages" htmlFor="languages">
+            <EditableList
+              name="languages"
+              initialItems={practitioner.languages}
+              placeholder="Add a language you see clients in"
+              variant="list"
+            />
+          </SettingsRow>
+          <SettingsRow label="Services offered" htmlFor="services">
+            <EditableList
+              name="services"
+              initialItems={practitioner.services}
+              placeholder="Add a service, e.g. Individual Therapy"
+              variant="list"
             />
           </SettingsRow>
         </>
@@ -155,11 +137,9 @@ export default async function PublicProfilePage() {
     },
     {
       id: "credentials",
-      label: "Education & work",
-      title: "Education & Experience",
-      description: "The background that builds a client's trust.",
+      label: "Education & experience",
+      title: "Education & experience",
       icon: <GraduationCap className={iconClass} aria-hidden />,
-      done: practitioner.education.length > 0,
       content: (
         <>
           <SettingsRow label="Years of experience" htmlFor="experienceYears">
@@ -175,7 +155,7 @@ export default async function PublicProfilePage() {
               <span className="text-sm text-muted">years</span>
             </div>
           </SettingsRow>
-          <SettingsRow label="Education" htmlFor="education" description="Your degrees and programs, with the institute and years.">
+          <SettingsRow label="Education" htmlFor="education">
             <EntryListEditor
               name="education"
               initialItems={practitioner.education}
@@ -186,7 +166,7 @@ export default async function PublicProfilePage() {
               addLabel="Add education"
             />
           </SettingsRow>
-          <SettingsRow label="Experience" htmlFor="workExperience" description="Roles you've held, with the organization and years.">
+          <SettingsRow label="Experience" htmlFor="workExperience">
             <EntryListEditor
               name="workExperience"
               initialItems={practitioner.workExperience ?? []}
@@ -204,9 +184,7 @@ export default async function PublicProfilePage() {
       id: "session",
       label: "Sessions & fees",
       title: "Sessions & fees",
-      description: "How and where you see clients, and what you charge.",
       icon: <Wallet className={iconClass} aria-hidden />,
-      done: hasFeeRange(practitioner.feeRange),
       content: (
         <>
           <SessionModeFields
@@ -216,7 +194,6 @@ export default async function PublicProfilePage() {
           <SettingsRow
             label="Fee range"
             htmlFor="feeCurrency"
-            description="Your general fee range, shown to clients before they book. It applies to every session type."
           >
             <div className="grid grid-cols-3 gap-3">
               <ThemedSelect
@@ -256,15 +233,12 @@ export default async function PublicProfilePage() {
       id: "links",
       label: "Contact & links",
       title: "Contact & links",
-      description: "Where clients can reach or follow you.",
       icon: <Link2 className={iconClass} aria-hidden />,
-      done: contactDetails.some((c) => c.isPublic && c.value) || practitioner.socialLinks.length > 0,
       content: (
         <>
           <SettingsRow
             label="Contact details"
             htmlFor="contact-email"
-            description="The contact details clients see. They're separate from the email and phone on your account in Settings. Toggle each one public, or keep it private."
           >
             <ContactDetailsEditor initialItems={contactDetails} />
           </SettingsRow>
@@ -278,7 +252,7 @@ export default async function PublicProfilePage() {
               className={settingsInputClass}
             />
           </SettingsRow>
-          <SettingsRow label="Social links" htmlFor="social_instagram" description="Add any that are public.">
+          <SettingsRow label="Social links" htmlFor="social_instagram">
             <div className="space-y-2.5">
               {SOCIAL_PLATFORMS.map(({ platform, name }) => (
                 <div
@@ -319,11 +293,9 @@ export default async function PublicProfilePage() {
       id: "theme",
       label: "Appearance",
       title: "Appearance",
-      description: "The color palette clients see on your public profile.",
       icon: <Palette className={iconClass} aria-hidden />,
-      done: true,
       content: (
-        <SettingsRow label="Color theme" htmlFor="colorTheme" description="Pick the palette your profile is shown in.">
+        <SettingsRow label="Color theme" htmlFor="colorTheme">
           <ThemePicker selected={practitioner.colorTheme ?? DEFAULT_COLOR_THEME} />
         </SettingsRow>
       ),
@@ -334,6 +306,7 @@ export default async function PublicProfilePage() {
     "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition";
 
   return (
+    <LiveProfileEditor practitioner={practitioner} formId="profile-form">
     <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
       <PageHeader
         icon={User}
@@ -348,9 +321,10 @@ export default async function PublicProfilePage() {
             {isLive ? "Live" : "Not live"}
           </span>
         }
-        description={isLive ? "What clients see when they find you. Changes appear as soon as you save." : notLiveReason}
+        description="Manage the details shown on your public profile."
         actions={
           <div className="flex flex-wrap items-start justify-end gap-2.5">
+            <LivePreviewToggle />
             {/* Only while the profile isn't live: once it is, saving updates it straight away, so the live page is the preview. */}
             {!isLive && (
               <a
@@ -389,15 +363,12 @@ export default async function PublicProfilePage() {
         }
       />
 
-      <form action={updateProfileAction}>
+      <form id="profile-form" action={updateProfileAction}>
         <input type="hidden" name="slug" value={practitioner.slug} />
 
         <ProfileSections sections={sections} />
 
         <div className="sticky bottom-4 z-10 mt-8 flex items-center justify-between gap-4 rounded-2xl bg-surface/90 px-5 py-3.5 shadow-lg ring-1 ring-black/[0.08] backdrop-blur">
-          <p className="hidden text-sm text-muted sm:block">
-            Changes appear on your live profile as soon as you save.
-          </p>
           <button
             type="submit"
             className="ml-auto rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
@@ -407,5 +378,6 @@ export default async function PublicProfilePage() {
         </div>
       </form>
     </div>
+    </LiveProfileEditor>
   );
 }

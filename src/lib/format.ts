@@ -1,3 +1,5 @@
+import { dayOfIn, greetingIn, isPastIn, todayIn } from "@/lib/time";
+
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const WEEKDAYS_FULL = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
@@ -34,11 +36,9 @@ export function formatDayCell(date: string) {
   return { weekday: WEEKDAYS[d.getDay()], day: d.getDate(), month: MONTHS[d.getMonth()] };
 }
 
-// Both of these stay in local time throughout — going via toISOString() (UTC)
-// would silently shift the date whenever the runtime's UTC offset pushes
-// midnight across a day boundary, and server (Node) vs. client (browser) can
-// each have a different local timezone, so that shift isn't even consistent
-// between the two.
+// Calendar-date arithmetic (adding days, finding a weekday, laying out a month) works on date strings and gives the
+// same answer anywhere. Anything that asks what "now" or "today" is needs a zone, and takes it explicitly: the server
+// runs on UTC and a browser on its owner's clock, so reading the machine's own clock gave different answers in each.
 function toIsoDate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -46,8 +46,9 @@ function toIsoDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export function todayIsoDate() {
-  return toIsoDate(new Date());
+/** Today's date on a clock in `zone`. */
+export function todayIsoDate(zone: string) {
+  return todayIn(zone);
 }
 
 export function addDays(iso: string, days: number): string {
@@ -65,26 +66,19 @@ export function mondayOf(dateIso: string): string {
   return addDays(dateIso, -((day + 6) % 7));
 }
 
-export function isToday(iso: string) {
-  return iso === todayIsoDate();
+export function isToday(iso: string, zone: string) {
+  return iso === todayIn(zone);
 }
 
-/** Whether a session starting on this date and time (on the practitioner's own clock) is already in the past. */
-export function isPastStart(date: string, startTime: string, now: Date = new Date()): boolean {
-  return new Date(`${date}T${startTime}:00`) < now;
+/** Whether a session starting on this date and time (on the clock in `zone`) has already started. */
+export function isPastStart(date: string, startTime: string, zone: string, now: Date = new Date()): boolean {
+  return isPastIn(date, startTime, zone, now);
 }
 
 export function daysBetween(fromIso: string, toIso: string): number {
   const from = new Date(`${fromIso}T00:00:00`);
   const to = new Date(`${toIso}T00:00:00`);
   return Math.round((to.getTime() - from.getTime()) / 86400000);
-}
-
-export function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}, ${hours}:${minutes}`;
 }
 
 export function timeAgo(iso: string): string {
@@ -139,14 +133,14 @@ export function diffMinutes(startTime: string, endTime: string): number {
 }
 
 // "14:00" -> "2:00 PM"
-/** The calendar day (viewer's local time) a timestamp falls on, as YYYY-MM-DD. */
-export function localDayOf(iso: string): string {
-  return toIsoDate(new Date(iso));
+/** The calendar day a timestamp falls on for someone whose clock is in `zone`, as YYYY-MM-DD. */
+export function localDayOf(iso: string, zone: string): string {
+  return dayOfIn(iso, zone);
 }
 
 /** A day for a group heading: "today", "yesterday", or "Friday, Sep 12". */
-export function formatDayHeading(dayIso: string): string {
-  const days = daysBetween(dayIso, todayIsoDate());
+export function formatDayHeading(dayIso: string, zone: string): string {
+  const days = daysBetween(dayIso, todayIn(zone));
   if (days <= 0) return "today";
   if (days === 1) return "yesterday";
   return formatDateFull(dayIso);
@@ -166,11 +160,8 @@ export function formatTime12h(time: string): string {
   return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-export function greeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+export function greeting(zone: string): string {
+  return greetingIn(zone);
 }
 
 // "09:00","09:50" => "9:00 – 9:50 AM" (the period is shown once when both ends share it)

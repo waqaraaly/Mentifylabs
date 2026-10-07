@@ -14,7 +14,7 @@ export function ServicesOffered({ practitioner }: { practitioner: Practitioner }
 
       <ul className="mt-11 list-disc space-y-3.5 pl-6 text-lg leading-snug text-(--pt-text) marker:text-(--pt-accent) sm:text-xl">
         {practitioner.services.map((service) => (
-          <li key={service} className="pl-1.5">
+          <li key={service} className="pl-1.5 [overflow-wrap:anywhere]">
             {service}
           </li>
         ))}

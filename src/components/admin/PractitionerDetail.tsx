@@ -10,12 +10,16 @@ import {
 import type { Practitioner } from "@/types/practitioner";
 import type { Appointment } from "@/types/appointment";
 import type { PractitionerDocument } from "@/types/document";
+import { documentsFingerprint } from "@/lib/documentRules";
+import { reportDecision } from "@/lib/decisionResult";
 import { Avatar } from "./ui/Avatar";
 import { Badge, ProfileBadge, VerificationBadge } from "./ui/Badge";
 import { isLive, canDecideSubmission, canResendConfirmation, canReactivate, canReactivateLive, canSuspend, headlineKey } from "@/lib/practitionerState";
 import { ConfirmDialog, Modal, type ConfirmConfig } from "./ui/Overlays";
 import { SummaryItem, dash } from "./ui/Detail";
 import { DocumentList } from "./ui/DocumentList";
+import { formatStamp } from "@/lib/stamp";
+import { useDeviceTimeZone } from "@/lib/useDeviceTimeZone";
 import { SheetGroup, Field, ActionRow } from "./ui/Sheet";
 import { SlidingTabs } from "./ui/SlidingTabs";
 import { REVIEW_EVENT_LABELS, type ReviewEvent } from "@/types/reviewEvent";
@@ -24,6 +28,7 @@ import { useToast } from "./ui/ToastProvider";
 import { appointmentStatsFor, publicLinkFor } from "@/lib/admin";
 import { formatFeeRange } from "@/lib/fees";
 import { COLOR_THEMES, DEFAULT_COLOR_THEME } from "@/lib/themes";
+import { instantOf, zoneTag } from "@/lib/time";
 import {
   suspendAccount, reactivateAccount, deletePractitionerAction, approveSubmissionAction, rejectSubmissionAction, resendConfirmationEmailAction,
   sendResetLinkAction, updateSlugAction,
@@ -54,6 +59,7 @@ export function PractitionerDetail({
   history: ReviewEvent[];
   siteUrl: string;
 }) {
+  const whenLabel = useWhenLabel();
   const [tab, setTab] = useState<TabId>("overview");
   const [confirm, setConfirm] = useState<ConfirmConfig | null>(null);
   const [reactivateOpen, setReactivateOpen] = useState(false);
@@ -93,8 +99,8 @@ export function PractitionerDetail({
     body: "They become verified and can publish their profile. They'll be told by email.",
     confirmLabel: "Approve",
     action: () => startTransition(async () => {
-      await approveSubmissionAction(p.slug);
-      addToast(`${p.fullName} verified`, "ok");
+      const result = await approveSubmissionAction(p.slug, documentsFingerprint(documents));
+      reportDecision(result, addToast, { message: `${p.fullName} verified` });
       setConfirm(null);
       router.refresh();
     }),
@@ -143,8 +149,8 @@ export function PractitionerDetail({
 
       <SheetGroup icon={<Shield size={14} />} title="Credentials" />
       {canDecideSubmission(p) ? (
-        <ActionRow title="Review credentials" text="Their documents are waiting for your decision. Approving lets them publish their profile; sending back lets them fix and resubmit.">
-          <button className="btn btn-primary" disabled={pending} onClick={approve}><Check size={14} />Approve</button>
+        <ActionRow title="Review credentials" text={documents.some((d) => d.hasFile) ? "Their documents are waiting for your decision. Approving lets them publish their profile; sending back lets them fix and resubmit." : "There is no document file to review, so you can't approve. Send it back and ask them to upload one."}>
+          <button className="btn btn-primary" disabled={pending || !documents.some((d) => d.hasFile)} title={documents.some((d) => d.hasFile) ? undefined : "No document file to review"} onClick={approve}><Check size={14} />Approve</button>
           <button className="btn btn-danger" disabled={pending} onClick={() => { setReason(""); setSendBackOpen(true); }}>Send back</button>
         </ActionRow>
       ) : (
@@ -169,7 +175,7 @@ export function PractitionerDetail({
       <SheetGroup icon={<Globe size={14} />} title="Public page" />
       <ActionRow
         title="Open public profile"
-        text={!handleChosen ? "They haven't chosen a profile link yet, so there is no page to open." : isLive(p) ? "Opens their live page in a new tab." : "Opens their page address. It shows \"not found\" to visitors until the profile is live."}
+        text={!handleChosen ? "They haven't chosen a profile link yet, so there is no page to open." : isLive(p) ? "Opens their live page in a new tab." : "Opens their profile link. Visitors see \"not found\" until the profile is live."}
       >
         {handleChosen ? (
           <a className="btn" href={`https://${publicLink}`} target="_blank" rel="noreferrer"><ExternalLink size={14} />Open page</a>
@@ -234,7 +240,7 @@ export function PractitionerDetail({
           onSaveSlug={() => startTransition(async () => {
             const result = await updateSlugAction(p.slug, slug);
             if (!result.ok) { addToast(result.message, "danger"); return; }
-            addToast("Slug updated to " + slug, "ok");
+            addToast("Profile link updated to " + slug, "ok");
             setSlugEdit(false);
             router.replace(`${BACK_HREF}/${slug.trim().toLowerCase()}`);
           })}
@@ -306,8 +312,8 @@ export function PractitionerDetail({
               className="btn btn-danger"
               disabled={pending}
               onClick={() => startTransition(async () => {
-                await rejectSubmissionAction(p.slug, reason);
-                addToast(`Sent back to ${p.fullName}`, "danger");
+                const result = await rejectSubmissionAction(p.slug, reason, documentsFingerprint(documents));
+                reportDecision(result, addToast, { message: `Sent back to ${p.fullName}`, kind: "danger" });
                 setSendBackOpen(false);
                 router.refresh();
               })}
@@ -482,12 +488,6 @@ function OverviewTab({ p }: { p: Practitioner }) {
       <SheetRow label="Education"><ListBlock title="" items={p.education} empty="Not added" /></SheetRow>
 
       <SheetGroup icon={<Mail size={14} />} title="Reaching clients" />
-      <SheetRow label="Note for clients">
-        {p.noteForClients?.trim()
-          ? <div style={{ fontSize: 14, color: "var(--ml-ink-2)", lineHeight: 1.7, fontStyle: "italic", whiteSpace: "pre-line" }}>{p.noteForClients}</div>
-          : none("Not added")}
-      </SheetRow>
-
       <SheetRow label="Reach out">
         <dl className="sheet-dl">
           <dt>Location</dt>
@@ -534,6 +534,7 @@ function AccountDetailsTab({
   pending: boolean;
   onSaveSlug: () => void;
 }) {
+  const whenLabel = useWhenLabel();
   const rejected = verificationState(p) === "rejected";
   const emailState =
     p.hasLogin === false ? <Badge kind="pending">Invite not sent</Badge>
@@ -633,7 +634,7 @@ function AppointmentsTab({
                 {own.map((b) => (
                   <tr key={b.id} style={{ cursor: "default" }}>
                     <td className="tnum">{b.date}</td>
-                    <td className="tnum">{b.startTime}–{b.endTime}</td>
+                    <td className="tnum">{b.startTime}–{b.endTime} <span style={{ color: "var(--ml-ink-muted)" }}>{zoneTag(p.timezone, instantOf(b.date, b.startTime, p.timezone))}</span></td>
                     <td>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--ml-ink-muted)" }}>
                         {b.sessionType === "online" ? <Video size={14} /> : <MapPin size={14} />}
@@ -661,14 +662,15 @@ type ActivityItem = { id: string; at: string; title: string; tone: "ok" | "dange
 
 const TONE_KIND = { ok: "active", danger: "suspended", info: "draft" } as const;
 
-const whenLabel = (iso: string) => {
-  const day = new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  // Stored times are UTC, so they say so rather than imply the viewer's clock.
-  return iso.length > 10 ? `${day}, ${iso.slice(11, 16)} UTC` : day;
-};
+/** Stored times are UTC. They read in the viewer's own time zone, and say which, once the page is in their browser. */
+function useWhenLabel() {
+  const zone = useDeviceTimeZone();
+  return (iso: string) => formatStamp(iso, zone);
+}
 
 /** Everything that has happened to this account, newest first, as a plain log. */
 function ActivityTab({ p, history, documents }: { p: Practitioner; history: ReviewEvent[]; documents: PractitionerDocument[] }) {
+  const whenLabel = useWhenLabel();
   const has = (kind: ReviewEvent["kind"]) => history.some((e) => e.kind === kind);
 
   // One entry per submission: older records logged one row per uploaded file, so rows in the same minute count once.

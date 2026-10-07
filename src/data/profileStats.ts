@@ -1,13 +1,13 @@
 import { all, first, run } from "@/lib/db";
 import { randomToken, sha256Hex } from "@/lib/session";
 import type { DeviceKind } from "@/lib/trafficSource";
-import { STATS_RANGES, type StatsRange } from "@/lib/statsRanges";
+import { ALL_TIME_MAX_DAYS, STATS_RANGES, type StatsPeriod, type StatsRange } from "@/lib/statsRanges";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** The same visitor reloading or revisiting inside this window is one view, not many. */
 const REPEAT_WINDOW_MINUTES = 30;
 
-export { STATS_RANGES, type StatsRange };
+export { STATS_RANGES, type StatsPeriod, type StatsRange };
 
 const utcDay = (date: Date) => date.toISOString().slice(0, 10);
 
@@ -72,7 +72,10 @@ export interface BreakdownRow {
 }
 
 export interface ProfileStats {
-  range: StatsRange;
+  /** How many days the figures cover. For "all time" this is how far back the first view or the sign-up goes. */
+  range: number;
+  /** The figures cover everything so far, so there is no "previous period" to compare with. */
+  allTime: boolean;
   daily: DailyPoint[];
   views: number;
   /** Distinct visitors per day, added up — someone returning on another day counts again. */
@@ -116,8 +119,26 @@ async function breakdown(slug: string, column: "source" | "country" | "device", 
   );
 }
 
-/** Everything the Stats page shows, for the last `range` days (UTC, today included) and the period before it. */
-export async function getProfileStats(slug: string, range: StatsRange): Promise<ProfileStats> {
+/** Days from the first thing recorded for this practitioner (a view, or their sign-up) up to and including today. */
+async function daysSinceStart(slug: string): Promise<number> {
+  const row = await first<{ first_view: string | null; joined: string | null }>(
+    `SELECT (SELECT min(day) FROM profile_views WHERE practitioner_slug = ?1) AS first_view,
+            (SELECT date_joined FROM practitioners WHERE slug = ?1) AS joined`,
+    slug,
+  );
+  const earliest = [row?.first_view, row?.joined?.slice(0, 10)].filter((d): d is string => !!d).sort()[0];
+  const days = earliest ? Math.floor((Date.now() - Date.parse(`${earliest}T00:00:00Z`)) / DAY_MS) + 1 : 0;
+  // At least a week, so a new profile still has a line to draw.
+  return Math.min(ALL_TIME_MAX_DAYS, Math.max(7, days));
+}
+
+/**
+ * Everything the Stats page shows, for the last `period` days (UTC, today included) and the period before it, or for
+ * everything so far with `"all"`, which has nothing before it to compare with.
+ */
+export async function getProfileStats(slug: string, period: StatsPeriod): Promise<ProfileStats> {
+  const allTime = period === "all";
+  const range = allTime ? await daysSinceStart(slug) : period;
   const today = new Date();
   const to = utcDay(today);
   const from = utcDay(new Date(today.getTime() - (range - 1) * DAY_MS));
@@ -133,7 +154,7 @@ export async function getProfileStats(slug: string, range: StatsRange): Promise<
       to,
     ),
     periodTotals(slug, from, to),
-    periodTotals(slug, previousFrom, previousTo),
+    allTime ? Promise.resolve<PeriodTotals>({ views: 0, visitors: 0 }) : periodTotals(slug, previousFrom, previousTo),
     breakdown(slug, "source", from, to, 8),
     breakdown(slug, "country", from, to, 6),
     breakdown(slug, "device", from, to, 3),
@@ -156,6 +177,7 @@ export async function getProfileStats(slug: string, range: StatsRange): Promise<
 
   return {
     range,
+    allTime,
     daily,
     views: current.views,
     visitors: current.visitors,

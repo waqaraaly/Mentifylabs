@@ -4,13 +4,17 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { ArrowRight, Lock, Mail, User } from "lucide-react";
 import { AuthError, AuthField, AuthInput, authButtonClass } from "@/components/auth/AuthShell";
+import { useDeviceTimeZone } from "@/lib/useDeviceTimeZone";
 import { signUpAction, type SignUpState } from "./actions";
 
-export function SignUpForm() {
+export function SignUpForm({ startingName = "" }: { startingName?: string }) {
   const [state, formAction, pending] = useActionState<SignUpState, FormData>(signUpAction, {});
+  // Pre-fills the practitioner's time zone from this device. They can change it in Settings; the server checks it is a real zone.
+  const timezone = useDeviceTimeZone() ?? "";
 
   return (
     <form action={formAction} className="space-y-5">
+      <input type="hidden" name="timezone" value={timezone} />
       <AuthField id="fullName" label="Full name">
         <AuthInput
           icon={User}
@@ -19,7 +23,7 @@ export function SignUpForm() {
           placeholder="Full name"
           autoComplete="name"
           required
-          defaultValue={state.values?.fullName}
+          defaultValue={state.values?.fullName ?? startingName}
         />
       </AuthField>
 

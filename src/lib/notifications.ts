@@ -42,10 +42,10 @@ async function deliver(
   to: Recipient | null,
   subject: string,
   content: (origin: string) => EmailContent,
-): Promise<void> {
-  if (!to?.email) return;
+): Promise<boolean> {
+  if (!to?.email) return false;
   try {
-    await sendBrandedEmail({
+    return await sendBrandedEmail({
       to: to.email,
       subject,
       greeting: `Hi ${to.name},`,
@@ -53,6 +53,7 @@ async function deliver(
     });
   } catch (error) {
     console.error(`[notify] Could not send "${subject}" to ${to.email}:`, error);
+    return false;
   }
 }
 
@@ -79,8 +80,9 @@ export async function notifyAccountReactivated(slug: string, live = false): Prom
 }
 
 /** Credentials approved: they are verified and can now publish, but nothing goes live until they do. */
-export async function notifyVerificationApproved(slug: string): Promise<void> {
-  await deliver(await practitionerRecipient(slug), "Your credentials are verified", (origin) => ({
+/** Returns whether the email was handed to the mail provider, so the admin can be told when it wasn't. */
+export async function notifyVerificationApproved(slug: string): Promise<boolean> {
+  return deliver(await practitionerRecipient(slug), "Your credentials are verified", (origin) => ({
     eyebrow: "Verification",
     heading: "You're verified",
     body: [
@@ -91,11 +93,11 @@ export async function notifyVerificationApproved(slug: string): Promise<void> {
   }));
 }
 
-export async function notifyVerificationRejected(slug: string, reason: string): Promise<void> {
-  await deliver(await practitionerRecipient(slug), "Your verification needs another look", (origin) => ({
+export async function notifyVerificationRejected(slug: string, reason: string): Promise<boolean> {
+  return deliver(await practitionerRecipient(slug), "Your verification needs another look", (origin) => ({
     eyebrow: "Verification",
     heading: "We couldn't verify your credentials yet",
-    body: ["The document you submitted wasn't approved."],
+    body: ["We couldn't verify the document you submitted yet."],
     note: { label: "Reason from our team", text: reason },
     button: { label: "Submit again", url: `${origin}/dashboard/verification` },
     footnote: "Upload a new document and we'll take another look.",

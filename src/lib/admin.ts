@@ -31,7 +31,6 @@ export function computeProfileGaps(p: Practitioner): string[] {
   if (!p.photoUrl) gaps.push("Profile photo");
   if (!p.bio || p.bio.trim().length < 120) gaps.push("Bio (120+ characters)");
   if (!hasFeeRange(p.feeRange)) gaps.push("Fee range");
-  if (p.certifications.length === 0) gaps.push("Certifications");
   if (p.specializations.length === 0) gaps.push("Specializations");
   return gaps;
 }

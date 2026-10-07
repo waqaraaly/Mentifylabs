@@ -32,7 +32,7 @@ export function AreasOfExpertise({ practitioner }: { practitioner: Practitioner 
             className={`group relative overflow-hidden rounded-[10px] border border-transparent px-4 py-[9.6px] sm:px-[19.2px] sm:py-[11.2px] transition-all duration-300 hover:-translate-y-0.5 hover:border-(--pt-tile-border) hover:shadow-[0_14px_26px_-14px_rgba(32,34,31,0.22)] ${TILE_CLASSES[i % TILE_CLASSES.length]}`}
           >
             <p
-              className="relative text-[14.4px] leading-snug text-(--pt-accent-foreground) [font-weight:var(--pt-tile-text-weight)] sm:text-base"
+              className="relative text-[14.4px] leading-snug [overflow-wrap:anywhere] text-(--pt-accent-foreground) [font-weight:var(--pt-tile-text-weight)] sm:text-base"
             >
               {specialization}
             </p>

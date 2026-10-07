@@ -1,7 +1,8 @@
-import { Globe, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Globe, Languages, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Practitioner } from "@/types/practitioner";
 import { BRAND_BACKGROUND, PLATFORM_ICON_PATH } from "@/components/practitioner/ContactLinks";
+import { languagesOf } from "@/lib/profileDisplay";
 import { safeHttpUrl } from "@/lib/url";
 
 function Row({
@@ -22,7 +23,7 @@ function Row({
       </span>
       <div className="min-w-0">
         <p className="text-[11px] tracking-[0.08em] text-(--pt-muted-light) uppercase">{label}</p>
-        <p className="mt-0.5 text-[15px] leading-snug font-medium text-(--pt-dark-card-foreground)">{value}</p>
+        <p className="mt-0.5 text-[15px] leading-snug font-medium [overflow-wrap:anywhere] text-(--pt-dark-card-foreground)">{value}</p>
       </div>
     </>
   );
@@ -47,10 +48,9 @@ function contactHref(value: string): string | undefined {
   return undefined;
 }
 
-// A self-contained contact card — email/phone/mode/location plus
-// real brand-colored social links — matching the reference design's
-// "Reach out" panel exactly, and replacing the separate Contact/Session
-// Format/Languages sections it doesn't have. Filled-dark vs.
+// A self-contained contact card: email/phone, location and languages, then
+// real brand-colored social links. It has no heading of its own, and it is left
+// out entirely when there is nothing to show. Filled-dark vs.
 // transparent-outlined is entirely theme-driven (see the --pt-dark-card*
 // and --pt-icon-* tokens in globals.css), not branched here.
 export function ReachOutCard({ practitioner }: { practitioner: Practitioner }) {
@@ -60,12 +60,14 @@ export function ReachOutCard({ practitioner }: { practitioner: Practitioner }) {
   // Contact details the practitioner marked Private must never reach the public page.
   const publicContacts = practitioner.contactMethods.filter((c) => c.isPublic && c.value);
   const hasLinks = practitioner.socialLinks.length > 0 || practitioner.websiteUrl;
+  const languages = languagesOf(practitioner);
+  const hasRows = publicContacts.length > 0 || Boolean(location) || languages.length > 0;
+  if (!hasRows && !hasLinks) return null;
 
   return (
     <div className="rounded-[28px] border-[1.5px] border-(--pt-dark-card-border) bg-(--pt-dark-card) p-7 shadow-[0_20px_45px_-20px_var(--pt-dark-card-shadow)] sm:p-9">
-      <h3 className="text-[19px] font-semibold text-(--pt-dark-card-foreground)">Reach out</h3>
-
-      <div>
+      {/* Every row draws a line above itself; the first has nothing above it, so its line is dropped. */}
+      <div className="[&>*:first-child]:border-t-0 [&>*:first-child]:pt-0">
         {publicContacts.map((c) => (
           <Row
             key={c.label}
@@ -76,10 +78,13 @@ export function ReachOutCard({ practitioner }: { practitioner: Practitioner }) {
           />
         ))}
         {location && <Row icon={MapPin} label="Location" value={location} />}
+        {languages.length > 0 && <Row icon={Languages} label="Languages" value={languages.join(", ")} />}
       </div>
 
       {hasLinks && (
-        <div className="mt-1.5 flex flex-wrap justify-center gap-2.5 border-t border-(--pt-dark-divider) pt-6">
+        <div
+          className={`flex flex-wrap justify-center gap-2.5 ${hasRows ? "mt-1.5 border-t border-(--pt-dark-divider) pt-6" : ""}`}
+        >
           {practitioner.socialLinks.flatMap((link) => {
             const href = safeHttpUrl(link.url);
             if (!href) return [];

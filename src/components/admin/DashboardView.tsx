@@ -1,126 +1,121 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Video, MapPin, ArrowRight, Check, Eye, Users, UserCheck, UserX, Clock, CalendarDays } from "lucide-react";
+import type { ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
-import type { Appointment } from "@/types/appointment";
-import { Avatar } from "./ui/Avatar";
-import { Badge } from "./ui/Badge";
-import { KPI } from "./ui/Stat";
-import { useToast } from "./ui/ToastProvider";
-import { approveSubmissionAction } from "@/app/admin/actions";
-import { isAwaitingApproval } from "@/lib/verification";
+import type { Appointment, AppointmentStatus } from "@/types/appointment";
+import { KPIStrip } from "./ui/Stat";
+import { isLive } from "@/lib/practitionerState";
+
+/** How many people the review card lists before pointing to the full queue. */
+const QUEUE_PREVIEW = 6;
+
+const APPOINTMENT_ROWS: { status: AppointmentStatus; label: string }[] = [
+  { status: "pending", label: "Pending" },
+  { status: "confirmed", label: "Confirmed" },
+  { status: "completed", label: "Completed" },
+  { status: "cancelled", label: "Cancelled" },
+];
+
+/** One card header: what it is, an optional line of context, and where the full view lives. */
+function CardHead({ title, note, href, action }: { title: string; note?: string; href: string; action: string }) {
+  return (
+    <div className="card-head">
+      <div>
+        <div className="h2">{title}</div>
+        {note && <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>{note}</div>}
+      </div>
+      <Link href={href} className="btn btn-sm">{action}<ArrowRight size={13} /></Link>
+    </div>
+  );
+}
+
+/** A label with its count, the one row shape used by both summary cards. */
+function CountRow({ label, count, muted }: { label: ReactNode; count: number; muted?: boolean }) {
+  return (
+    <div className="list-row" style={{ padding: "11px 24px" }}>
+      <div style={{ flex: 1, fontSize: 14.85, color: muted ? "var(--ml-ink-subtle)" : "var(--ml-ink-2)" }}>{label}</div>
+      <div className="tnum" style={{ fontSize: 14.85, fontWeight: 600, color: muted ? "var(--ml-ink-subtle)" : "var(--ml-ink)" }}>{count}</div>
+    </div>
+  );
+}
 
 export function DashboardView({
   practitioners,
   appointments,
-  today,
+  queue,
 }: {
   practitioners: Practitioner[];
   appointments: Appointment[];
-  today: string;
+  /** Practitioners waiting for a decision, longest wait first. */
+  queue: Practitioner[];
 }) {
-  const [, startTransition] = useTransition();
-  const addToast = useToast();
-  const router = useRouter();
+  // Everyone is in exactly one of these, so the three add up to the total. "Live" is the same test the public site uses.
+  const suspended = practitioners.filter((p) => p.status === "suspended").length;
+  const live = practitioners.filter(isLive).length;
+  const notLive = practitioners.length - live - suspended;
 
-  const totalP = practitioners.length;
-  const activeP = practitioners.filter((p) => p.status === "active").length;
-  const pendingP = practitioners.filter(isAwaitingApproval);
-  const suspendedP = practitioners.filter((p) => p.status === "suspended").length;
+  const byStatus = new Map<AppointmentStatus, number>();
+  for (const a of appointments) byStatus.set(a.status, (byStatus.get(a.status) ?? 0) + 1);
 
-  const todayB = appointments.filter((a) => a.date === today);
-  const pendingReq = appointments.filter((a) => a.status === "pending").length;
-  const byPractitioner = new Map(practitioners.map((p) => [p.slug, p]));
-
-  const approve = (slug: string, name: string) => startTransition(async () => {
-    await approveSubmissionAction(slug);
-    addToast(`${name} approved`, "ok");
-    router.refresh();
-  });
+  const shown = queue.slice(0, QUEUE_PREVIEW);
 
   return (
     <div style={{ padding: "0 var(--ml-gutter) 40px" }}>
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16 }}>
-        <KPI label="Total registered" value={totalP} icon={<Users size={17} />} />
-        <KPI label="Active" value={activeP} icon={<UserCheck size={17} />} />
-        <KPI label="Awaiting review" value={pendingP.length} icon={<Clock size={17} />} />
-        <KPI label="Suspended" value={suspendedP} icon={<UserX size={17} />} />
-        <KPI label="Total appointments" value={appointments.length} icon={<CalendarDays size={17} />} />
-      </div>
+      <KPIStrip
+        items={[
+          { label: "Practitioners", value: practitioners.length },
+          { label: "Live profiles", value: live },
+          { label: "Awaiting review", value: queue.length },
+          { label: "Appointments", value: appointments.length },
+        ]}
+      />
 
-      <div className="dash-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.7fr) minmax(0, 1fr)", gap: 16, marginTop: 16, alignItems: "start" }}>
+      <div className="dash-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)", gap: 16, marginTop: 16, alignItems: "start" }}>
         <div className="card" style={{ overflow: "hidden" }}>
-          <div className="card-head">
-            <div>
-              <div className="h2">Today&apos;s schedule</div>
-              <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>{todayB.length} {todayB.length === 1 ? "appointment" : "appointments"} · {pendingReq} need attention</div>
-            </div>
-            <Link href="/admin/appointments" className="btn btn-sm">View all<ArrowRight size={13} /></Link>
-          </div>
+          <CardHead title="Credential review" href="/admin/pending" action="Open queue" />
           <div style={{ borderTop: "1px solid var(--ml-border-soft)" }}>
-            {todayB.length === 0 && (
-              <div style={{ padding: "28px 20px", fontSize: 13, color: "var(--ml-ink-subtle)" }}>No appointments today.</div>
+            {shown.length === 0 && (
+              <div style={{ padding: "28px 24px", fontSize: 13, color: "var(--ml-ink-subtle)" }}>
+                All caught up. New submissions appear here as soon as a practitioner sends in their credentials.
+              </div>
             )}
-            {todayB.slice(0, 8).map((b) => {
-              const p = byPractitioner.get(b.practitionerSlug);
-              if (!p) return null;
-              return (
-                <div key={b.id} className="list-row">
-                  <div className="tnum" style={{ width: 48, fontSize: 13, fontWeight: 600, color: "var(--ml-ink-2)" }}>{b.startTime}</div>
-                  <Avatar name={p.fullName} size="md" />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="truncate" style={{ fontWeight: 600, fontSize: 13.5 }}>{p.fullName}</div>
-                    <div className="truncate" style={{ fontSize: 12, color: "var(--ml-ink-subtle)", display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
-                      {b.sessionType === "online" ? <Video size={12} /> : <MapPin size={12} />}
-                      {b.sessionType === "online" ? "Online" : "On-Site"} · <span className="mono">{b.clientId}</span>
-                    </div>
-                  </div>
-                  <Badge kind={b.status} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="card" style={{ overflow: "hidden" }}>
-          <div className="card-head">
-            <div>
-              <div className="h2">Needs attention</div>
-              <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>Waiting on your review</div>
-            </div>
-            <Link href="/admin/pending" className="btn btn-sm">Open queue<ArrowRight size={13} /></Link>
-          </div>
-          <div style={{ borderTop: "1px solid var(--ml-border-soft)" }}>
-            {pendingP.length === 0 ? (
-              <div style={{ padding: "28px 20px", fontSize: 13, color: "var(--ml-ink-subtle)" }}>Nothing pending right now.</div>
-            ) : (
-              pendingP.map((p) => (
-                <div key={p.slug} className="list-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 12, padding: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <Avatar name={p.fullName} size="md" />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div className="truncate" style={{ fontWeight: 600, fontSize: 13.5 }}>{p.fullName}</div>
-                      <div className="truncate" style={{ fontSize: 12, color: "var(--ml-ink-muted)", marginTop: 2 }}>
-                        {p.professionalTitle} · {p.creationMethod === "self" ? "Self sign-up" : "Created by admin"} · {p.dateJoined}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button className="btn btn-sm btn-primary" onClick={() => approve(p.slug, p.fullName)}>
-                      <Check size={13} />Approve
-                    </button>
-                    <Link className="btn btn-sm" href={`/admin/pending/${p.slug}`}><Eye size={13} />Review</Link>
-                  </div>
-                </div>
-              ))
+            {shown.map((p) => (
+              <div key={p.slug} className="list-row">
+                <div className="truncate" style={{ minWidth: 0, flex: 1, fontWeight: 500, fontSize: 14.85, color: "var(--ml-ink)" }}>{p.fullName}</div>
+                <Link className="btn btn-sm btn-primary" href={`/admin/pending/${p.slug}`}>Review</Link>
+              </div>
+            ))}
+            {queue.length > shown.length && (
+              <Link href="/admin/pending" className="list-row" style={{ justifyContent: "space-between", fontSize: 13, color: "var(--ml-accent-2)", fontWeight: 500 }}>
+                <span>{queue.length - shown.length} more in the queue</span>
+                <ArrowRight size={14} />
+              </Link>
             )}
           </div>
         </div>
-      </div>
 
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="card" style={{ overflow: "hidden" }}>
+            <CardHead title="Practitioners" href="/admin/practitioners" action="View all" />
+            <div style={{ borderTop: "1px solid var(--ml-border-soft)" }}>
+              <CountRow label="Live" count={live} />
+              <CountRow label="Not live" count={notLive} />
+              <CountRow label="Suspended" count={suspended} />
+            </div>
+          </div>
+
+          <div className="card" style={{ overflow: "hidden" }}>
+            <CardHead title="Appointments" note={`${appointments.length} in total`} href="/admin/appointments" action="View all" />
+            <div style={{ borderTop: "1px solid var(--ml-border-soft)" }}>
+              {APPOINTMENT_ROWS.map(({ status, label }) => (
+                <CountRow key={status} label={label} count={byStatus.get(status) ?? 0} muted={!byStatus.get(status)} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

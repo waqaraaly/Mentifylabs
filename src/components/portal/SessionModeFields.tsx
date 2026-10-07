@@ -38,10 +38,11 @@ export function SessionModeFields({
         </select>
       </SettingsRow>
       {hasOnsite && (
-        <SettingsRow label="Location" htmlFor="location" description="Where you see clients in person.">
+        <SettingsRow label="Location" htmlFor="location">
           <input
             id="location"
             name="location"
+            placeholder="Where you see clients in person"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             className={settingsInputClass}

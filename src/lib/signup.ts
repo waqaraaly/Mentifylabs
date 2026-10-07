@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { first, run } from "@/lib/db";
 import { MIN_PASSWORD_LENGTH, hashPassword } from "@/lib/password";
 import { MAX_PASSWORD_LENGTH } from "@/lib/session";
+import { zoneOrDefault } from "@/lib/time";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { CONTACT_DETAIL_LABELS, freePlaceholderSlug } from "@/data/practitioners";
 import { sendVerificationEmail } from "@/lib/emailVerification";
@@ -13,6 +14,8 @@ export interface SignUpInput {
   fullName: string;
   email: string;
   password: string;
+  /** The device's time zone, if it reported one. A missing or invalid value falls back to the platform default. */
+  timezone?: string;
 }
 
 /**
@@ -59,8 +62,8 @@ export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true
   const practitioner = await first<{ id: string }>(
     `INSERT INTO practitioners
        (slug, full_name, professional_title, email, session_type, contact_methods,
-        status, profile_status, creation_method, fee_currency)
-     VALUES (?, ?, ?, ?, 'both', ?, 'active', 'draft', 'self', ?)
+        status, profile_status, creation_method, fee_currency, timezone)
+     VALUES (?, ?, ?, ?, 'both', ?, 'active', 'draft', 'self', ?, ?)
      RETURNING id`,
     slug,
     fullName,
@@ -68,6 +71,7 @@ export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true
     email,
     JSON.stringify(contactMethods),
     DEFAULT_CURRENCY,
+    zoneOrDefault(input.timezone),
   );
 
   let user: { id: string } | null;

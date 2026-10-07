@@ -28,8 +28,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // Verification documents can be up to 10 MB (checked again in the upload action); the rest is multipart overhead.
-      bodySizeLimit: "11mb",
+      // A verification submission can carry several documents, up to 30 MB in total (checked again in the upload code);
+      // the rest is multipart overhead.
+      bodySizeLimit: "32mb",
     },
   },
 };

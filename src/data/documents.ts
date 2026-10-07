@@ -1,5 +1,5 @@
 import type { PractitionerDocument } from "@/types/document";
-import { all, first, run } from "@/lib/db";
+import { all, batch, first, prepare } from "@/lib/db";
 
 /** Verification uploads. The metadata lives here; the file itself is in R2 under storage_key. */
 interface DocumentRow {
@@ -32,6 +32,15 @@ export async function getDocumentsByPractitioner(slug: string): Promise<Practiti
   return rows.map(toDocument);
 }
 
+/** How many of this practitioner's documents have a file behind them. Records with no file are not evidence. */
+export async function countStoredDocuments(slug: string): Promise<number> {
+  const row = await first<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM practitioner_documents WHERE practitioner_slug = ? AND storage_key IS NOT NULL",
+    slug,
+  );
+  return row?.n ?? 0;
+}
+
 /** The document and where its file is stored — for the download route, which does its own access check. */
 export async function getDocumentFile(
   id: string,
@@ -46,37 +55,33 @@ export async function getDocumentFile(
   };
 }
 
-export async function addDocument(input: {
-  practitionerSlug: string;
-  name: string;
-  category: PractitionerDocument["category"];
-  storageKey: string;
-  contentType: string;
-  sizeBytes: number;
-}): Promise<void> {
-  await run(
-    `INSERT INTO practitioner_documents (practitioner_slug, name, category, storage_key, content_type, size_bytes)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    input.practitionerSlug,
-    input.name,
-    input.category,
-    input.storageKey,
-    input.contentType,
-    input.sizeBytes,
+/** Saves several documents together: all of them, or none if any one fails. */
+export async function addDocuments(
+  inputs: {
+    practitionerSlug: string;
+    name: string;
+    category: PractitionerDocument["category"];
+    storageKey: string;
+    contentType: string;
+    sizeBytes: number;
+  }[],
+): Promise<void> {
+  await batch(
+    await Promise.all(
+      inputs.map((input) =>
+        prepare(
+          `INSERT INTO practitioner_documents (practitioner_slug, name, category, storage_key, content_type, size_bytes)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          input.practitionerSlug,
+          input.name,
+          input.category,
+          input.storageKey,
+          input.contentType,
+          input.sizeBytes,
+        ),
+      ),
+    ),
   );
-}
-
-/**
- * Deletes one of this practitioner's documents. Returns null if it isn't theirs, otherwise the R2 key
- * of its file (null for demo records without one) so the caller can remove the file too.
- */
-export async function deleteDocument(slug: string, id: string): Promise<{ storageKey: string | null } | null> {
-  const row = await first<{ storage_key: string | null }>(
-    "DELETE FROM practitioner_documents WHERE id = ? AND practitioner_slug = ? RETURNING storage_key",
-    id,
-    slug,
-  );
-  return row ? { storageKey: row.storage_key } : null;
 }
 
 // ---- Super Admin ----

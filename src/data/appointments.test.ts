@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestPractitioner, deleteTestPractitioner } from "@/test/helpers";
 import { addSlot, getSlotById } from "./slots";
+import { STATUS_MOVES } from "@/lib/appointmentRules";
 import {
   createAppointmentFromSlot,
   createManualAppointment,
@@ -115,7 +116,7 @@ describe("setAppointmentStatus", () => {
     const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
     const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
 
-    await setAppointmentStatus(appt!.id, "cancelled");
+    await setAppointmentStatus(appt!.id, "cancelled", STATUS_MOVES.cancelled);
 
     expect((await getSlotById(slot.id))?.status).toBe("open");
   });
@@ -123,7 +124,7 @@ describe("setAppointmentStatus", () => {
   it("a cancelled appointment's old slot can be booked again", async () => {
     const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
     const first = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
-    await setAppointmentStatus(first!.id, "cancelled");
+    await setAppointmentStatus(first!.id, "cancelled", STATUS_MOVES.cancelled);
 
     const second = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Sara", clientContact: "sara@example.com" });
 
@@ -134,7 +135,7 @@ describe("setAppointmentStatus", () => {
     const slot = await addSlot({ practitionerSlug: slug, date: "2030-10-01", startTime: "09:00", endTime: "10:00", sessionType: "online" });
     const appt = await createAppointmentFromSlot({ practitionerSlug: slug, slotId: slot.id, clientName: "Ali", clientContact: "ali@example.com" });
 
-    await setAppointmentStatus(appt!.id, "confirmed");
+    await setAppointmentStatus(appt!.id, "confirmed", STATUS_MOVES.confirmed);
 
     expect((await getSlotById(slot.id))?.status).toBe("booked");
   });

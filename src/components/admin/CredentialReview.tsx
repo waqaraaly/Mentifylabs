@@ -13,6 +13,8 @@ import { useToast } from "./ui/ToastProvider";
 import { approveSubmissionAction, rejectSubmissionAction } from "@/app/admin/actions";
 import { daysSinceSubmitted, isAwaitingApproval } from "@/lib/verification";
 import { isSentBack } from "@/lib/reviewQueue";
+import { documentsFingerprint } from "@/lib/documentRules";
+import { reportDecision } from "@/lib/decisionResult";
 
 const BACK_HREF = "/admin/pending";
 
@@ -56,6 +58,8 @@ export function CredentialReview({
   const router = useRouter();
 
   const awaiting = isAwaitingApproval(p);
+  // Nothing to approve on: the server refuses too, this just says why before the click.
+  const noFile = !documents.some((d) => d.hasFile);
   const recorded = sendBacks.map((r, i) => ({ ...r, round: i + 1 }));
   // Older accounts may have no recorded history; the current reason is still shown.
   const history = (recorded.length === 0 && isSentBack(p)
@@ -68,18 +72,19 @@ export function CredentialReview({
     body: `${p.fullName}'s credentials will be marked verified. They'll be emailed, and can then publish their own profile.`,
     confirmLabel: "Approve",
     action: () => startTransition(async () => {
-      await approveSubmissionAction(p.slug);
-      addToast(`${p.fullName} approved`, "ok");
+      const result = await approveSubmissionAction(p.slug, documentsFingerprint(documents));
       setConfirm(null);
-      router.push(BACK_HREF);
+      // If it didn't go through, stay here on a refreshed page so the admin sees what is current.
+      if (reportDecision(result, addToast, { message: `${p.fullName} approved` })) router.push(BACK_HREF);
+      else router.refresh();
     }),
   });
 
   const sendBack = () => startTransition(async () => {
-    await rejectSubmissionAction(p.slug, note);
-    addToast(`Sent back to ${p.fullName}`, "danger");
+    const result = await rejectSubmissionAction(p.slug, note, documentsFingerprint(documents));
     setSendBackOpen(false);
-    router.push(BACK_HREF);
+    if (reportDecision(result, addToast, { message: `Sent back to ${p.fullName}`, kind: "danger" })) router.push(BACK_HREF);
+    else router.refresh();
   });
 
   return (
@@ -125,8 +130,8 @@ export function CredentialReview({
 
         <SheetGroup icon={<ShieldCheck size={14} />} title="Decision" />
         {awaiting ? (
-          <ActionRow title="Review credentials" text="Approving verifies them and lets them publish their profile. Sending back lets them fix the problem and submit again, with your reason if you give one.">
-            <button className="btn btn-primary" disabled={pending} onClick={approve}><Check size={14} />Approve</button>
+          <ActionRow title="Review credentials" text={noFile ? "There is no document file to review, so you can't approve. Send it back and ask them to upload one." : "Approving verifies them and lets them publish their profile. Sending back lets them fix the problem and submit again, with your reason if you give one."}>
+            <button className="btn btn-primary" disabled={pending || noFile} title={noFile ? "No document file to review" : undefined} onClick={approve}><Check size={14} />Approve</button>
             <button className="btn btn-danger" disabled={pending} onClick={() => { setNote(""); setSendBackOpen(true); }}>Send back</button>
           </ActionRow>
         ) : isSentBack(p) ? (

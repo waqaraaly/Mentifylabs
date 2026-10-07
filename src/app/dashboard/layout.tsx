@@ -4,11 +4,13 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { ArrowUpRight, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/login/actions";
-import { getCurrentPractitioner } from "@/data/practitioners";
+import { getCurrentPractitioner, isPubliclyVisible } from "@/data/practitioners";
 import { getAppointmentsByPractitioner } from "@/data/appointments";
 import { DashboardNav } from "@/components/portal/DashboardNav";
 import { PortalAside } from "@/components/portal/PortalAside";
 import { VerificationBanner } from "@/components/portal/VerificationBanner";
+import { PortalTimeZoneProvider } from "@/components/portal/PortalTimeZone";
+import { TimeZoneNotice } from "@/components/portal/TimeZoneNotice";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   // Live data from D1 on every request, never a copy prerendered at build time.
@@ -47,7 +49,8 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-sidebar-strong">{practitioner.fullName}</p>
-              {practitioner.slugChosenAt ? (
+              {/* A link to the page clients see, once there is one. Until the profile is live there is nothing to link to. */}
+              {isPubliclyVisible(practitioner) && (
                 <Link
                   href={`/${practitioner.slug}`}
                   target="_blank"
@@ -55,10 +58,6 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
                 >
                   Public profile
                   <ArrowUpRight className="size-3" aria-hidden />
-                </Link>
-              ) : (
-                <Link href="/dashboard/profile" className="text-xs text-sidebar-fg transition hover:text-sidebar-strong">
-                  Choose your profile link
                 </Link>
               )}
             </div>
@@ -77,8 +76,11 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       </aside>
 
       <main className="min-w-0 flex-1 px-[clamp(15px,2.5vw,37.5px)] pt-6 pb-[17.6px] lg:pt-8">
-        <VerificationBanner practitioner={practitioner} />
-        {children}
+        <PortalTimeZoneProvider zone={practitioner.timezone}>
+          <TimeZoneNotice saved={practitioner.timezone} />
+          <VerificationBanner practitioner={practitioner} />
+          {children}
+        </PortalTimeZoneProvider>
       </main>
     </div>
   );

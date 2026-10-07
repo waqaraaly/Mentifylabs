@@ -24,7 +24,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const addToast = useCallback((msg: string, kind: ToastKind = "ok") => {
     const id = `t${counter.current++}`;
     setToasts((ts) => [...ts, { id, msg, kind }]);
-    setTimeout(() => setToasts((ts) => ts.filter((t) => t.id !== id)), 2800);
+    // Long messages (a decision that failed, an email that did not go out) stay up long enough to read.
+    setTimeout(() => setToasts((ts) => ts.filter((t) => t.id !== id)), Math.max(2800, msg.length * 70));
   }, []);
 
   return (

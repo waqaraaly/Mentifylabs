@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { initialsOf } from "@/lib/admin";
 import {
   BarChart3,
   Calendar,
@@ -137,9 +136,6 @@ export function Sidebar({ counts, admin }: { counts: SidebarCounts; admin: { nam
 
           <div className="sidebar-footer">
             <div className="sidebar-profile">
-              <div className="avatar avatar-md" style={{ background: "var(--ml-sidebar-active)", color: "var(--ml-sidebar-active-fg)", boxShadow: "0 0 0 1px var(--ml-sidebar-border)", border: "none", fontWeight: 600 }}>
-                {initialsOf(admin.name)}
-              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="sidebar-profile-name truncate">{admin.name}</div>
                 <div className="sidebar-profile-email truncate">Super Admin</div>

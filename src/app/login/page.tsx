@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getSessionUser, homeFor } from "@/lib/session";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { SignedInRedirect } from "@/components/auth/SignedInRedirect";
+import { signInDestination } from "@/lib/signInDestination";
 import { LoginForm } from "./LoginForm";
 
 export const metadata = { title: "Sign in", robots: { index: false } };
@@ -11,10 +12,10 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ next?: string | string[] }>;
 }) {
-  const user = await getSessionUser();
-  if (user) redirect(homeFor(user.role));
-
   const { next } = await searchParams;
+  // Signed in (including the moment right after the form succeeds): show the loader, then go to their portal.
+  const user = await getSessionUser();
+  if (user) return <SignedInRedirect to={signInDestination(next, homeFor(user.role))} />;
 
   return (
     <AuthShell

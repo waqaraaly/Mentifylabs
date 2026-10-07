@@ -1,24 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { BarChart3 } from "lucide-react";
 import type { PersonRow, Report } from "@/lib/reportMetrics";
 import { REPORT_RANGES } from "@/lib/reportRanges";
 import { GrowthChart } from "./ui/charts";
+import { FilterSelect } from "./ui/Inputs";
 import { EmptyState } from "./ui/Overlays";
 import { TopBar } from "./TopBar";
 
-const RANGE_LABEL: Record<number, string> = { 30: "30 days", 90: "90 days", 365: "12 months" };
+const RANGE_LABEL: Record<string, string> = { 30: "30 days", 90: "90 days", 180: "6 months", 365: "12 months", all: "All time" };
 
 const days = (d: number | null) => (d === null ? "—" : d < 1 ? "under a day" : `${d.toFixed(1)} days`);
 
 /** What an owner wants to know: are people joining and becoming useful, are reviews keeping up, and are clients arriving. */
 export function ReportsView({ report }: { report: Report }) {
-  const router = useRouter();
-  const open = (slug: string) => router.push(`/admin/practitioners/${slug}`);
-  const period = RANGE_LABEL[report.range] ?? `${report.range} days`;
-  const { funnel, review, conversion, concentration } = report;
+  // How the period reads inside a sentence: "in the last 30 days", or "so far" for all time.
+  const inPeriod = report.allTime ? "so far" : `in the last ${RANGE_LABEL[report.range] ?? `${report.range} days`}`;
+  const { funnel, review, conversion } = report;
+  const isActive = (r: (typeof REPORT_RANGES)[number]) => (r === "all" ? report.allTime : !report.allTime && r === report.range);
   const start = funnel.cohort;
 
   return (
@@ -30,7 +31,7 @@ export function ReportsView({ report }: { report: Report }) {
         actions={
           <div className="tabs">
             {REPORT_RANGES.map((r) => (
-              <Link key={r} href={`/admin/reports?range=${r}`} className={"tab" + (r === report.range ? " active" : "")} aria-current={r === report.range ? "true" : undefined}>
+              <Link key={r} href={`/admin/reports?range=${r}`} className={"tab" + (isActive(r) ? " active" : "")} aria-current={isActive(r) ? "true" : undefined}>
                 {RANGE_LABEL[r]}
               </Link>
             ))}
@@ -54,7 +55,7 @@ export function ReportsView({ report }: { report: Report }) {
           <div>
             <div className="tnum">{review.averageDaysToApprove === null ? "—" : review.averageDaysToApprove < 1 ? "<1" : review.averageDaysToApprove.toFixed(1)}</div>
             <span>Days to approve</span>
-            <small>{review.approved} approved in {period}</small>
+            <small>{review.approved} approved {inPeriod}</small>
           </div>
           <div>
             <div className="tnum">{conversion.rate === null ? "—" : `${conversion.rate < 10 ? conversion.rate.toFixed(1) : Math.round(conversion.rate)}%`}</div>
@@ -67,135 +68,115 @@ export function ReportsView({ report }: { report: Report }) {
         <div className="card" style={{ padding: 22 }}>
           <div className="h2">Onboarding funnel</div>
           <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>
-            {start === 0 ? `Nobody signed up in the last ${period}.` : `The ${start} ${start === 1 ? "person" : "people"} who signed up in the last ${period}, and how far they got.`}
+            {start === 0 ? `Nobody has signed up ${inPeriod}.` : `The ${start} ${start === 1 ? "person" : "people"} who signed up ${inPeriod}, and how far they got.`}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 20 }}>
-            {funnel.stages.map((stage, i) => {
-              const previous = i === 0 ? stage.count : funnel.stages[i - 1].count;
-              const lost = previous - stage.count;
-              return (
-                <div key={stage.key} style={{ display: "grid", gridTemplateColumns: "200px minmax(0, 1fr) 150px", gap: 18, alignItems: "center" }}>
-                  <div style={{ fontSize: 14, color: "var(--ml-ink)" }}>{stage.label}</div>
-                  <div style={{ height: 14, background: "var(--ml-surface-3)", borderRadius: 999, overflow: "hidden" }}>
-                    <div style={{ width: `${start ? (stage.count / start) * 100 : 0}%`, height: "100%", background: "var(--ml-accent)", borderRadius: 999, minWidth: stage.count ? 6 : 0 }} />
-                  </div>
-                  <div className="tnum" style={{ fontSize: 13.5, textAlign: "right" }}>
-                    <strong>{stage.count}</strong>
-                    <span style={{ color: "var(--ml-ink-muted)" }}> · {start ? Math.round((stage.count / start) * 100) : 0}%</span>
-                    {lost > 0 && <span style={{ color: "var(--ml-danger)" }}> · −{lost}</span>}
-                  </div>
+            {funnel.stages.map((stage) => (
+              <div key={stage.key} style={{ display: "grid", gridTemplateColumns: "200px minmax(0, 1fr) 150px", gap: 18, alignItems: "center" }}>
+                <div style={{ fontSize: 14, color: "var(--ml-ink)" }}>{stage.label}</div>
+                <div style={{ height: 14, background: "var(--ml-surface-3)", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{ width: `${start ? (stage.count / start) * 100 : 0}%`, height: "100%", background: "var(--ml-accent)", borderRadius: 999, minWidth: stage.count ? 6 : 0 }} />
                 </div>
-              );
-            })}
+                <div className="tnum" style={{ fontSize: 13.5, textAlign: "right" }}>
+                  <strong>{stage.count}</strong>
+                  <span style={{ color: "var(--ml-ink-muted)" }}> · {start ? Math.round((stage.count / start) * 100) : 0}%</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16 }} className="pair-grid">
-          <div className="card" style={{ padding: 22 }}>
-            <div className="h2">Joined, and live today</div>
-            <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>For each month, how many joined and how many of them are live now</div>
-            <div style={{ display: "flex", gap: 18, fontSize: 12.5, marginTop: 12, color: "var(--ml-ink-muted)" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, background: "var(--ml-accent)", borderRadius: 50 }} />Joined</span>
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 0, borderTop: "1.5px dashed var(--ml-ink-faint)" }} />Live today</span>
-            </div>
-            <div style={{ marginTop: 14 }}>
-              <GrowthChart data={report.growth} />
-            </div>
-          </div>
-
-          <div className="card" style={{ padding: 22 }}>
-            <div className="h2">Review queue</div>
-            <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>How fast credentials get a decision</div>
-            <dl style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "14px 16px", margin: "20px 0 0", fontSize: 14 }}>
-              <dt style={{ color: "var(--ml-ink-muted)" }}>Waiting now</dt>
-              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{review.waiting}</dd>
-              <dt style={{ color: "var(--ml-ink-muted)" }}>Longest wait</dt>
-              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{days(review.oldestWaitDays)}</dd>
-              <dt style={{ color: "var(--ml-ink-muted)" }}>Average time to approve</dt>
-              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{days(review.averageDaysToApprove)}</dd>
-              <dt style={{ color: "var(--ml-ink-muted)" }}>Approved in {period}</dt>
-              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{review.approved}</dd>
-              <dt style={{ color: "var(--ml-ink-muted)" }}>Sent back in {period}</dt>
-              <dd className="tnum" style={{ margin: 0, fontWeight: 600 }}>{review.sentBack}</dd>
-            </dl>
-          </div>
-        </div>
-
-        {/* How much of the demand sits with a few people */}
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--ml-border)" }}>
-            <div className="h2">Where the appointments go</div>
-            <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>
-              {concentration.top3Share === null
-                ? `No appointments were requested in the last ${period}.`
-                : `The top 3 practitioners carry ${concentration.top3Share}% of the ${concentration.total} appointments requested in the last ${period}.`}
+          <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--ml-border)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+            <div>
+              <div className="h2">Practitioner growth</div>
+              <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>How many practitioners there were at the end of each of the last 12 months</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div className="tnum" style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1 }}>{report.totals.practitioners}</div>
+              <div style={{ fontSize: 12.5, color: "var(--ml-ink-muted)", marginTop: 4 }}>in total today</div>
             </div>
           </div>
-          {concentration.top.map((row, i) => (
-            <div
-              key={row.slug}
-              onClick={() => open(row.slug)}
-              style={{ display: "grid", gridTemplateColumns: "28px minmax(0, 1.4fr) minmax(0, 1fr) 90px", gap: 16, alignItems: "center", padding: "14px 22px", cursor: "pointer", borderBottom: i === concentration.top.length - 1 ? "none" : "1px solid rgba(0, 0, 0, 0.06)" }}
-            >
-              <span className="tnum" style={{ color: "var(--ml-ink-subtle)", fontSize: 13 }}>{i + 1}</span>
-              <div style={{ minWidth: 0 }}>
-                <div className="truncate" style={{ fontWeight: 500, color: "var(--ml-ink)" }}>{row.name}</div>
-                <div className="truncate" style={{ fontSize: 12.5, color: "var(--ml-ink-subtle)" }}>{row.title}</div>
-              </div>
-              <div style={{ height: 8, background: "var(--ml-surface-3)", borderRadius: 999, overflow: "hidden" }}>
-                <div style={{ width: `${row.share}%`, height: "100%", background: "var(--ml-accent)", borderRadius: 999 }} />
-              </div>
-              <div className="tnum" style={{ textAlign: "right", fontSize: 13.5 }}>
-                <strong>{row.count}</strong> <span style={{ color: "var(--ml-ink-muted)" }}>· {row.share}%</span>
-              </div>
-            </div>
-          ))}
+          <div style={{ padding: "20px 22px 12px" }}>
+            <GrowthChart data={report.growth} />
+          </div>
         </div>
 
-        {/* People to look at */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
-          <ListCard title="Gone quiet" subtitle="Live, but no appointment or sign-in for a month" items={report.dormant} empty="Everyone live has been active lately" onOpen={open} />
-          <ListCard title="Live, no appointments yet" subtitle="Live profiles that never received a request" items={report.liveNoAppointments} empty="Every live profile has had a request" onOpen={open} />
-          <ListCard title="Not live yet" subtitle="Active accounts and the step they are stuck on" items={report.stuck} empty="Everyone active is live" onOpen={open} />
-        </div>
+        <FollowUp report={report} inPeriod={inPeriod} />
       </div>
     </div>
   );
 }
 
-function ListCard({
-  title, subtitle, items, empty, onOpen,
-}: {
-  title: string;
-  subtitle: string;
-  items: PersonRow[];
-  empty: string;
-  onOpen: (slug: string) => void;
-}) {
+type FollowUpId = "notSubmitted" | "verifiedNotLive" | "liveNoAppointments" | "dormant" | "cannotSignIn" | "mostRequested" | "mostVisited";
+
+/** One filter per reason a practitioner might need a look, in the order of their journey (can't get in, not verified, not live, live but unused, gone quiet), then the two rankings. */
+const FOLLOW_UP: { id: FollowUpId; label: string; about: (inPeriod: string, count: number) => string; empty: string }[] = [
+  { id: "cannotSignIn", label: "Never signed in", about: () => "Signed up or invited, but haven't confirmed their email or used their invite, so they have never been able to sign in", empty: "Everyone has signed in at least once" },
+  { id: "notSubmitted", label: "Verification not submitted", about: () => "Active accounts that have not sent in their credentials yet", empty: "Everyone active has submitted their credentials" },
+  { id: "verifiedNotLive", label: "Verified, not live", about: () => "Verified practitioners who have not published their profile", empty: "Every verified practitioner is live" },
+  { id: "liveNoAppointments", label: "Live, no appointments", about: () => "Live profiles that have never received a request", empty: "Every live profile has had a request" },
+  { id: "dormant", label: "Gone quiet", about: () => "Live profiles whose owner last signed in more than a month ago", empty: "Everyone live has signed in within the last month" },
+  {
+    id: "mostRequested",
+    label: "Most requested",
+    about: (inPeriod, count) => `The ${count === 1 ? "practitioner" : `${count} practitioners`} with the most appointment requests ${inPeriod}`,
+    empty: "No appointments have been requested in this period",
+  },
+  {
+    id: "mostVisited",
+    label: "Most visitors",
+    about: (inPeriod, count) => `The ${count === 1 ? "practitioner" : `${count} practitioners`} whose profile had the most visitors ${inPeriod}`,
+    empty: "Nobody visited a profile in this period",
+  },
+];
+
+/** Practitioners to look at, filtered by reason from a dropdown. Opens on the first reason that has anyone in it. */
+function FollowUp({ report, inPeriod }: { report: Report; inPeriod: string }) {
+  const lists: Record<FollowUpId, PersonRow[]> = {
+    notSubmitted: report.notSubmitted,
+    verifiedNotLive: report.verifiedNotLive,
+    liveNoAppointments: report.liveNoAppointments,
+    dormant: report.dormant,
+    cannotSignIn: report.cannotSignIn,
+    mostVisited: report.mostVisited,
+    mostRequested: report.concentration.top.map((t) => ({ slug: t.slug, name: t.name, title: t.title, note: `${t.count} ${t.count === 1 ? "request" : "requests"}` })),
+  };
+  const first = FOLLOW_UP.find((f) => lists[f.id].length > 0)?.id ?? FOLLOW_UP[0].id;
+  const [active, setActive] = useState<FollowUpId>(first);
+  const current = FOLLOW_UP.find((f) => f.id === active)!;
+  const rows = lists[active];
+
   return (
-    <div className="card" style={{ padding: 0, overflow: "hidden", alignSelf: "start" }}>
-      <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--ml-border)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <div>
-          <div className="h2">{title}</div>
-          <div style={{ fontSize: 12.5, color: "var(--ml-ink-muted)", marginTop: 3 }}>{subtitle}</div>
+    // Not clipped, so the dropdown's menu can open past the edge of the card.
+    <div className="card" style={{ padding: 0 }}>
+      <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--ml-border)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ minWidth: 0 }}>
+          <div className="h2">Practitioner watchlist</div>
+          <div style={{ fontSize: 13, color: "var(--ml-ink-muted)", marginTop: 3 }}>{current.about(inPeriod, rows.length)}</div>
         </div>
-        <span className="tnum" style={{ fontSize: 14, fontWeight: 600 }}>{items.length}</span>
+        <FilterSelect
+          value={active}
+          onChange={(v) => setActive(v as FollowUpId)}
+          options={FOLLOW_UP.map((f) => ({ value: f.id, label: `${f.label} (${lists[f.id].length})` }))}
+          width={270}
+        />
       </div>
-      {items.length === 0 ? (
-        <EmptyState title={empty} />
+      {rows.length === 0 ? (
+        <EmptyState title={current.empty} />
       ) : (
-        <div style={{ maxHeight: 360, overflowY: "auto" }}>
-          {items.map((p, i) => (
+        <div style={{ maxHeight: 420, overflowY: "auto" }}>
+          {rows.map((p, i) => (
             <div
               key={p.slug}
-              onClick={() => onOpen(p.slug)}
-              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 20px", cursor: "pointer", borderBottom: i === items.length - 1 ? "none" : "1px solid rgba(0, 0, 0, 0.06)" }}
+              style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto auto", gap: 16, alignItems: "center", padding: "14px 22px", borderBottom: i === rows.length - 1 ? "none" : "1px solid rgba(0, 0, 0, 0.06)" }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="truncate" style={{ fontWeight: 500, color: "var(--ml-ink)" }}>{p.name}</div>
+              <div style={{ minWidth: 0 }}>
+                <div className="truncate" style={{ fontWeight: 500, fontSize: 14.85, color: "var(--ml-ink)" }}>{p.name}</div>
                 <div className="truncate" style={{ fontSize: 12.5, color: "var(--ml-ink-subtle)" }}>{p.title}</div>
               </div>
-              <span style={{ fontSize: 12.5, color: "var(--ml-ink-muted)", whiteSpace: "nowrap" }}>{p.note}</span>
+              <span style={{ fontSize: 13, color: "var(--ml-ink-muted)", whiteSpace: "nowrap" }}>{p.note}</span>
+              <Link className="btn btn-sm" href={`/admin/practitioners/${p.slug}`}>View profile</Link>
             </div>
           ))}
         </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { usePortalTimeZone } from "./PortalTimeZone";
 import { addMonths, formatMonthLabel, getMonthGrid, monthOf, todayIsoDate } from "@/lib/format";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -16,8 +17,9 @@ export function MultiDateCalendar({
   /** Dates that can't be picked (shown greyed out and struck through). */
   disabledDates?: Set<string>;
 }) {
-  const [viewMonth, setViewMonth] = useState(() => monthOf(todayIsoDate()));
-  const today = todayIsoDate();
+  const zone = usePortalTimeZone();
+  const today = todayIsoDate(zone);
+  const [viewMonth, setViewMonth] = useState(() => monthOf(today));
   const weeks = getMonthGrid(viewMonth);
 
   return (

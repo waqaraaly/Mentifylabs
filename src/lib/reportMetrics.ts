@@ -1,6 +1,6 @@
 import type { Practitioner } from "@/types/practitioner";
 import type { Appointment } from "@/types/appointment";
-import { headlineKey, headlineLabel, isLive } from "@/lib/practitionerState";
+import { headlineKey, headlineLabel, isLive, type HeadlineKey } from "@/lib/practitionerState";
 import { isAwaitingApproval } from "@/lib/verification";
 
 /**
@@ -25,9 +25,13 @@ export interface ReportInput {
   nowMs: number;
   /** The period the report covers, in days. */
   range: number;
+  /** True when the period is "everything so far" (`range` is then just how far back that goes). */
+  allTime?: boolean;
   /** Profile visitors and appointment requests across the platform in the period. */
   visitors: number;
   requests: number;
+  /** Visitors to each practitioner's profile in the period. Anyone missing had none. */
+  practitionerVisitors?: { slug: string; visitors: number }[];
 }
 
 export interface FunnelStage {
@@ -55,6 +59,8 @@ export interface ShareRow {
 
 export interface Report {
   range: number;
+  /** The report covers everything so far rather than a fixed number of days. */
+  allTime: boolean;
   totals: { practitioners: number; live: number };
   funnel: { cohort: number; stages: FunnelStage[] };
   review: {
@@ -66,10 +72,20 @@ export interface Report {
   };
   conversion: { visitors: number; requests: number; rate: number | null };
   concentration: { total: number; top: ShareRow[]; top3Share: number | null };
-  growth: { m: string; new: number; active: number }[];
+  /** The ten practitioners whose profiles had the most visitors in the period, most first. */
+  mostVisited: PersonRow[];
+  /** Twelve months, oldest first: how many joined that month, and how many practitioners there were by its end. */
+  growth: { m: string; joined: number; total: number }[];
   dormant: PersonRow[];
   liveNoAppointments: PersonRow[];
-  stuck: PersonRow[];
+  /** Active accounts that have not sent their credentials in yet. */
+  notSubmitted: PersonRow[];
+  /** Credentials sent back, waiting for the practitioner to submit again. */
+  sentBack: PersonRow[];
+  /** Verified, but the practitioner has not published the profile. */
+  verifiedNotLive: PersonRow[];
+  /** Signed up or invited but not able to sign in yet: email unconfirmed, or invite not used. */
+  cannotSignIn: PersonRow[];
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -78,7 +94,7 @@ const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const person = (p: Practitioner, note: string): PersonRow => ({ slug: p.slug, name: p.fullName, title: p.professionalTitle, note });
 
 export function buildReport(input: ReportInput): Report {
-  const { practitioners, appointments, events, nowMs, range, visitors, requests } = input;
+  const { practitioners, appointments, events, nowMs, range, allTime = false, visitors, requests, practitionerVisitors = [] } = input;
   const cutoffDay = isoDay(nowMs - (range - 1) * DAY);
   const cutoffMs = nowMs - range * DAY;
 
@@ -138,47 +154,69 @@ export function buildReport(input: ReportInput): Report {
     .filter((r): r is { slug: string; count: number; p: Practitioner } => !!r.p)
     .sort((a, b) => b.count - a.count || a.p.fullName.localeCompare(b.p.fullName));
   const total = inPeriod.length;
-  const top: ShareRow[] = ranked.slice(0, 5).map((r) => ({
+  const top: ShareRow[] = ranked.slice(0, 10).map((r) => ({
     slug: r.slug, name: r.p.fullName, title: r.p.professionalTitle, count: r.count, share: total ? Math.round((r.count / total) * 100) : 0,
   }));
   const top3 = ranked.slice(0, 3).reduce((sum, r) => sum + r.count, 0);
 
-  // ---- Growth: who joined each month, and how many of them are live today ----
+  // ---- Most visited profiles ----
+  const practitionerBySlug = new Map(practitioners.map((p) => [p.slug, p]));
+  const mostVisited = practitionerVisitors
+    .filter((v) => v.visitors > 0 && practitionerBySlug.has(v.slug))
+    .sort((a, b) => b.visitors - a.visitors || practitionerBySlug.get(a.slug)!.fullName.localeCompare(practitionerBySlug.get(b.slug)!.fullName))
+    .slice(0, 10)
+    .map((v) => person(practitionerBySlug.get(v.slug)!, `${v.visitors} ${v.visitors === 1 ? "visitor" : "visitors"}`));
+
+  // ---- Growth: how many practitioners there were at the end of each of the last twelve months ----
   const now = new Date(nowMs);
-  const growth = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (6 - i), 1));
+  const growth = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (11 - i), 1));
     const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-    const joined = practitioners.filter((p) => p.dateJoined.startsWith(key));
-    return { m: MONTHS[d.getUTCMonth()], new: joined.length, active: joined.filter(isLive).length };
+    // dateJoined is YYYY-MM-DD, so comparing its first seven characters orders by month.
+    return {
+      m: MONTHS[d.getUTCMonth()],
+      joined: practitioners.filter((p) => p.dateJoined.slice(0, 7) === key).length,
+      total: practitioners.filter((p) => p.dateJoined.slice(0, 7) <= key).length,
+    };
   });
 
   // ---- Lists that point at someone to look at ----
-  const lastAppointment = new Map<string, string>();
-  for (const a of appointments) {
-    if (a.createdAt > (lastAppointment.get(a.practitionerSlug) ?? "")) lastAppointment.set(a.practitionerSlug, a.createdAt);
-  }
+  // Gone quiet: a live practitioner whose last sign-in was more than 30 days ago. Appointments don't count, only the practitioner coming back.
+  // Someone with no recorded sign-in (older accounts) is measured from the day they joined.
   const monthAgo = nowMs - 30 * DAY;
   const dormant = live
     .map((p) => {
-      const appt = lastAppointment.get(p.slug);
-      const signIn = p.lastSignIn;
-      const quiet = (!appt || Date.parse(appt) < monthAgo) && (!signIn || Date.parse(signIn) < monthAgo);
-      const latest = [appt, signIn].filter((x): x is string => !!x).sort().pop() ?? `${p.dateJoined}T00:00:00.000Z`;
-      return { p, quiet, days: Math.floor((nowMs - Date.parse(latest)) / DAY) };
+      const since = p.lastSignIn ?? `${p.dateJoined}T00:00:00.000Z`;
+      return { p, quiet: Date.parse(since) < monthAgo, days: Math.floor((nowMs - Date.parse(since)) / DAY) };
     })
     .filter((x) => x.quiet)
     .sort((a, b) => b.days - a.days)
-    .map((x) => person(x.p, `${x.days} days quiet`));
+    .map((x) => person(x.p, x.p.lastSignIn ? `Last signed in ${x.days} days ago` : "No sign-in recorded"));
 
   const liveNoAppointments = live.filter((p) => !hasAppointment.has(p.slug)).map((p) => person(p, "None yet"));
-  const stuck = practitioners
-    .filter((p) => p.status === "active" && !isLive(p))
-    .map((p) => person(p, headlineLabel(headlineKey(p))));
+
+  // Everyone below is an active account that is not live, split by the one step they are waiting on (the headline status).
+  const lastSentBack = new Map<string, string>();
+  for (const e of events) {
+    if (e.kind === "verification_rejected" && e.at > (lastSentBack.get(e.slug) ?? "")) lastSentBack.set(e.slug, e.at);
+  }
+  const daysAgo = (iso: string) => Math.max(0, Math.floor((nowMs - Date.parse(iso)) / DAY));
+  const ago = (d: number) => (d === 0 ? "today" : d === 1 ? "1 day ago" : `${d} days ago`);
+  const inState = (...keys: HeadlineKey[]) => practitioners.filter((p) => keys.includes(headlineKey(p)));
+
+  const notSubmitted = inState("not_verified").map((p) => person(p, `Joined ${ago(daysAgo(`${p.dateJoined}T00:00:00.000Z`))}`));
+  const sentBackList = inState("verification_rejected").map((p) => {
+    const at = lastSentBack.get(p.slug);
+    return person(p, at ? `Sent back ${ago(daysAgo(at))}` : "Sent back");
+  });
+  const verifiedNotLive = inState("verified_not_live").map((p) => person(p, "Not published"));
+  const cannotSignIn = inState("email_not_confirmed", "invite_sent", "invite_not_sent").map((p) => person(p, headlineLabel(headlineKey(p))));
 
   const approvedAverage = approvalDays.length ? approvalDays.reduce((a, b) => a + b, 0) / approvalDays.length : null;
 
   return {
     range,
+    allTime,
     totals: { practitioners: practitioners.length, live: live.length },
     funnel: { cohort, stages },
     review: {
@@ -190,9 +228,13 @@ export function buildReport(input: ReportInput): Report {
     },
     conversion: { visitors, requests, rate: visitors > 0 ? (requests / visitors) * 100 : null },
     concentration: { total, top, top3Share: total ? Math.round((top3 / total) * 100) : null },
+    mostVisited,
     growth,
     dormant,
     liveNoAppointments,
-    stuck,
+    notSubmitted,
+    sentBack: sentBackList,
+    verifiedNotLive,
+    cannotSignIn,
   };
 }

@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { requireAdmin } from "@/lib/session";
 import { getAllPractitioners } from "@/data/practitioners";
 import { getAllAppointments } from "@/data/appointments";
-import { todayIsoDate } from "@/lib/format";
+import { DEFAULT_TIMEZONE, todayIn } from "@/lib/time";
 import { isAwaitingApproval } from "@/lib/verification";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { ToastProvider } from "@/components/admin/ui/ToastProvider";
@@ -13,12 +13,19 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   await connection();
   const admin = await requireAdmin();
   const [practitioners, appointments] = await Promise.all([getAllPractitioners(), getAllAppointments()]);
-  const today = todayIsoDate();
+  // "Today" for an appointment is today on its own practitioner's clock, so it is right in every country.
+  const zoneOf = new Map(practitioners.map((p) => [p.slug, p.timezone]));
+  const todayByZone = new Map<string, string>();
+  const todayFor = (zone: string) => {
+    let day = todayByZone.get(zone);
+    if (!day) todayByZone.set(zone, (day = todayIn(zone)));
+    return day;
+  };
 
   const counts = {
     practitioners: practitioners.length,
     pending: practitioners.filter(isAwaitingApproval).length,
-    appointmentsToday: appointments.filter((a) => a.date === today).length,
+    appointmentsToday: appointments.filter((a) => a.date === todayFor(zoneOf.get(a.practitionerSlug) ?? DEFAULT_TIMEZONE)).length,
   };
 
   return (

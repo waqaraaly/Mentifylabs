@@ -4,17 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import type { Slot } from "@/types/slot";
 import { sessionTypeLabel } from "@/lib/sessionType";
 import { formatDate, isPastStart, todayIsoDate } from "@/lib/format";
+import { usePortalTimeZone } from "./PortalTimeZone";
 
 const fieldClass =
   "w-full rounded-lg bg-black/[0.03] px-3 py-2.5 text-sm outline-none ring-1 ring-transparent transition focus:bg-surface focus:ring-primary/40";
 const labelClass = "text-xs font-medium tracking-[0.06em] text-muted uppercase";
 
 export function RescheduleFields({ openSlots: allOpenSlots }: { openSlots: Slot[] }) {
-  // A session can't be moved to a time that has already gone by, so slots that have started aren't offered.
-  const openSlots = allOpenSlots.filter((s) => !isPastStart(s.date, s.startTime));
+  const zone = usePortalTimeZone();
+  // A session can't be moved to a time that has already gone by (on the practitioner's clock), so slots that have started aren't offered.
+  const openSlots = allOpenSlots.filter((s) => !isPastStart(s.date, s.startTime, zone));
   const [date, setDate] = useState("");
   const [start, setStart] = useState("");
-  const past = !!date && (date < todayIsoDate() || (!!start && isPastStart(date, start)));
+  const past = !!date && (date < todayIsoDate(zone) || (!!start && isPastStart(date, start, zone)));
   const startRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     startRef.current?.setCustomValidity(past ? "That time has already passed." : "");
@@ -57,7 +59,7 @@ export function RescheduleFields({ openSlots: allOpenSlots }: { openSlots: Slot[
               id="reschedule-date"
               type="date"
               name="date"
-              min={todayIsoDate()}
+              min={todayIsoDate(zone)}
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className={`mt-1 ${fieldClass}`}

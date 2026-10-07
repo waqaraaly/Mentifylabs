@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
 
 export interface RangeOption {
-  value: number;
+  value: number | string;
   label: string;
   href: string;
 }
 
 /** The time-range filter as a dropdown. Choosing a range opens that range's page, so it can be linked and survives a refresh. */
-export function RangeSelect({ value, options }: { value: number; options: RangeOption[] }) {
+export function RangeSelect({ value, options }: { value: number | string; options: RangeOption[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 

@@ -1,21 +1,16 @@
-import type { ReactNode } from "react";
-
-export function KPI({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string | number;
-  icon?: ReactNode;
-}) {
+/**
+ * The headline numbers for a page, in one card: each figure under a plain heading, the columns split by hairlines.
+ * One surface instead of a row of separate boxes, so the headings carry the structure.
+ */
+export function KPIStrip({ items }: { items: { label: string; value: string | number }[] }) {
   return (
-    <div className="card kpi">
-      <div className="stat-label">{label}</div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <div className="tnum kpi-value">{value}</div>
-        {icon && <div className="kpi-icon">{icon}</div>}
-      </div>
+    <div className="card kpi-strip">
+      {items.map((item) => (
+        <div key={item.label} className="kpi-cell">
+          <div className="kpi-heading">{item.label}</div>
+          <div className="tnum kpi-figure">{item.value}</div>
+        </div>
+      ))}
     </div>
   );
 }

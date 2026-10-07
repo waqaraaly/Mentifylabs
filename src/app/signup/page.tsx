@@ -6,9 +6,13 @@ import { SignUpForm } from "./SignUpForm";
 
 export const metadata = { title: "Create an account" };
 
-export default async function SignUpPage() {
+export default async function SignUpPage({ searchParams }: PageProps<"/signup">) {
   const user = await getSessionUser();
   if (user) redirect(homeFor(user.role));
+
+  // The homepage builder passes the name someone tried out on their page, so they don't have to type it again.
+  const raw = (await searchParams).name;
+  const startingName = (Array.isArray(raw) ? raw[0] : raw)?.replace(/\s+/g, " ").trim().slice(0, 120) ?? "";
 
   return (
     <AuthShell
@@ -23,7 +27,7 @@ export default async function SignUpPage() {
         </>
       }
     >
-      <SignUpForm />
+      <SignUpForm startingName={startingName} />
     </AuthShell>
   );
 }

@@ -30,7 +30,7 @@ export async function sendVerificationEmail(
   const change = !!opts.newEmail;
   await sendBrandedEmail({
     to: email,
-    subject: change ? "Confirm your new email — MentifyLabs" : "Confirm your email — MentifyLabs",
+    subject: change ? "Confirm your new MentifyLabs email" : "Confirm your MentifyLabs email",
     greeting: `Hi ${fullName},`,
     content: {
       eyebrow: "Email",

@@ -7,10 +7,25 @@ import { sendVerificationEmail, resendVerificationEmail } from "@/lib/emailVerif
  * Deliberately separate from the public profile (see Practitioner in src/types),
  * which has its own display name and public contact details.
  */
-export async function getAccount(): Promise<{ name: string; email: string; phone: string; pendingEmail: string | null }> {
+export async function getAccount(): Promise<{
+  name: string;
+  email: string;
+  phone: string;
+  pendingEmail: string | null;
+  twoFactorEnabled: boolean;
+}> {
   const user = await requireRole("practitioner");
-  const row = await first<{ pending_email: string | null }>("SELECT pending_email FROM users WHERE id = ?", user.id);
-  return { name: user.name, email: user.email, phone: user.phone, pendingEmail: row?.pending_email ?? null };
+  const row = await first<{ pending_email: string | null; two_factor_enabled_at: string | null }>(
+    "SELECT pending_email, two_factor_enabled_at FROM users WHERE id = ?",
+    user.id,
+  );
+  return {
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    pendingEmail: row?.pending_email ?? null,
+    twoFactorEnabled: !!row?.two_factor_enabled_at,
+  };
 }
 
 export async function resendAccountVerificationEmail(): Promise<{ ok: boolean; message: string }> {
@@ -22,6 +37,7 @@ export async function updateAccountDetails(details: {
   name: string;
   email: string;
   phone: string;
+  currentPassword?: string;
 }): Promise<{ ok: boolean; message: string }> {
   const user = await requireRole("practitioner");
   const result = await updateUserDetails(user, details);

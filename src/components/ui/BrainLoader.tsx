@@ -28,6 +28,13 @@ function loadBrainScript(): Promise<void> {
   return scriptReady;
 }
 
+/**
+ * How long the brain plays after a successful sign-in before the portal opens. The loader normally appears only for
+ * waits longer than its `delay`, but a sign-in that has already succeeded is often followed by a very quick page change,
+ * so the sign-in forms show it straight away and hold it for this long, rather than letting it flash past or never appear.
+ */
+export const SIGNED_IN_LOADER_MS = 900;
+
 /** The animated brain, centered by its parent. Colors are the palette the
  * loader was designed with: softened moss tubes, moss fluid, teal signal. */
 export function BrainLoader({ size = 132, onReady }: { size?: number; onReady?: () => void }) {

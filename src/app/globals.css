@@ -530,3 +530,111 @@ body {
   width: 100%;
   height: 100%;
 }
+
+/* With the live preview open beside the profile editor, the form needs the room more than the section menu does, so the
+   menu steps aside until the screen is wide enough for both. */
+[data-live="open"] .profile-nav {
+  display: none;
+}
+[data-live="open"] .profile-sections-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1792px) {
+  [data-live="open"] .profile-nav {
+    display: block;
+  }
+  [data-live="open"] .profile-sections-grid {
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   The public homepage. A small palette built from the brand: the oat page, the brand greens, and the honey dot from
+   the logo. Scoped to .site so nothing else is affected.
+   --------------------------------------------------------------------------------------------------------------- */
+.site {
+  --paper: #f6f4ea;
+  --ink: #1f2617;
+  --moss: #3f4e30;
+  --moss-deep: #2a3320;
+  --leaf: #6e8356;
+  --leaf-deep: #5d7248;
+  --sage: #e8edd9;
+  --sage-edge: #d3dcbd;
+  --honey: #d18d1b;
+  --honey-text: #8a5c00;
+  --glow: #f0c05a;
+  --hair: #dedac3;
+  --quiet: #6b6e53;
+  background: var(--paper);
+  color: var(--ink);
+}
+.site :focus-visible {
+  outline: 2px solid var(--leaf-deep);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Display type: Fraunces with its soft, slightly wonky letterforms, set tight. */
+.site-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-variation-settings: "SOFT" 50, "WONK" 1;
+  font-optical-sizing: auto;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+
+/* The highlighter swipe behind a word. */
+.site-marker {
+  background-image: linear-gradient(transparent 60%, var(--glow) 60%, var(--glow) 90%, transparent 90%);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  animation: site-marker 900ms 400ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes site-marker {
+  to {
+    background-size: 100% 100%;
+  }
+}
+
+/* An open hour: the honey dot, with a ring that breathes out from it. */
+.site-ping {
+  animation: site-ping 2.6s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+}
+@keyframes site-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* A step's content settles in when it becomes the one you're on. */
+.site-step {
+  transition: opacity 500ms ease, transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.site-step[data-active="false"] {
+  opacity: 0.38;
+  transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-marker {
+    animation: none;
+    background-size: 100% 100%;
+  }
+  .site-ping {
+    animation: none;
+    opacity: 0;
+  }
+  .site-step {
+    transition: none;
+  }
+  .site-step[data-active="false"] {
+    transform: none;
+  }
+}

@@ -8,79 +8,65 @@ import {
   dismissVerificationPrompt,
   requireOwnSlug,
   submitVerification,
+  suggestHandle,
   updatePractitionerProfile,
   updatePractitionerSlug,
 } from "@/data/practitioners";
-import { addDocument } from "@/data/documents";
 import { recordReviewEvent } from "@/data/reviewEvents";
-import { resolveCurrency } from "@/lib/currencies";
 import { revalidateAdminViews } from "@/lib/revalidate";
 import { requireRole } from "@/lib/session";
-import { DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, matchesFileSignature, randomKeyPart, uploads } from "@/lib/storage";
-import { DOCUMENT_CATEGORIES, type PractitionerDocument } from "@/types/document";
+import { saveCredentialUploads } from "@/lib/credentialUploads";
+import { tidyPublicName } from "@/lib/publicName";
+import { changePractitionerTimezone } from "@/data/timezone";
+import { isValidTimeZone } from "@/lib/time";
 import type { SessionType } from "@/types/practitioner";
 
-function stringList(formData: FormData, name: string): string[] {
-  return formData
-    .getAll(name)
-    .map((value) => value.toString().trim())
-    .filter(Boolean);
+// The same limit as the profile editor.
+const LOCATION_MAX = 160;
+
+/**
+ * The wizard's credential step is optional, so nothing ticked, or a file that can't be used, is never an error here.
+ * It just means they'll do it later from Verification, same as skipping. When it does go through, it is one submission.
+ */
+async function submitOnboardingCredentials(slug: string, formData: FormData): Promise<void> {
+  const { practitionerId } = await requireRole("practitioner");
+  if (!practitionerId) return;
+  const result = await saveCredentialUploads(slug, practitionerId, formData);
+  if (!result.ok) return;
+  if (await submitVerification(slug)) {
+    await recordReviewEvent(slug, "verification_submitted", { note: `Submitted: ${result.categories.join(", ")}` });
+  }
 }
 
 /**
- * The wizard's credential step is optional, so a missing or invalid file is never an
- * error here — it just means they'll do it later from Verification, same as skipping.
+ * Saves what the wizard asks for, submits a credential if one was attached, and ends onboarding. Setup only covers the
+ * essentials (name, title, how they see clients, where, time zone, link, credentials); the rest of the profile is done
+ * from the checklist on the dashboard. So this saves only the fields it was sent: anything else on the profile, such as
+ * details an admin filled in when creating the account, is left exactly as it is.
  */
-async function submitOnboardingCredential(slug: string, formData: FormData): Promise<void> {
-  const category = formData.get("verificationCategory")?.toString() as PractitionerDocument["category"];
-  const file = formData.get("verificationFile");
-  if (!DOCUMENT_CATEGORIES.includes(category) || !(file instanceof File) || file.size === 0) return;
-  const extension = DOCUMENT_TYPES[file.type];
-  if (!extension || file.size > MAX_DOCUMENT_BYTES) return;
-
-  const bytes = await file.arrayBuffer();
-  if (!matchesFileSignature(bytes, file.type)) return;
-
-  const { practitionerId } = await requireRole("practitioner");
-  const key = `documents/${practitionerId}/${randomKeyPart()}.${extension}`;
-  const bucket = await uploads();
-  await bucket.put(key, bytes, { httpMetadata: { contentType: file.type } });
-
-  const name = file.name.replace(/[\u0000-\u001f]/g, "").slice(0, 150) || `document.${extension}`;
-  try {
-    await addDocument({ practitionerSlug: slug, name, category, storageKey: key, contentType: file.type, sizeBytes: file.size });
-  } catch (error) {
-    await bucket.delete(key);
-    throw error;
-  }
-  await submitVerification(slug);
-  await recordReviewEvent(slug, "verification_submitted");
-}
-
-/** Saves the wizard's fields, submits a credential if one was attached, and ends onboarding. */
 export async function finishOnboardingAction(formData: FormData) {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
 
-  const feeMin = Math.max(0, Number(formData.get("feeMin")) || 0);
-  const feeMax = Math.max(0, Number(formData.get("feeMax")) || 0);
   const professionalTitle = formData.get("professionalTitle")?.toString().trim();
+  const fullName = tidyPublicName(formData.get("fullName"));
+  const posted = formData.get("sessionType") as SessionType;
+  const sessionType = (["online", "offline", "both"] as SessionType[]).includes(posted) ? posted : undefined;
+  // A location only means something for sessions in person, so an online-only profile never keeps one (the profile editor does the same).
+  const location = sessionType === "online" ? "" : (formData.get("location")?.toString() ?? "").replace(/\s+/g, " ").trim().slice(0, LOCATION_MAX);
 
   await updatePractitionerProfile(slug, {
+    // Required on the practitioner record too, so an empty one leaves the name from sign-up as it is.
+    ...(fullName ? { fullName } : {}),
     // Required on the practitioner record, so an empty submission leaves it as-is
     // rather than clearing it back to the signup placeholder.
     ...(professionalTitle ? { professionalTitle } : {}),
-    shortBio: formData.get("shortBio")?.toString().trim() || undefined,
-    specializations: stringList(formData, "specializations"),
-    sessionType: (["online", "offline", "both"] as SessionType[]).includes(formData.get("sessionType") as SessionType)
-      ? (formData.get("sessionType") as SessionType)
-      : "both",
-    feeRange: {
-      currency: resolveCurrency(formData.get("feeCurrency"), (await getCurrentPractitioner()).feeRange.currency),
-      min: Math.min(feeMin, feeMax),
-      max: Math.max(feeMin, feeMax),
-    },
+    ...(sessionType ? { sessionType } : {}),
+    ...(location ? { location } : {}),
   });
-  await submitOnboardingCredential(slug, formData);
+  // The clock their slots and sessions run on. An unknown value leaves the one they have; a new account has no sessions to protect.
+  const timezone = formData.get("timezone")?.toString();
+  if (timezone && isValidTimeZone(timezone)) await changePractitionerTimezone(slug, timezone);
+  await submitOnboardingCredentials(slug, formData);
   // The wizard's own credential step covers the first-login nudge, so the ongoing
   // "days left to verify" banner (gated on this flag) can take over from here.
   await dismissVerificationPrompt(slug);
@@ -100,6 +86,12 @@ export async function claimHandleAction(handle: string): Promise<{ ok: true; slu
   const slug = handle.trim().toLowerCase();
   revalidateAdminViews();
   return { ok: true, slug };
+}
+
+/** A free profile link that fits this name, or "" when none does, so the link step can follow a name they just changed. */
+export async function suggestHandleAction(name: string): Promise<string> {
+  await getCurrentPractitioner(); // signed-in practitioners only
+  return suggestHandle(tidyPublicName(name));
 }
 
 /** Ends onboarding without saving any of the wizard's fields. */

@@ -1,20 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { formatStamp } from "@/lib/stamp";
+import { useDeviceTimeZone } from "@/lib/useDeviceTimeZone";
 import { Download, FileImage, FileText } from "lucide-react";
 import type { PractitionerDocument } from "@/types/document";
 import { DocumentViewer } from "./DocumentViewer";
 
-const uploadedOn = (iso: string) => {
-  const day = new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  return iso.length > 10 ? `${day}, ${iso.slice(11, 16)}` : day;
-};
 
 /**
  * The verification documents a practitioner has uploaded, newest first, each with what the file really is
  * (category, type, size, upload time). Shared by the practitioner page and the credentials review.
  */
 export function DocumentList({ documents, personName }: { documents: PractitionerDocument[]; personName: string }) {
+  const zone = useDeviceTimeZone();
   const [viewDoc, setViewDoc] = useState<PractitionerDocument | null>(null);
   const sorted = [...documents].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 
@@ -52,7 +51,7 @@ export function DocumentList({ documents, personName }: { documents: Practitione
                       </div>
                     </td>
                     <td>{d.category}</td>
-                    <td className="tnum" style={{ whiteSpace: "nowrap" }}>{uploadedOn(d.uploadedAt)}</td>
+                    <td className="tnum" style={{ whiteSpace: "nowrap" }}>{formatStamp(d.uploadedAt, zone)}</td>
                     <td style={{ textAlign: "right", paddingRight: 20 }}>
                       <span style={{ display: "inline-flex", gap: 8 }}>
                         {d.hasFile ? (

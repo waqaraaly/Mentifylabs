@@ -1,7 +1,9 @@
 import type { Appointment, AppointmentStatus } from "@/types/appointment";
 import type { BookedSessionType } from "@/lib/sessionType";
-import { all, batch, first, prepare, run } from "@/lib/db";
+import { all, batch, first, prepare } from "@/lib/db";
 import { getSlotById } from "./slots";
+import { wallClockIn, zoneOrDefault } from "@/lib/time";
+import { DELETABLE_FROM, RESCHEDULABLE_FROM } from "@/lib/appointmentRules";
 
 interface AppointmentRow {
   id: string;
@@ -93,8 +95,8 @@ async function bookSlot(input: {
   status: AppointmentStatus;
   /** When set, the slot must belong to this practitioner. */
   practitionerSlug?: string;
-  /** Public bookings can't take a slot whose date has already passed (a day of slack covers time zones). */
-  futureOnly?: boolean;
+  /** Public bookings can't take a slot that has already started: "now" on the practitioner's own clock. */
+  notBefore?: { date: string; time: string };
 }): Promise<Appointment | null> {
   const [inserted] = await batch([
     await prepare(
@@ -107,7 +109,7 @@ async function bookSlot(input: {
          FROM slots s
         WHERE s.id = ? AND s.status = 'open'
           AND (? IS NULL OR s.practitioner_slug = ?)
-          AND (? = 0 OR s.date >= date('now', '-1 day'))
+          AND (? IS NULL OR s.date > ? OR (s.date = ? AND s.start_time > ?))
        RETURNING *`,
       input.clientName,
       input.clientContact,
@@ -117,7 +119,10 @@ async function bookSlot(input: {
       input.slotId,
       input.practitionerSlug,
       input.practitionerSlug,
-      input.futureOnly ? 1 : 0,
+      input.notBefore?.date ?? null,
+      input.notBefore?.date ?? null,
+      input.notBefore?.date ?? null,
+      input.notBefore?.time ?? null,
     ),
     // Only flips the slot if the insert above actually took it, so a refused booking leaves it open.
     await prepare(
@@ -140,7 +145,9 @@ export async function createAppointmentFromSlot(input: {
   /** The format the client picked — only used when the slot offers both. */
   sessionType?: BookedSessionType;
 }): Promise<Appointment | null> {
-  return bookSlot({ ...input, status: "pending", futureOnly: true });
+  // "Already started" is judged on the practitioner's clock, wherever the client is or the server runs.
+  const zone = zoneOrDefault((await first<{ timezone: string }>("SELECT timezone FROM practitioners WHERE slug = ?", input.practitionerSlug))?.timezone);
+  return bookSlot({ ...input, status: "pending", notBefore: wallClockIn(zone) });
 }
 
 /** Practitioner manually scheduling a session on a client's behalf (phone/walk-in booking) —
@@ -182,15 +189,44 @@ export async function createManualAppointment(
   return row ? toAppointment(row) : null;
 }
 
-export async function deleteAppointment(id: string): Promise<void> {
-  await run("DELETE FROM appointments WHERE id = ?", id);
+/** Deletes a record that is over (see DELETABLE_FROM), freeing any slot it still points at. Returns whether it was deleted. */
+export async function deleteAppointment(id: string): Promise<boolean> {
+  const marks = DELETABLE_FROM.map(() => "?").join(", ");
+  const results = await batch([
+    await prepare(
+      `UPDATE slots SET status = 'open'
+        WHERE status = 'booked' AND id = (SELECT slot_id FROM appointments WHERE id = ? AND status IN (${marks}))`,
+      id,
+      ...DELETABLE_FROM,
+    ),
+    await prepare(`DELETE FROM appointments WHERE id = ? AND status IN (${marks}) RETURNING id`, id, ...DELETABLE_FROM),
+  ]);
+  return (results[1]?.results?.length ?? 0) > 0;
 }
 
-/** Cancelling or declining also releases the held slot back to the public calendar. */
-export async function setAppointmentStatus(id: string, status: AppointmentStatus): Promise<Appointment | null> {
+/**
+ * Moves an appointment to a new status, but only from one of the statuses in `from`; otherwise nothing changes and
+ * null comes back. Cancelling or declining also releases the held slot back to the public calendar. Both steps run
+ * together, so the slot is only released when the status really changed.
+ */
+export async function setAppointmentStatus(
+  id: string,
+  status: AppointmentStatus,
+  from: readonly AppointmentStatus[],
+): Promise<Appointment | null> {
+  const marks = from.map(() => "?").join(", ");
   const statements = [
-    ...(status === "cancelled" ? [await releaseHeldSlot(id)] : []),
-    await prepare("UPDATE appointments SET status = ? WHERE id = ? RETURNING *", status, id),
+    ...(status === "cancelled"
+      ? [
+          await prepare(
+            `UPDATE slots SET status = 'open'
+              WHERE status = 'booked' AND id = (SELECT slot_id FROM appointments WHERE id = ? AND status IN (${marks}))`,
+            id,
+            ...from,
+          ),
+        ]
+      : []),
+    await prepare(`UPDATE appointments SET status = ? WHERE id = ? AND status IN (${marks}) RETURNING *`, status, id, ...from),
   ];
   const results = await batch(statements);
   return firstRow(results[results.length - 1]);
@@ -201,7 +237,8 @@ export async function rescheduleAppointment(
   next: { slotId: string } | { date: string; startTime: string; endTime: string; sessionType: "online" | "offline" },
 ): Promise<Appointment | null> {
   const current = await getAppointmentById(id);
-  if (!current) return null;
+  // Only a live appointment moves. Moving a cancelled one would hold a new slot for nothing.
+  if (!current || !RESCHEDULABLE_FROM.includes(current.status)) return null;
 
   if ("slotId" in next) {
     const slot = await getSlotById(next.slotId);

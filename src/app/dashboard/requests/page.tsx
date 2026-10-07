@@ -5,7 +5,7 @@ import { getOpenSlotsByPractitioner } from "@/data/slots";
 import { RequestsQueue } from "@/components/portal/RequestsQueue";
 import { AutoRefresh } from "@/components/portal/AutoRefresh";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { todayIsoDate } from "@/lib/format";
+import { wallClockIn } from "@/lib/time";
 
 export const metadata = { title: "Appointment Requests" };
 
@@ -21,9 +21,10 @@ export default async function AppointmentRequestsPage() {
     getOpenSlotsByPractitioner(practitioner.slug),
   ]);
 
-  const today = todayIsoDate();
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  // What "now" is for this practitioner, on their own clock.
+  const here = wallClockIn(practitioner.timezone);
+  const today = here.date;
+  const nowMinutes = here.minutes;
 
   // A request whose session time has already gone by can't be honoured as asked.
   const isExpired = (a: (typeof inquiries)[number]) =>

@@ -16,7 +16,7 @@ export const DOCUMENT_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
-export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+export { MAX_DOCUMENT_BYTES } from "@/lib/documentLimits";
 
 export function randomKeyPart(): string {
   return [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");

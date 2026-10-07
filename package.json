@@ -20,7 +20,8 @@
     "db:seed:remote:staging": "wrangler d1 execute mentifylabs-staging-db --remote --env staging --file seed/demo-data.sql",
     "db:backup:local": "node scripts/backup-db.ts",
     "db:backup:remote": "node scripts/backup-db.ts --remote",
-    "user:create": "node scripts/create-user.ts"
+    "user:create": "node scripts/create-user.ts",
+    "dummy:local": "node scripts/dummy-data.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.6",

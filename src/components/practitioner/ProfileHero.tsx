@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Practitioner } from "@/types/practitioner";
 import { WavyUnderline } from "@/components/ui/WavyUnderline";
 import { formatFeeAmounts, hasFeeRange } from "@/lib/fees";
+import { experienceYearsOf, headlineOf } from "@/lib/profileDisplay";
 
 const SESSION_MODE_LABEL: Record<Practitioner["sessionType"], string> = {
   online: "Online",
@@ -61,11 +62,9 @@ function getInitials(fullName: string): string {
 export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
   const isVerified = practitioner.verificationStatus === "verified";
 
-  const tagline =
-    practitioner.shortBio ||
-    (practitioner.specializations.length > 0
-      ? `Specializing in ${practitioner.specializations.slice(0, 2).join(" and ").toLowerCase()}.`
-      : practitioner.professionalTitle);
+  // The headline they wrote, or none. It is never made up from their expertise tags or repeated from their title.
+  const tagline = headlineOf(practitioner);
+  const experienceYears = experienceYearsOf(practitioner);
 
   const nameParts = practitioner.fullName.split(" ");
   const lastName = nameParts.pop();
@@ -111,7 +110,7 @@ export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
         </div>
 
         <div>
-          <h1 className="flex flex-wrap items-center gap-3.5 text-4xl leading-[1.08] font-bold text-(--pt-text) sm:text-5xl">
+          <h1 className="flex flex-wrap items-center gap-3.5 text-4xl leading-[1.08] font-bold [overflow-wrap:anywhere] text-(--pt-text) sm:text-5xl">
             {firstNames && <span>{firstNames} </span>}
             <span className="relative inline-block">
               {lastName}
@@ -124,14 +123,18 @@ export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
             )}
           </h1>
 
-          <p className="mt-6 text-lg font-medium text-(--pt-muted)">{practitioner.professionalTitle}</p>
-          <p className="mt-5 max-w-xl text-[19px] leading-relaxed text-(--pt-tagline)">{tagline}</p>
+          <p className="mt-6 text-lg font-medium [overflow-wrap:anywhere] text-(--pt-muted)">{practitioner.professionalTitle}</p>
+          {tagline && <p className="mt-5 max-w-xl text-[19px] leading-relaxed [overflow-wrap:anywhere] text-(--pt-tagline)">{tagline}</p>}
 
           <div className="mt-8 flex max-w-xl flex-wrap gap-x-12 gap-y-6 border-t border-(--pt-border) pt-7">
-            <div>
-              <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">Experience</p>
-              <p className="mt-2.5 text-xl text-(--pt-text)">{practitioner.experienceYears} Years</p>
-            </div>
+            {experienceYears !== undefined && (
+              <div>
+                <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">Experience</p>
+                <p className="mt-2.5 text-xl text-(--pt-text)">
+                  {experienceYears} {experienceYears === 1 ? "Year" : "Years"}
+                </p>
+              </div>
+            )}
             <div>
               <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">
                 Fee range

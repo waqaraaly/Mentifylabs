@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, X } from "lucide-react";
 import type { Appointment } from "@/types/appointment";
@@ -20,13 +20,18 @@ export function RescheduleModal({
   onClose: () => void;
 }) {
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const submitReschedule = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      await rescheduleAppointmentAction(formData);
+      const result = await rescheduleAppointmentAction(formData);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
       onClose();
       router.refresh();
     });
@@ -61,6 +66,12 @@ export function RescheduleModal({
           <input type="hidden" name="slug" value={practitionerSlug} />
 
           <RescheduleFields openSlots={openSlots} />
+
+          {error && (
+            <p role="alert" className="mt-5 text-sm font-medium text-alert">
+              {error}
+            </p>
+          )}
 
           <div className="mt-7 flex items-center justify-end gap-3 border-t border-black/[0.06] pt-6">
             <button

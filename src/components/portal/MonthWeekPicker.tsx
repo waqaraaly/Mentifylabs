@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { usePortalTimeZone } from "./PortalTimeZone";
 import { addDays, addMonths, formatDayCell, formatMonthLabel, mondayOf, monthOf, todayIsoDate } from "@/lib/format";
 
 /** Mondays of every week that touches this month — what a practitioner picks a week by. */
@@ -29,6 +30,7 @@ function weekRangeLabel(weekStart: string): string {
 }
 
 export function MonthWeekPicker({ selectedDate }: { selectedDate: string }) {
+  const zone = usePortalTimeZone();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(() => monthOf(selectedDate));
@@ -108,7 +110,7 @@ export function MonthWeekPicker({ selectedDate }: { selectedDate: string }) {
                     }`}
                   >
                     <span>{label}</span>
-                    {weekStart === mondayOf(todayIsoDate()) && (
+                    {weekStart === mondayOf(todayIsoDate(zone)) && (
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
                           active ? "bg-white/20" : "bg-primary/10 text-primary"

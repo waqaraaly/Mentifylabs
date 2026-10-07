@@ -24,7 +24,10 @@ function revalidateAdmin(...slugs: string[]) {
 }
 
 import { canDecideSubmission, canReactivate, canSuspend } from "@/lib/practitionerState";
-import { DEFAULT_REJECTION_REASON } from "@/lib/verification";
+import { DEFAULT_REJECTION_REASON, isVerificationRejected } from "@/lib/verification";
+import { documentsFingerprint } from "@/lib/documentRules";
+import type { DecisionResult } from "@/lib/decisionResult";
+import { getDocumentsByPractitioner } from "@/data/documents";
 export async function suspendAccount(slug: string) {
   const admin = await requireAdmin();
   const current = await getPractitionerBySlug(slug);
@@ -46,31 +49,75 @@ export async function reactivateAccount(slug: string, goLive = false) {
   revalidateAdmin(slug);
 }
 
+/** Why a decision can't be made on this practitioner right now, in words the admin can act on. */
+function notWaitingMessage(p: NonNullable<Awaited<ReturnType<typeof getPractitionerBySlug>>>): string {
+  if (p.status === "suspended") return "This account is suspended. Reactivate it before deciding.";
+  if (p.verificationStatus === "verified") return "Already approved, possibly by another admin. Nothing more to decide.";
+  if (isVerificationRejected(p)) return "Already sent back, possibly by another admin. It returns to the queue when they submit again.";
+  return "This submission isn't waiting for review any more.";
+}
+
+/**
+ * Checks everything a decision depends on: the practitioner exists and is still waiting, and the documents on file
+ * are the ones the admin was looking at. Returns the current documents, or the reason to refuse.
+ */
+async function checkDecision(slug: string, reviewedDocs: string) {
+  const current = await getPractitionerBySlug(slug);
+  if (!current) return { ok: false as const, message: "This practitioner no longer exists." };
+  if (!canDecideSubmission(current)) return { ok: false as const, message: notWaitingMessage(current) };
+  const documents = await getDocumentsByPractitioner(slug);
+  if (!documents.some((d) => d.hasFile)) {
+    return { ok: false as const, message: "There is no document file to review, so this can't be decided. Ask them to upload one." };
+  }
+  if (documentsFingerprint(documents) !== reviewedDocs) {
+    return { ok: false as const, message: "Their documents changed after you opened this page. The page has been refreshed: look at the current documents, then decide again." };
+  }
+  return { ok: true as const, documents };
+}
+
+const ALREADY_DECIDED = "Another admin decided on this a moment ago, so nothing was changed. The page has been refreshed.";
+const DECISION_FAILED = "Something went wrong and nothing was changed. Try again.";
+
 /**
  * The one approval: verifies the credentials, activates the account if it was still pending, and tells the
  * practitioner. It does not publish: going live is the practitioner's own step. Only valid while their
- * submission is waiting for a decision.
+ * submission is waiting for a decision, and only on the documents the admin reviewed (`reviewedDocs` is the
+ * fingerprint the review page showed). The approval records which documents those were.
  */
-export async function approveSubmissionAction(slug: string) {
+export async function approveSubmissionAction(slug: string, reviewedDocs: string): Promise<DecisionResult> {
   const admin = await requireAdmin();
-  const current = await getPractitionerBySlug(slug);
-  if (!current || !canDecideSubmission(current)) return;
-  await approveSubmission(slug);
-  await recordReviewEvent(slug, "verification_approved", { actorName: admin.name });
-  await notifyVerificationApproved(slug);
-  revalidateAdmin(slug);
+  try {
+    const check = await checkDecision(slug, reviewedDocs);
+    if (!check.ok) return check;
+    // The change itself re-checks that it is still pending: if another admin got there first, nothing is written.
+    if (!(await approveSubmission(slug))) return { ok: false, message: ALREADY_DECIDED };
+    const reviewed = check.documents.map((d) => `${d.name} (${d.category}, ${d.id})`).join("; ");
+    await recordReviewEvent(slug, "verification_approved", { actorName: admin.name, note: reviewed ? `Reviewed: ${reviewed}` : undefined });
+    const emailSent = await notifyVerificationApproved(slug);
+    revalidateAdmin(slug);
+    return { ok: true, emailSent };
+  } catch (error) {
+    console.error(`[admin] Could not approve ${slug}:`, error);
+    return { ok: false, message: DECISION_FAILED };
+  }
 }
 
 /** Sends a submission back with feedback; the practitioner re-uploads and it returns to the queue. */
-export async function rejectSubmissionAction(slug: string, note: string) {
+export async function rejectSubmissionAction(slug: string, note: string, reviewedDocs: string): Promise<DecisionResult> {
   const admin = await requireAdmin();
-  const current = await getPractitionerBySlug(slug);
-  if (!current || !canDecideSubmission(current)) return;
-  const reason = note.trim() || DEFAULT_REJECTION_REASON;
-  await rejectVerification(slug, reason);
-  await recordReviewEvent(slug, "verification_rejected", { note: reason, actorName: admin.name });
-  await notifyVerificationRejected(slug, reason);
-  revalidateAdmin(slug);
+  try {
+    const check = await checkDecision(slug, reviewedDocs);
+    if (!check.ok) return check;
+    const reason = note.trim() || DEFAULT_REJECTION_REASON;
+    if (!(await rejectVerification(slug, reason))) return { ok: false, message: ALREADY_DECIDED };
+    await recordReviewEvent(slug, "verification_rejected", { note: reason, actorName: admin.name });
+    const emailSent = await notifyVerificationRejected(slug, reason);
+    revalidateAdmin(slug);
+    return { ok: true, emailSent };
+  } catch (error) {
+    console.error(`[admin] Could not send back ${slug}:`, error);
+    return { ok: false, message: DECISION_FAILED };
+  }
 }
 
 /** Re-sends the email confirmation link to a practitioner who signed up and has not confirmed yet. */

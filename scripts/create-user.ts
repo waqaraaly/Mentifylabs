@@ -3,6 +3,7 @@
 //   npm run user:create -- --email you@example.com --role admin [--remote]
 //   npm run user:create -- --email you@example.com --role practitioner --practitioner dr-ali [--remote]
 //   npm run user:create -- --email you@example.com --role admin --remote --env staging
+//   npm run user:create -- --email you@example.com --reset-2fa [--remote]    (turns off two-step sign-in for any account; nothing else changes)
 //
 // A strong password is generated and appended to credentials.local.txt (git-ignored),
 // never printed, so it doesn't end up in terminal logs or chat transcripts.
@@ -20,6 +21,7 @@ const { values } = parseArgs({
     practitioner: { type: "string" },
     name: { type: "string" },
     remote: { type: "boolean", default: false },
+    "reset-2fa": { type: "boolean", default: false },
     env: { type: "string" }, // e.g. "staging" — targets that environment's own D1 database.
   },
 });
@@ -34,6 +36,29 @@ function fail(message: string): never {
 const email = values.email?.trim().toLowerCase();
 const role = values.role;
 if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail("Pass a valid --email.");
+
+// Recovery for anyone who can't receive the emailed code (mail is down, or they lost the mailbox).
+if (values["reset-2fa"]) {
+  const reset = `
+UPDATE users SET two_factor_enabled_at = NULL WHERE email = ${email ? `'${email.replace(/'/g, "''")}'` : "''"};
+DELETE FROM login_codes WHERE user_id IN (SELECT id FROM users WHERE email = ${email ? `'${email.replace(/'/g, "''")}'` : "''"});
+`;
+  const dir = mkdtempSync(join(tmpdir(), "mentifylabs-2fa-"));
+  const file = join(dir, "reset.sql");
+  writeFileSync(file, reset);
+  const done = spawnSync("npx", ["wrangler", "d1", "execute", database, values.remote ? "--remote" : "--local", "--file", file], {
+    shell: true,
+    encoding: "utf8",
+    env: { ...process.env, CI: "1" },
+  });
+  rmSync(dir, { recursive: true, force: true });
+  if (done.status !== 0) fail(`Could not turn off two-step sign-in:
+${`${done.stdout}
+${done.stderr}`.slice(-1500)}`);
+  console.log(`Two-step sign-in is now off for ${email}. They can sign in with their password and turn it back on in Settings.`);
+  process.exit(0);
+}
+
 if (role !== "admin" && role !== "practitioner") fail("Pass --role admin or --role practitioner.");
 if (role === "practitioner" && !values.practitioner) fail("Pass --practitioner <slug> for a practitioner account.");
 

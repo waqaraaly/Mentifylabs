@@ -14,15 +14,12 @@ export default async function OnboardingPage() {
   return (
     <OnboardingWizard
       slug={practitioner.slug}
-      firstName={practitioner.fullName.split(" ")[0]}
+      fullName={practitioner.fullName}
       // "Practitioner" is signup's placeholder default, not a real title — leave the field empty rather than prefill it.
       professionalTitle={practitioner.professionalTitle === "Practitioner" ? "" : practitioner.professionalTitle}
-      shortBio={practitioner.shortBio ?? ""}
-      specializations={practitioner.specializations}
       sessionType={practitioner.sessionType}
-      feeCurrency={practitioner.feeRange.currency}
-      feeMin={practitioner.feeRange.min}
-      feeMax={practitioner.feeRange.max}
+      location={practitioner.location ?? ""}
+      timezone={practitioner.timezone}
       suggestedHandle={practitioner.slugChosenAt ? practitioner.slug : await suggestHandle(practitioner.fullName)}
       handleChosen={Boolean(practitioner.slugChosenAt)}
     />

@@ -3,7 +3,7 @@
 import { useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertTriangle, BadgeCheck, Clock, X, XCircle } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Clock, X } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import { isVerificationRejected } from "@/lib/verification";
 
@@ -74,9 +74,10 @@ function bannerFor(practitioner: Practitioner): BannerSpec | null {
   if (isVerificationRejected(practitioner)) {
     return {
       key: `rejected:${practitioner.verificationNote}`,
-      tone: "alert",
-      icon: <XCircle className="size-4 shrink-0" aria-hidden />,
-      text: <span className="min-w-0">Your verification wasn&apos;t approved: {practitioner.verificationNote}</span>,
+      tone: "accent",
+      icon: <AlertTriangle className="size-4 shrink-0" aria-hidden />,
+      // The admin's reason is on the Verification page, not repeated on every page.
+      text: "Your verification needs changes.",
       action: "Submit again",
     };
   }
@@ -86,7 +87,7 @@ function bannerFor(practitioner: Practitioner): BannerSpec | null {
       key: "held",
       tone: "alert",
       icon: <AlertTriangle className="size-4 shrink-0" aria-hidden />,
-      text: "Your profile access has been held — please verify your account to restore it.",
+      text: "Your profile access has been held. Please verify your account to restore it.",
       action: "Verify now",
     };
   }

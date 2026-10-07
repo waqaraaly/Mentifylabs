@@ -14,7 +14,7 @@ export function BookSessionButton() {
     <button
       type="button"
       onClick={openModal}
-      className="shrink-0 rounded-full bg-(--pt-accent) px-6 py-2.5 text-[15px] font-semibold whitespace-nowrap text-(--pt-accent-foreground) transition hover:bg-(--pt-accent-hover)"
+      className="shrink-0 rounded-full bg-(--pt-accent) px-4 py-2.5 text-[15px] sm:px-6 font-semibold whitespace-nowrap text-(--pt-accent-foreground) transition hover:bg-(--pt-accent-hover)"
     >
       Book a Session
     </button>

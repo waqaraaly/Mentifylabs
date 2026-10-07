@@ -1,4 +1,4 @@
-import { BadgeCheck, Clock, FileText, ShieldCheck, UploadCloud, XCircle } from "lucide-react";
+import { BadgeCheck, Clock, Download, ExternalLink, FileText, ShieldCheck, TriangleAlert, UploadCloud } from "lucide-react";
 import { getCurrentPractitioner } from "@/data/practitioners";
 import { getDocumentsByPractitioner } from "@/data/documents";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -45,22 +45,22 @@ export default async function VerificationPage() {
               <p className="font-medium">Under review</p>
               <p className="mt-1 text-sm leading-relaxed text-muted">
                 The MentifyLabs team is checking what you submitted. You&apos;ll see the verified badge on your public
-                profile as soon as it&apos;s approved — no action needed for now.
+                profile as soon as it&apos;s approved. No action is needed for now.
               </p>
             </div>
           </div>
         ) : rejected ? (
           <div className="flex items-start gap-3 px-6 py-6">
-            <XCircle className="mt-0.5 size-5 shrink-0 text-alert" aria-hidden />
+            <TriangleAlert className="mt-0.5 size-5 shrink-0 text-accent-strong" aria-hidden />
             <div className="min-w-0 flex-1">
-              <p className="font-medium text-alert">Not approved</p>
+              <p className="font-medium">Changes needed</p>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                The MentifyLabs team couldn&apos;t approve what you submitted. Review the reason below, then upload a new
-                document to submit again.
+                We couldn&apos;t verify this yet. See the reason below, then upload a new document to submit again.
               </p>
-              <p className="mt-3 rounded-lg bg-alert/[0.08] px-3.5 py-2.5 text-sm font-medium text-alert">
-                <strong>Reason:</strong> {practitioner.verificationNote}
-              </p>
+              <div className="mt-3 rounded-lg bg-black/[0.04] px-4 py-3">
+                <p className="text-xs font-medium tracking-[0.08em] text-muted uppercase">From the team</p>
+                <p className="mt-1 text-sm leading-relaxed">{practitioner.verificationNote}</p>
+              </div>
             </div>
           </div>
         ) : (
@@ -69,8 +69,8 @@ export default async function VerificationPage() {
             <div className="min-w-0 flex-1">
               <p className="font-medium">Verification needed</p>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                Upload one credential below — your degree, a professional license, or another certification — so the
-                MentifyLabs team can confirm who you are. Your public profile can&apos;t go live and you can&apos;t
+                Choose how you can verify yourself below, such as your license or degree, and add a document for each, so
+                the MentifyLabs team can confirm who you are. Your public profile can&apos;t go live and you can&apos;t
                 accept bookings until your credentials are approved and you publish it.
               </p>
             </div>
@@ -79,7 +79,7 @@ export default async function VerificationPage() {
       </SettingsCard>
 
       {practitioner.verificationStatus === "unverified" && (
-        <SettingsCard icon={<UploadCloud className="size-[18px]" aria-hidden />} title={rejected ? "Submit again" : "Upload a credential"}>
+        <SettingsCard icon={<UploadCloud className="size-[18px]" aria-hidden />} title={rejected ? "Submit again" : "Verify yourself"}>
           <VerificationUploadForm slug={practitioner.slug} />
         </SettingsCard>
       )}
@@ -91,12 +91,34 @@ export default async function VerificationPage() {
               <li key={d.id} className="flex items-center gap-3 px-6 py-4">
                 <FileText className="size-4 shrink-0 text-muted" aria-hidden />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{d.name}</p>
-                  <p className="text-xs text-muted">
-                    {d.category}
+                  <p className="text-sm font-semibold">{d.category}</p>
+                  <p className="truncate text-sm text-muted">
+                    {d.name}
                     {d.sizeBytes ? ` · ${formatFileSize(d.sizeBytes)}` : ""}
                   </p>
                 </div>
+                {d.hasFile && (
+                  <div className="flex shrink-0 items-center">
+                    <a
+                      href={`/documents/${d.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="View"
+                      className="flex size-11 items-center justify-center rounded-lg text-muted transition hover:bg-black/[0.05] hover:text-foreground"
+                    >
+                      <ExternalLink className="size-4" aria-hidden />
+                      <span className="sr-only">View {d.category}: {d.name}</span>
+                    </a>
+                    <a
+                      href={`/documents/${d.id}?download=1`}
+                      title="Download"
+                      className="flex size-11 items-center justify-center rounded-lg text-muted transition hover:bg-black/[0.05] hover:text-foreground"
+                    >
+                      <Download className="size-4" aria-hidden />
+                      <span className="sr-only">Download {d.category}: {d.name}</span>
+                    </a>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

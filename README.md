@@ -26,7 +26,15 @@ npm run user:create -- --email someone@example.com --role practitioner --practit
 
 Without `--remote` it writes to the local database; with it, to production. A strong password is generated and saved to `credentials.local.txt` (git-ignored), never printed. Running it again for the same email resets the password and signs out that account's sessions.
 
-Passwords are PBKDF2-hashed (`src/lib/password.ts`). Sessions are HttpOnly cookies whose SHA-256 is stored in D1 (`src/lib/session.ts`). Ten failed sign-ins lock an email for 15 minutes. Every admin page and action calls `requireAdmin()`; every dashboard action checks the slug and records it touches belong to the signed-in practitioner (`requireOwnSlug`).
+Passwords are PBKDF2-hashed (`src/lib/password.ts`). Sessions are HttpOnly cookies whose SHA-256 is stored in D1 (`src/lib/session.ts`). Ten failed sign-ins lock an email for 15 minutes. Every account, Super Admin or practitioner, can turn on **two-step sign-in** in Settings: after the password, a 6-digit code is emailed to the account and entered on `/login/verify` (one use, 10 minutes, 5 wrong guesses, tied to the browser that asked for it). Turning it on or off needs a code sent to the account's email, and turning it off also needs the password. A password-reset or email-confirmation link never signs in an account that has it on, so a link issued by a Super Admin can't skip the code. It is off by default (migration `0019`). Staging sends no email, so it can't be turned on there. If someone can't receive the code, `npm run user:create -- --email someone@example.com --reset-2fa [--remote]` turns it off for that account and changes nothing else. Every admin page and action calls `requireAdmin()`; every dashboard action checks the slug and records it touches belong to the signed-in practitioner (`requireOwnSlug`).
+
+## Time zones
+
+Every practitioner has a time zone (`practitioners.timezone`, a standard name such as `Asia/Karachi`; migration `0020`, default `Asia/Karachi`). New sign-ups get it from their device and can change it in Settings; it can only be changed while they have no upcoming sessions, so a booked time never changes meaning. Slots and appointments are stored as a plain date and time, meaning that time on the practitioner's own clock. The server runs on UTC and a browser on its owner's clock, so nothing may read the machine's own clock: `src/lib/time.ts` does all the zone work (`todayIn`, `wallClockIn`, `instantOf`, `isPastIn`) and every "now" or "today" takes a zone. `src/lib/timeZoneRules.test.ts` fails if portal, public-profile or data code goes back to `getHours()`, `todayIsoDate()` and the like.
+
+- **Practitioner portal and dashboard:** everything is on the practitioner's clock (`PortalTimeZoneProvider` makes it available to client components).
+- **Public profile:** the page is saved and reused for up to an hour, so conversion happens in the visitor's browser. Online sessions show on the visitor's clock (their device's zone, or one they pick with "Change"), with a short zone tag; sessions on-site stay on the practitioner's clock. Slots that have started are dropped on the practitioner's clock, on the server and again in the browser, and the booking itself refuses a slot that has started.
+- **Admin:** each appointment's time carries its practitioner's zone tag. Reports and profile stats count days in UTC.
 
 ## Email
 
@@ -43,7 +51,7 @@ Without it, emails are written to the server log instead. `mentifylabs.com` is v
 Files live in the R2 bucket `mentifylabs-uploads` (binding `UPLOADS`).
 
 - Profile photos are cropped to a square JPEG in the browser, stored under `photos/`, and served publicly from `/media/...` with long-term caching.
-- Verification documents (PDF, JPG, PNG or WebP, up to 10 MB) are uploaded from the practitioner's Settings page, stored under `documents/`, and served from `/documents/<id>` only to Super Admin and the practitioner who uploaded them.
+- Verification documents (PDF, JPG, PNG or WebP, up to 10 MB each, 30 MB per submission) are stored under `documents/` and served from `/documents/<id>` only to Super Admin and the practitioner who uploaded them. A practitioner verifies from the Verification page (and the onboarding step) by ticking one or more options (License, Degree, Professional membership, Experience letter, Other) and adding a file for each. Every ticked option must have a valid file; all are checked before anything is stored, then saved together and sent for review as one submission (`src/lib/credentialUploads.ts`). The list of options is `CREDENTIAL_TYPES` in `src/types/document.ts`; the database does not restrict it (migration `0021`).
 
 ## Caching
 

@@ -4,10 +4,12 @@ import type { ContactMethod, Practitioner } from "@/types/practitioner";
 import type { ColorThemeId } from "@/lib/themes";
 import { isSupportedSocialLink } from "@/lib/social";
 import { all, first, run } from "@/lib/db";
+import { countStoredDocuments } from "@/data/documents";
 import { photoKeyFromUrl } from "@/lib/storage";
 import { requireRole } from "@/lib/session";
 import { publishBlockReason } from "@/lib/verification";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
+import { zoneOrDefault } from "@/lib/time";
 import { STALE_HANDLE_DAYS, makePlaceholderSlug, validateHandleFormat } from "@/lib/handle";
 
 // Slugs a practitioner may not claim, since practitioners are served at the
@@ -48,19 +50,18 @@ interface PractitionerRow {
   photo_url: string | null;
   short_bio: string | null;
   bio: string;
-  note_for_clients: string | null;
   specializations: string;
   services: string;
   experience_years: number;
   education: string;
   work_experience: string | null;
-  certifications: string;
   languages: string;
   session_type: Practitioner["sessionType"];
   fee_currency: string;
   fee_min: number;
   fee_max: number;
   location: string | null;
+  timezone: string;
   social_links: string;
   website_url: string | null;
   contact_methods: string;
@@ -99,17 +100,16 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     photoUrl: opt(r.photo_url),
     shortBio: opt(r.short_bio),
     bio: r.bio,
-    noteForClients: opt(r.note_for_clients),
     specializations: json(r.specializations),
     services: json(r.services),
     experienceYears: r.experience_years,
     education: json(r.education),
     workExperience: r.work_experience === null ? undefined : json(r.work_experience),
-    certifications: json(r.certifications),
     languages: json(r.languages),
     sessionType: r.session_type,
     feeRange: { currency: r.fee_currency, min: r.fee_min, max: r.fee_max },
     location: opt(r.location),
+    timezone: zoneOrDefault(r.timezone),
     socialLinks: json(r.social_links),
     websiteUrl: opt(r.website_url),
     contactMethods: json(r.contact_methods),
@@ -141,16 +141,15 @@ const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "slugChosenAt" | "feeR
   photoUrl: ["photo_url"],
   shortBio: ["short_bio"],
   bio: ["bio"],
-  noteForClients: ["note_for_clients"],
   specializations: ["specializations", "json"],
   services: ["services", "json"],
   experienceYears: ["experience_years"],
   education: ["education", "json"],
   workExperience: ["work_experience", "json"],
-  certifications: ["certifications", "json"],
   languages: ["languages", "json"],
   sessionType: ["session_type"],
   location: ["location"],
+  timezone: ["timezone"],
   socialLinks: ["social_links", "json"],
   websiteUrl: ["website_url"],
   contactMethods: ["contact_methods", "json"],
@@ -198,11 +197,12 @@ function toColumns(updates: Partial<Omit<Practitioner, "slug">>): Record<string,
   return cols;
 }
 
-async function updateBySlug(slug: string, cols: Record<string, ColumnValue>): Promise<Practitioner | null> {
+/** `guard` is a fixed SQL condition (never user input) the row must still meet, so the check and the write are one statement. */
+async function updateBySlug(slug: string, cols: Record<string, ColumnValue>, guard?: string): Promise<Practitioner | null> {
   const names = Object.keys(cols);
   if (names.length === 0) return getPractitionerBySlug(slug);
   const row = await first<PractitionerRow>(
-    `UPDATE practitioners SET ${names.map((n) => `${n} = ?`).join(", ")} WHERE slug = ? RETURNING *`,
+    `UPDATE practitioners SET ${names.map((n) => `${n} = ?`).join(", ")} WHERE slug = ?${guard ? ` AND ${guard}` : ""} RETURNING *`,
     ...names.map((n) => cols[n]),
     slug,
   );
@@ -210,6 +210,12 @@ async function updateBySlug(slug: string, cols: Record<string, ColumnValue>): Pr
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * The state a decision needs (same rule as canDecideSubmission). Used inside the UPDATE itself: with two admins deciding
+ * at once, only the first statement changes the row and the second gets null back.
+ */
+const PENDING_AND_ACTIVE = "verification_status = 'pending' AND status = 'active'";
 
 export async function getAllPractitionerSlugs(): Promise<string[]> {
   const rows = await all<{ slug: string }>("SELECT slug FROM practitioners ORDER BY created_at");
@@ -283,13 +289,11 @@ export async function reactivatePractitioner(slug: string, goLive = false): Prom
  * Super Admin's one approval: marks the credentials verified. It never publishes. Going live is the practitioner's own step (publishOwnProfile).
  */
 export async function approveSubmission(slug: string): Promise<Practitioner | null> {
-  const current = await getPractitionerBySlug(slug);
-  if (!current) return null;
-  return updateBySlug(slug, {
-    verification_status: "verified",
-    verified_on: today(),
-    verification_note: null,
-  });
+  return updateBySlug(
+    slug,
+    { verification_status: "verified", verified_on: today(), verification_note: null },
+    PENDING_AND_ACTIVE,
+  );
 }
 
 export async function hideProfile(slug: string): Promise<Practitioner | null> {
@@ -335,8 +339,12 @@ export async function completeOnboarding(slug: string): Promise<void> {
   await updateBySlug(slug, { onboarded_at: new Date().toISOString() });
 }
 
-/** Submitting a verification document moves the request into Super Admin's review queue. */
+/**
+ * Submitting a verification document moves the request into Super Admin's review queue. There has to be a stored file
+ * to review: with none, nothing changes and this returns null, so a submission can never reach the queue empty.
+ */
 export async function submitVerification(slug: string): Promise<Practitioner | null> {
+  if ((await countStoredDocuments(slug)) === 0) return null;
   return updateBySlug(slug, {
     verification_status: "pending",
     verification_submitted_at: new Date().toISOString(),
@@ -344,14 +352,14 @@ export async function submitVerification(slug: string): Promise<Practitioner | n
   });
 }
 
-/** Sends the request back with feedback; the practitioner can resubmit. */
+/** Sends the request back with feedback; the practitioner can resubmit. Null when it is no longer waiting for a decision. */
 export async function rejectVerification(slug: string, note: string): Promise<Practitioner | null> {
   // The reason is optional for the admin, but a saved reason is what marks the submission as rejected, so it is never blank.
   return updateBySlug(slug, {
     verification_status: "unverified",
     verification_submitted_at: null,
     verification_note: note.trim() || DEFAULT_REJECTION_REASON,
-  });
+  }, PENDING_AND_ACTIVE);
 }
 
 /**
@@ -539,6 +547,23 @@ export async function getPublicPractitionerBySlug(slug: string): Promise<Practit
 export async function getOwnProfilePreview(slug: string): Promise<Practitioner | null> {
   const practitioner = await getPractitionerBySlug(slug);
   return practitioner ? sanitizeForProfilePage(practitioner) : null;
+}
+
+/**
+ * Whether this link has been claimed by an active account whose profile just isn't live yet. That is all it says: the
+ * public page uses it to show "not live yet" instead of "not found", and it returns nothing about the person. A link
+ * nobody has claimed, and a profile an admin suspended or took offline, are not "reserved": they stay "not found".
+ */
+export async function isReservedNotLive(slug: string): Promise<boolean> {
+  const p = await getPractitionerBySlug(slug);
+  return (
+    !!p &&
+    !!p.slugChosenAt &&
+    p.status === "active" &&
+    p.profileStatus !== "hidden" &&
+    p.profileStatus !== "suspended" &&
+    !isPubliclyVisible(p)
+  );
 }
 
 export async function getPublicPractitionerSlugs(): Promise<string[]> {

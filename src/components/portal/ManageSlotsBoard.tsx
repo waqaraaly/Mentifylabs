@@ -13,10 +13,11 @@ import { MonthWeekPicker } from "./MonthWeekPicker";
 import { WeeklyPatternGrid } from "./WeeklyPatternGrid";
 import { CustomDatesList } from "./CustomDatesList";
 import { slotChipClass } from "./slotStyles";
+import { usePortalTimeZone } from "./PortalTimeZone";
 import { sessionTypeLabel } from "@/lib/sessionType";
 import {
   AcceptingBookingsSwitch,
-  BookingsNotice,
+  BookingsError,
   useAcceptingBookings,
 } from "@/components/portal/AcceptingBookingsToggle";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -41,12 +42,14 @@ function SlotBlock({
   );
 
   if (slot.status === "booked") {
+    // A request nobody has answered yet holds the slot but is not a booking, so it is drawn differently.
+    const requested = appointment?.status === "pending";
     return (
       <button
         type="button"
         onClick={() => onViewAppointment(slot)}
-        title={appointment ? `View details for ${appointment.clientName}` : undefined}
-        className={`w-full shrink-0 rounded-lg px-2 py-2.5 text-center text-[12px] font-semibold whitespace-nowrap shadow-sm transition hover:brightness-105 ${slotChipClass(true)}`}
+        title={appointment ? `${requested ? "Request from" : "View details for"} ${appointment.clientName}` : undefined}
+        className={`w-full shrink-0 rounded-lg px-2 py-2.5 text-center text-[12px] font-semibold whitespace-nowrap transition hover:brightness-95 ${requested ? "" : "shadow-sm"} ${slotChipClass(true, requested)}`}
       >
         {label}
       </button>
@@ -112,6 +115,7 @@ export function ManageSlotsBoard({
   /** Each special date's non-blocked slots, keyed by date — used for the summary line. */
   customDateSlots: Record<string, Slot[]>;
 }) {
+  const zone = usePortalTimeZone();
   const bookings = useAcceptingBookings(acceptingBookings);
   const [manageDate, setManageDate] = useState<string | null>(null);
   const [manageDateLocked, setManageDateLocked] = useState(true);
@@ -150,7 +154,7 @@ export function ManageSlotsBoard({
             </button>
             <button
               type="button"
-              onClick={() => openDate(todayIsoDate(), false)}
+              onClick={() => openDate(todayIsoDate(zone), false)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
             >
               <Plus className="size-4" aria-hidden />
@@ -160,7 +164,7 @@ export function ManageSlotsBoard({
         }
       />
 
-      <BookingsNotice {...bookings} />
+      <BookingsError {...bookings} />
 
       {view === "week" ? (
         <div className={cardClass}>
@@ -195,6 +199,10 @@ export function ManageSlotsBoard({
               Booked
             </span>
             <span className="flex items-center gap-2">
+              <span className={`h-3 w-5 rounded-sm ${slotChipClass(true, true)}`} aria-hidden />
+              Requested
+            </span>
+            <span className="flex items-center gap-2">
               <span
                 className="h-3 w-5 rounded-sm ring-1 ring-border"
                 style={{ backgroundImage: "repeating-linear-gradient(135deg, color-mix(in srgb, var(--foreground) 7%, transparent) 0 6px, transparent 6px 12px)" }}
@@ -211,7 +219,7 @@ export function ManageSlotsBoard({
               {days.map(({ date, slots: allSlots }) => {
                 const slots = allSlots;
                 const cell = formatDayCell(date);
-                const today = isToday(date);
+                const today = isToday(date, zone);
                 const override = dayOverrideByDate.get(date);
 
                 return (
@@ -302,7 +310,7 @@ export function ManageSlotsBoard({
 
       {blockOpen && (
         <BlockDatesModal
-          initialDate={todayIsoDate()}
+          initialDate={todayIsoDate(zone)}
           practitionerSlug={practitionerSlug}
           onClose={() => setBlockOpen(false)}
         />

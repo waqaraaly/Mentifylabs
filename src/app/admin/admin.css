@@ -339,6 +339,11 @@
 .ml-admin .kpi { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
 .ml-admin .kpi-icon { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--ml-accent) 10%, transparent); color: var(--ml-accent); flex-shrink: 0; }
 .ml-admin .kpi-value { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.ml-admin .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); }
+.ml-admin .kpi-cell { padding: 24px 28px 26px; display: flex; flex-direction: column; gap: 14px; }
+.ml-admin .kpi-cell + .kpi-cell { border-left: 1px solid var(--ml-border-soft); }
+.ml-admin .kpi-heading { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--ml-ink); }
+.ml-admin .kpi-figure { font-size: 38px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; color: var(--ml-ink); }
 .ml-admin .stat-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ml-ink-muted); }
 .ml-admin .stat-label::before { content: ""; width: 2px; height: 12px; border-radius: 999px; background: var(--ml-accent); }
 .ml-admin .list-row { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid rgba(0, 0, 0, 0.06); }
@@ -346,7 +351,9 @@
 .ml-admin .card-head { padding: 20px 24px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 @media (max-width: 1100px) {
   .ml-admin .dash-grid { grid-template-columns: 1fr !important; }
-  .ml-admin .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .ml-admin .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  .ml-admin .kpi-cell:nth-child(odd) { border-left: none; }
+  .ml-admin .kpi-cell:nth-child(n + 3) { border-top: 1px solid var(--ml-border-soft); }
 }
 
 /* Profile review: the tabbed evidence on the left, a sticky decision panel on the right; stacked on small screens. */

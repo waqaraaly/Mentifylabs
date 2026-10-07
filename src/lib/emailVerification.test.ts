@@ -20,7 +20,7 @@ vi.mock("@/lib/notifications", () => ({
 import { randomBytes } from "node:crypto";
 import { first, run } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
-import { signIn, updateUserDetails } from "@/lib/session";
+import { changePassword, signIn, updateUserDetails, type SessionUser } from "@/lib/session";
 import {
   resendConfirmationForEmail,
   sendVerificationEmail,
@@ -156,10 +156,46 @@ describe("sending the link again", () => {
 });
 
 describe("changing the email address", () => {
+  const asUser = (u: { id: string; email: string; practitionerId: string | null }): SessionUser => ({ id: u.id, email: u.email, name: "Verify Tester", phone: "", role: "practitioner", practitionerId: u.practitionerId });
+
+  it("needs the current password, so a borrowed session can't point the account at another address", async () => {
+    const u = await makeUser({ verified: true });
+    const next = unique();
+    for (const currentPassword of [undefined, "", "wrong-password-1"]) {
+      const result = await updateUserDetails(asUser(u), { name: "Verify Tester", email: next, phone: "", currentPassword });
+      expect(result.ok).toBe(false);
+    }
+    expect(await userRow(u.id)).toMatchObject({ email: u.email, pending_email: null });
+  });
+
+  it("doesn't ask for it when the email stays the same", async () => {
+    const u = await makeUser({ verified: true });
+    const result = await updateUserDetails(asUser(u), { name: "New Name", email: u.email, phone: "0300" });
+    expect(result).toEqual({ ok: true, message: "Saved." });
+  });
+
+  it("stops letting the password be guessed after five wrong tries, even if the next one is right", async () => {
+    const u = await makeUser({ verified: true });
+    const next = unique();
+    for (let i = 0; i < 5; i++) {
+      const wrong = await updateUserDetails(asUser(u), { name: "Verify Tester", email: next, phone: "", currentPassword: `wrong-${i}-password` });
+      expect(wrong.message).toBe("Current password is incorrect.");
+    }
+    const blocked = await updateUserDetails(asUser(u), { name: "Verify Tester", email: next, phone: "", currentPassword: PASSWORD });
+    expect(blocked).toMatchObject({ ok: false, message: expect.stringMatching(/Too many wrong passwords/) });
+    expect(await userRow(u.id)).toMatchObject({ pending_email: null });
+  });
+
+  it("applies the same limit to changing the password", async () => {
+    const u = await makeUser({ verified: true });
+    for (let i = 0; i < 5; i++) await changePassword(asUser(u), `wrong-${i}-password`, "Another-pass-77");
+    expect(await changePassword(asUser(u), PASSWORD, "Another-pass-77")).toMatchObject({ ok: false, message: expect.stringMatching(/Too many wrong passwords/) });
+  });
+
   it("waits for confirmation: the sign-in address doesn't change until the new one is confirmed", async () => {
     const u = await makeUser({ verified: true });
     const next = unique();
-    const result = await updateUserDetails({ id: u.id, email: u.email, name: "Verify Tester", phone: "", role: "practitioner", practitionerId: u.practitionerId }, { name: "Verify Tester", email: next, phone: "" });
+    const result = await updateUserDetails({ id: u.id, email: u.email, name: "Verify Tester", phone: "", role: "practitioner", practitionerId: u.practitionerId }, { name: "Verify Tester", email: next, phone: "", currentPassword: PASSWORD });
     expect(result).toMatchObject({ ok: true, pendingEmail: next });
 
     expect(await userRow(u.id)).toMatchObject({ email: u.email, pending_email: next });
@@ -171,7 +207,7 @@ describe("changing the email address", () => {
   it("swaps the sign-in and practitioner email when the new address is confirmed", async () => {
     const u = await makeUser({ verified: true });
     const next = unique();
-    await updateUserDetails({ id: u.id, email: u.email, name: "Verify Tester", phone: "", role: "practitioner", practitionerId: u.practitionerId }, { name: "Verify Tester", email: next, phone: "" });
+    await updateUserDetails({ id: u.id, email: u.email, name: "Verify Tester", phone: "", role: "practitioner", practitionerId: u.practitionerId }, { name: "Verify Tester", email: next, phone: "", currentPassword: PASSWORD });
     await sendVerificationEmail(u.id, next, "Verify Tester", { newEmail: next });
 
     const result = await verifyEmailToken(tokenFrom(lastLinkFor(next)));
@@ -186,7 +222,7 @@ describe("changing the email address", () => {
     const u = await makeUser({ verified: true });
     const other = await makeUser({ verified: true });
     const next = unique();
-    await updateUserDetails({ id: u.id, email: u.email, name: "Verify Tester", phone: "", role: "practitioner", practitionerId: u.practitionerId }, { name: "Verify Tester", email: next, phone: "" });
+    await updateUserDetails({ id: u.id, email: u.email, name: "Verify Tester", phone: "", role: "practitioner", practitionerId: u.practitionerId }, { name: "Verify Tester", email: next, phone: "", currentPassword: PASSWORD });
     await sendVerificationEmail(u.id, next, "Verify Tester", { newEmail: next });
     await run("UPDATE users SET email = ? WHERE id = ?", next, other.id); // someone else got there first
 
@@ -197,7 +233,7 @@ describe("changing the email address", () => {
   it("won't switch to an address another account already uses", async () => {
     const u = await makeUser({ verified: true });
     const other = await makeUser({ verified: true });
-    const result = await updateUserDetails({ id: u.id, email: u.email, name: "Verify Tester", phone: "", role: "practitioner", practitionerId: u.practitionerId }, { name: "Verify Tester", email: other.email, phone: "" });
+    const result = await updateUserDetails({ id: u.id, email: u.email, name: "Verify Tester", phone: "", role: "practitioner", practitionerId: u.practitionerId }, { name: "Verify Tester", email: other.email, phone: "", currentPassword: PASSWORD });
     expect(result.ok).toBe(false);
   });
 });

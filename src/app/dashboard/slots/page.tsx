@@ -15,7 +15,7 @@ export default async function ManageSlotsPage({ searchParams }: Props) {
   // Keep the rolling calendar filled from her weekly pattern before we read it.
   await generateUpcomingSlots(practitioner.slug);
 
-  const today = todayIsoDate();
+  const today = todayIsoDate(practitioner.timezone);
   const params = await searchParams;
   const dateParam = Array.isArray(params.date) ? params.date[0] : params.date;
   const selectedDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today;

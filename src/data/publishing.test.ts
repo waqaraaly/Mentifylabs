@@ -199,3 +199,29 @@ describe("practitioners added by Super Admin", () => {
     expect((await publishOwnProfile(result.practitioner.slug)).ok).toBe(false);
   });
 });
+
+describe("two admins deciding on the same submission", () => {
+  it("only the first decision changes anything", async () => {
+    await setState({ status: "active", verification_status: "pending" });
+    expect(await approveSubmission(slug)).not.toBeNull();
+    // the second admin, still looking at the old page
+    expect(await rejectVerification(slug, "Too late")).toBeNull();
+    expect(await approveSubmission(slug)).toBeNull();
+    expect(await getPractitionerBySlug(slug)).toMatchObject({ verificationStatus: "verified", verificationNote: undefined });
+  });
+
+  it("a send-back is not overwritten by a later approval", async () => {
+    await setState({ status: "active", verification_status: "pending" });
+    expect(await rejectVerification(slug, "Blurry")).not.toBeNull();
+    expect(await approveSubmission(slug)).toBeNull();
+    expect(verificationState((await getPractitionerBySlug(slug))!)).toBe("rejected");
+  });
+
+  it("refuses a decision on a suspended account or one that never submitted", async () => {
+    await setState({ status: "suspended", verification_status: "pending" });
+    expect(await approveSubmission(slug)).toBeNull();
+    await setState({ status: "active", verification_status: "unverified", verification_note: null });
+    expect(await approveSubmission(slug)).toBeNull();
+    expect(await rejectVerification(slug, "x")).toBeNull();
+  });
+});

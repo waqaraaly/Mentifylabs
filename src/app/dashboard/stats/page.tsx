@@ -1,15 +1,17 @@
 import { BarChart3 } from "lucide-react";
 import { getCurrentPractitioner } from "@/data/practitioners";
-import { getProfileStats, STATS_RANGES, type StatsRange } from "@/data/profileStats";
+import { getProfileStats, STATS_RANGES, type StatsPeriod } from "@/data/profileStats";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProfileStatsReport } from "@/components/portal/ProfileStatsReport";
 import { RangeSelect } from "@/components/portal/RangeSelect";
 
 export const metadata = { title: "Profile stats" };
 
-function parseRange(value: string | string[] | undefined): StatsRange {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return (STATS_RANGES as readonly number[]).includes(n) ? (n as StatsRange) : 30;
+function parseRange(value: string | string[] | undefined): StatsPeriod {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === "all") return "all";
+  const n = Number(raw);
+  return (STATS_RANGES as readonly number[]).includes(n) ? (n as StatsPeriod) : 30;
 }
 
 export default async function StatsPage({ searchParams }: PageProps<"/dashboard/stats">) {
@@ -26,12 +28,15 @@ export default async function StatsPage({ searchParams }: PageProps<"/dashboard/
         actions={
           <RangeSelect
             value={range}
-            options={STATS_RANGES.map((r) => ({ value: r, label: `Last ${r} days`, href: `/dashboard/stats?range=${r}` }))}
+            options={[
+              ...STATS_RANGES.map((r) => ({ value: r, label: `Last ${r} days`, href: `/dashboard/stats?range=${r}` })),
+              { value: "all", label: "All time", href: "/dashboard/stats?range=all" },
+            ]}
           />
         }
       />
 
-      <ProfileStatsReport stats={stats} audience="practitioner" slug={practitioner.slug} />
+      <ProfileStatsReport stats={stats} audience="practitioner" />
     </div>
   );
 }

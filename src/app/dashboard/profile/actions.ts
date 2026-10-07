@@ -6,79 +6,12 @@ import { requireRole } from "@/lib/session";
 import { MAX_PHOTO_BYTES, PHOTO_TYPES, matchesFileSignature, photoKeyFromUrl, photoUrlFor, randomKeyPart, uploads } from "@/lib/storage";
 import { renamePractitionerSlug } from "@/data/rename";
 import { revalidateAdminViews } from "@/lib/revalidate";
-import { resolveCurrency } from "@/lib/currencies";
-import { SOCIAL_PLATFORMS } from "@/lib/social";
-import { DEFAULT_COLOR_THEME, isColorThemeId } from "@/lib/themes";
-import { safeHttpUrl } from "@/lib/url";
-import type { ContactMethod, SessionType, SocialLink } from "@/types/practitioner";
-
-/** Generous limits that still stop someone storing megabytes in a profile field. */
-const MAX = { name: 120, title: 120, shortBio: 300, bio: 5000, note: 1500, item: 200, items: 30, location: 160, currency: 6, years: 80 };
-
-const SESSION_TYPES: SessionType[] = ["online", "offline", "both"];
-
-const clip = (value: FormDataEntryValue | null, max: number) => value?.toString().trim().slice(0, max) ?? "";
-
-function stringList(formData: FormData, name: string): string[] {
-  return formData
-    .getAll(name)
-    .map((value) => value.toString().trim().slice(0, MAX.item))
-    .filter(Boolean)
-    .slice(0, MAX.items);
-}
+import { parseProfileForm } from "@/lib/profileForm";
 
 export async function updateProfileAction(formData: FormData) {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
-
-  const socialLinks: SocialLink[] = SOCIAL_PLATFORMS.flatMap(({ platform }) => {
-    const url = safeHttpUrl(formData.get(`social_${platform}`)?.toString());
-    return url ? [{ platform, url }] : [];
-  });
-
-  const contactLabels = formData.getAll("contactLabel").map((v) => v.toString());
-  const contactValues = formData.getAll("contactValue").map((v) => v.toString());
-  const contactPublic = formData.getAll("contactPublic").map((v) => v.toString());
-  const contactMethods: ContactMethod[] = contactLabels
-    .map((label, i) => ({
-      label: label.trim().slice(0, 40),
-      value: (contactValues[i] ?? "").trim().slice(0, 200),
-      isPublic: contactPublic[i] === "true",
-    }))
-    // Empty values are kept, so clearing a field doesn't fall back to the account's email/phone.
-    .filter((c) => c.label)
-    .slice(0, 10);
-
-  const feeMin = Math.max(0, Number(formData.get("feeMin")) || 0);
-  const feeMax = Math.max(0, Number(formData.get("feeMax")) || 0);
-
-  const requestedTheme = formData.get("colorTheme")?.toString();
-  const colorTheme = isColorThemeId(requestedTheme) ? requestedTheme : DEFAULT_COLOR_THEME;
-
-  await updatePractitionerProfile(slug, {
-    fullName: clip(formData.get("fullName"), MAX.name),
-    professionalTitle: clip(formData.get("professionalTitle"), MAX.title),
-    shortBio: clip(formData.get("shortBio"), MAX.shortBio) || undefined,
-    bio: clip(formData.get("bio"), MAX.bio),
-    noteForClients: clip(formData.get("noteForClients"), MAX.note) || undefined,
-    specializations: stringList(formData, "specializations"),
-    services: stringList(formData, "services"),
-    experienceYears: Math.min(MAX.years, Math.max(0, Math.trunc(Number(formData.get("experienceYears")) || 0))),
-    education: stringList(formData, "education"),
-    workExperience: stringList(formData, "workExperience"),
-    sessionType: SESSION_TYPES.includes(formData.get("sessionType") as SessionType) ? (formData.get("sessionType") as SessionType) : "both",
-    feeRange: {
-      // A valid choice, or the one already saved: a missing or odd value never resets it.
-      currency: resolveCurrency(formData.get("feeCurrency"), (await getCurrentPractitioner()).feeRange.currency),
-      // Tolerate the two being entered the wrong way round.
-      min: Math.min(feeMin, feeMax),
-      max: Math.max(feeMin, feeMax),
-    },
-    location: clip(formData.get("location"), MAX.location) || undefined,
-    socialLinks,
-    websiteUrl: safeHttpUrl(formData.get("websiteUrl")?.toString()),
-    contactMethods,
-    colorTheme,
-  });
+  // The form is read by the same function the live preview uses, so what Save keeps is exactly what the preview showed.
+  await updatePractitionerProfile(slug, parseProfileForm(formData, (await getCurrentPractitioner()).feeRange.currency));
 
   revalidatePath("/dashboard/profile");
   revalidatePath(`/${slug}`);
@@ -164,8 +97,13 @@ export async function checkHandleAction(handle: string): Promise<{ ok: boolean; 
   return result.ok ? { ok: true, message: "Available" } : { ok: false, message: result.message };
 }
 
-export async function updateSlugAction(currentSlug: string, nextSlug: string) {
-  await requireOwnSlug(currentSlug);
+/**
+ * Changes the signed-in practitioner's profile link. The current link comes from their session, not from the browser:
+ * until they have chosen one they only hold a hidden placeholder link, which the page doesn't know, so there is nothing
+ * for the browser to send (and nothing it could be trusted to send).
+ */
+export async function updateSlugAction(nextSlug: string) {
+  const currentSlug = (await getCurrentPractitioner()).slug;
   const result = await renamePractitionerSlug(currentSlug, nextSlug);
   if (result.ok) {
     revalidateAdminViews();

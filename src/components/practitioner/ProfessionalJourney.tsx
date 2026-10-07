@@ -38,7 +38,7 @@ function columnLeftEdges(n: number): number[] {
 
 function EntryText({ entry }: { entry: Entry }) {
   return (
-    <div>
+    <div className="[overflow-wrap:anywhere]">
       {entry.years && <p className="text-base tracking-[0.02em] text-(--pt-accent) sm:text-lg">{entry.years}</p>}
       <p className="mt-2 text-lg leading-snug text-(--pt-text) sm:text-xl">{entry.title}</p>
       {entry.subtitle && <p className="mt-1.5 text-base text-(--pt-muted) sm:text-lg">{entry.subtitle}</p>}

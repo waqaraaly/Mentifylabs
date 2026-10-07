@@ -25,7 +25,20 @@ function ActionButton({ label, onClick, children }: { label: string; onClick: ()
   );
 }
 
-export function SlugEditor({ slug, siteUrl, chosen = true, suggestion = "" }: { slug: string; siteUrl: string; chosen?: boolean; suggestion?: string }) {
+export function SlugEditor({
+  slug,
+  siteUrl,
+  chosen = true,
+  suggestion = "",
+  live = true,
+}: {
+  slug: string;
+  siteUrl: string;
+  chosen?: boolean;
+  suggestion?: string;
+  /** Whether the public page is live. Until it is, the link is reserved and opens a "not live yet" page. */
+  live?: boolean;
+}) {
   // Until they choose one, the practitioner has no link at all: the field starts open and empty (or with a suggestion).
   const [isChosen, setIsChosen] = useState(chosen);
   const [currentSlug, setCurrentSlug] = useState(chosen ? slug : "");
@@ -85,7 +98,7 @@ export function SlugEditor({ slug, siteUrl, chosen = true, suggestion = "" }: { 
       return;
     }
     startTransition(async () => {
-      const result = await updateSlugAction(currentSlug, next);
+      const result = await updateSlugAction(next);
       if (!result.ok) {
         setError(result.message);
         return;
@@ -134,7 +147,7 @@ export function SlugEditor({ slug, siteUrl, chosen = true, suggestion = "" }: { 
             spellCheck={false}
             autoCapitalize="none"
             autoComplete="off"
-            aria-label="Public URL slug"
+            aria-label="Public profile link"
             aria-invalid={error ? true : undefined}
             className="min-w-0 flex-1 bg-transparent py-1.5 text-sm font-medium outline-none disabled:opacity-60"
           />
@@ -166,23 +179,29 @@ export function SlugEditor({ slug, siteUrl, chosen = true, suggestion = "" }: { 
             <ActionButton label={copied ? "Copied" : "Copy link"} onClick={copy}>
               {copied ? <Check className="size-4 text-success" aria-hidden /> : <Copy className="size-4" aria-hidden />}
             </ActionButton>
+            {/* Always the real link, the same address that is copied and shown. Until the profile is live, it opens the
+                "not live yet" page clients would see. The private preview has its own button at the top of the page. */}
             <a
               href={`/${currentSlug}`}
               target="_blank"
               rel="noopener"
-              aria-label="Open your public page"
-              title="Open your public page"
+              aria-label={live ? "Open your public page" : "Open your link. It isn't live yet."}
+              title={live ? "Open your public page" : "Open your link. It isn't live yet."}
               className={iconButton}
             >
               <ExternalLink className="size-4" aria-hidden />
             </a>
-            <ActionButton label="Edit URL" onClick={startEditing}>
+            <ActionButton label="Edit link" onClick={startEditing}>
               <Pencil className="size-4" aria-hidden />
             </ActionButton>
           </>
         )}
         </div>
       </div>
+
+      {!editing && isChosen && !live && (
+        <p className="mt-2 text-xs text-muted">Reserved for you. It opens to clients once your profile is live.</p>
+      )}
 
       {editing && (
         <div className="mt-2 space-y-1.5 text-xs">

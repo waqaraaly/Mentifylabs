@@ -107,20 +107,41 @@ describe("who carries the appointments", () => {
     expect(r.concentration.top.map((t) => [t.slug, t.share])).toEqual([["a", 50], ["b", 30], ["c", 10], ["d", 10]]);
     expect(r.concentration.top3Share).toBe(90);
   });
+
+  it("lists the ten most requested practitioners, most requests first", () => {
+    const people = Array.from({ length: 12 }, (_, i) => live({ slug: `p${i}` }));
+    // p0 gets 12 requests, p1 gets 11, … p11 gets 1
+    const appts = people.flatMap((p, i) => Array.from({ length: 12 - i }, () => appointment(p.slug, 3)));
+    const r = report({ practitioners: people, appointments: appts });
+    expect(r.concentration.top).toHaveLength(10);
+    expect(r.concentration.top.map((t) => t.slug)).toEqual(people.slice(0, 10).map((p) => p.slug));
+    expect(r.concentration.top[0].count).toBe(12);
+  });
 });
 
 describe("lists that point at someone", () => {
-  it("lists live practitioners quiet for a month, longest first, and ignores the recently active", () => {
+  it("lists live practitioners who last signed in over a month ago, longest first", () => {
     const quiet = live({ slug: "quiet", lastSignIn: ago(50) });
     const quieter = live({ slug: "quieter", lastSignIn: ago(90) });
     const signedInLately = live({ slug: "lately", lastSignIn: ago(2) });
-    const hadAppointment = live({ slug: "booked", lastSignIn: ago(60) });
+    const justUnder = live({ slug: "under", lastSignIn: ago(29) });
     const notLive = practitioner({ slug: "draft", lastSignIn: ago(90) });
-    const r = report({
-      practitioners: [quiet, quieter, signedInLately, hadAppointment, notLive],
-      appointments: [appointment("booked", 5)],
-    });
+    const r = report({ practitioners: [quiet, quieter, signedInLately, justUnder, notLive] });
     expect(r.dormant.map((d) => d.slug)).toEqual(["quieter", "quiet"]);
+    expect(r.dormant[0].note).toBe("Last signed in 90 days ago");
+  });
+
+  it("goes by sign-in only: a recent appointment does not make a practitioner active", () => {
+    const booked = live({ slug: "booked", lastSignIn: ago(60) });
+    const r = report({ practitioners: [booked], appointments: [appointment("booked", 5)] });
+    expect(r.dormant.map((d) => d.slug)).toEqual(["booked"]);
+  });
+
+  it("measures someone with no recorded sign-in from the day they joined", () => {
+    const old = live({ slug: "old", dateJoined: ago(80).slice(0, 10) });
+    const fresh = live({ slug: "fresh", dateJoined: ago(5).slice(0, 10) });
+    const r = report({ practitioners: [old, fresh] });
+    expect(r.dormant).toEqual([expect.objectContaining({ slug: "old", note: "No sign-in recorded" })]);
   });
 
   it("lists live practitioners who never had an appointment", () => {
@@ -130,19 +151,72 @@ describe("lists that point at someone", () => {
     expect(r.liveNoAppointments.map((x) => x.slug)).toEqual(["b"]);
   });
 
-  it("lists active practitioners who are not live, with where they are stuck, and leaves out suspended ones", () => {
-    const awaiting = practitioner({ slug: "awaiting", verificationStatus: "pending" });
-    const suspended = practitioner({ slug: "suspended", status: "suspended" });
-    const r = report({ practitioners: [awaiting, suspended, live({ slug: "ok" })] });
-    expect(r.stuck).toEqual([expect.objectContaining({ slug: "awaiting", note: "Awaiting review" })]);
+});
+
+describe("who to follow up", () => {
+  const slugs = (rows: { slug: string }[]) => rows.map((x) => x.slug);
+
+  it("puts each active, not-live practitioner under the one step they are waiting on", () => {
+    const r = report({
+      practitioners: [
+        practitioner({ slug: "never", dateJoined: ago(12).slice(0, 10) }),
+        practitioner({ slug: "back", verificationNote: "Blurry" }),
+        practitioner({ slug: "unpublished", verificationStatus: "verified" }),
+        practitioner({ slug: "unconfirmed", emailUnconfirmed: true }),
+        practitioner({ slug: "awaiting", verificationStatus: "pending" }),
+        live({ slug: "ok" }),
+      ],
+      events: [{ slug: "back", kind: "verification_rejected", at: ago(3) }],
+    });
+    expect(r.notSubmitted).toEqual([expect.objectContaining({ slug: "never", note: "Joined 12 days ago" })]);
+    expect(r.sentBack).toEqual([expect.objectContaining({ slug: "back", note: "Sent back 3 days ago" })]);
+    expect(slugs(r.verifiedNotLive)).toEqual(["unpublished"]);
+    expect(r.cannotSignIn).toEqual([expect.objectContaining({ slug: "unconfirmed", note: "Email not confirmed" })]);
+  });
+
+  it("leaves out suspended accounts from every list", () => {
+    const r = report({ practitioners: [practitioner({ slug: "s", status: "suspended" }), practitioner({ slug: "s2", status: "suspended", verificationStatus: "verified" })] });
+    expect([r.notSubmitted, r.sentBack, r.verifiedNotLive, r.cannotSignIn, r.dormant, r.liveNoAppointments].flatMap(slugs)).toEqual([]);
+  });
+
+  it("says when a send-back has no recorded date instead of inventing one", () => {
+    const r = report({ practitioners: [practitioner({ slug: "old", verificationNote: "Blurry" })] });
+    expect(r.sentBack).toEqual([expect.objectContaining({ slug: "old", note: "Sent back" })]);
   });
 });
 
 describe("growth", () => {
-  it("has seven months, with how many of each month's joiners are live today", () => {
+  it("has twelve months, each with who joined and the running total", () => {
     const thisMonth = ago(1).slice(0, 10);
-    const r = report({ practitioners: [live({ dateJoined: thisMonth }), practitioner({ dateJoined: thisMonth })] });
-    expect(r.growth).toHaveLength(7);
-    expect(r.growth[6]).toMatchObject({ new: 2, active: 1 });
+    const longAgo = "2000-01-15";
+    const r = report({ practitioners: [practitioner({ dateJoined: longAgo }), live({ dateJoined: thisMonth }), practitioner({ dateJoined: thisMonth })] });
+    expect(r.growth).toHaveLength(12);
+    // Someone who joined years ago is already counted in the first month shown, and never counted as joining in it.
+    expect(r.growth[0]).toMatchObject({ joined: 0, total: 1 });
+    expect(r.growth[11]).toMatchObject({ joined: 2, total: 3 });
+  });
+  it("never goes down: the total only grows month to month", () => {
+    const r = report({ practitioners: [practitioner({ dateJoined: ago(1).slice(0, 10) }), practitioner({ dateJoined: ago(100).slice(0, 10) })] });
+    const totals = r.growth.map((g) => g.total);
+    expect(totals).toEqual([...totals].sort((a, b) => a - b));
+  });
+});
+
+describe("most visited profiles", () => {
+  it("ranks by visitors, most first, capped at ten, leaving out anyone with none or no longer on the platform", () => {
+    const people = Array.from({ length: 12 }, (_, i) => live({ slug: `v${i}`, fullName: `Name ${String(i).padStart(2, "0")}` }));
+    const counts = people.map((p, i) => ({ slug: p.slug, visitors: 12 - i })); // v0 has 12 visitors … v11 has 1
+    const r = report({
+      practitioners: people,
+      practitionerVisitors: [...counts, { slug: "gone", visitors: 99 }],
+    });
+    expect(r.mostVisited).toHaveLength(10);
+    expect(r.mostVisited[0]).toMatchObject({ slug: "v0", note: "12 visitors" });
+    expect(r.mostVisited.map((x) => x.slug)).not.toContain("gone");
+  });
+
+  it("is empty when nobody has visited, and uses the singular for one visitor", () => {
+    expect(report({ practitioners: [live({ slug: "a" })], practitionerVisitors: [{ slug: "a", visitors: 0 }] }).mostVisited).toEqual([]);
+    expect(report({ practitioners: [live({ slug: "a" })], practitionerVisitors: [{ slug: "a", visitors: 1 }] }).mostVisited[0].note).toBe("1 visitor");
   });
 });

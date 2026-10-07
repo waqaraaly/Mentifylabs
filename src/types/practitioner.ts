@@ -46,8 +46,6 @@ export interface Practitioner {
   /** One-line summary shown under the name on the public profile hero. */
   shortBio?: string;
   bio: string;
-  /** A short personal note shown in a highlighted section at the end of the public profile. */
-  noteForClients?: string;
   specializations: string[];
   /** The kinds of sessions/services offered, e.g. "Individual Therapy", "Couples Counselling". */
   services: string[];
@@ -55,13 +53,14 @@ export interface Practitioner {
   education: string[];
   /** "Role, Organization, Years" — same free-form shape as `education`. */
   workExperience?: string[];
-  certifications: string[];
   languages: string[];
   sessionType: SessionType;
   /** One general fee range, independent of session mode (0 = not set). */
   feeRange: { currency: string; min: number; max: number };
   /** Where in-person sessions are held (clinic, hospital or city). Only set for on-site / both. */
   location?: string;
+  /** The clock this practitioner works on, as a zone name like "Asia/Karachi". Their slots and sessions are times on it. */
+  timezone: string;
   socialLinks: SocialLink[];
   websiteUrl?: string;
   contactMethods: ContactMethod[];

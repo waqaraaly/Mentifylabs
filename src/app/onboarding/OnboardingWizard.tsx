@@ -1,18 +1,17 @@
 "use client";
 
-import { type KeyboardEvent, useRef, useState, useTransition } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import { Paperclip } from "lucide-react";
-import { EditableList } from "@/components/portal/EditableList";
+import { CredentialPicker, useCredentialPicker } from "@/components/portal/CredentialPicker";
 import { LoadingOverlay } from "@/components/ui/BrainLoader";
-import { formatFileSize } from "@/lib/format";
-import { siteConfig } from "@/lib/site";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
-import { currencyOptions } from "@/lib/currencies";
-import { DOCUMENT_CATEGORIES } from "@/types/document";
+import { siteConfig } from "@/lib/site";
+import { offsetLabel, timeZoneOptions } from "@/lib/time";
+import { useDeviceTimeZone } from "@/lib/useDeviceTimeZone";
 import type { SessionType } from "@/types/practitioner";
 import { checkHandleAction } from "@/app/dashboard/profile/actions";
-import { claimHandleAction, finishOnboardingAction, skipOnboardingAction } from "./actions";
+import { claimHandleAction, finishOnboardingAction, skipOnboardingAction, suggestHandleAction } from "./actions";
+import { PUBLIC_NAME_MAX } from "@/lib/publicName";
 
 const SESSION_OPTIONS: { value: SessionType; label: string }[] = [
   { value: "online", label: "Online sessions" },
@@ -20,10 +19,13 @@ const SESSION_OPTIONS: { value: SessionType; label: string }[] = [
   { value: "both", label: "Both" },
 ];
 
-const STEP_COUNT = 7;
-
-/** The step where they choose their profile link. */
-const HANDLE_STEP = 5;
+/**
+ * The steps in order, by name rather than number, so one can be left out: the location step only applies to sessions in
+ * person. After the last of these comes the closing screen. Setup is only the essentials; the rest of the profile
+ * (photo, About me, expertise, services, education, experience, fee, weekly hours) is done from the dashboard checklist.
+ */
+type StepId = "name" | "title" | "mode" | "location" | "zone" | "link" | "credentials";
+const STEP_ORDER: StepId[] = ["name", "title", "mode", "location", "zone", "link", "credentials"];
 
 const headingClass = "text-3xl leading-tight font-semibold sm:text-[40px]";
 const subtitleClass = "mt-3 max-w-lg text-[15px] leading-relaxed text-muted";
@@ -54,30 +56,31 @@ function PendingOverlay() {
 
 export function OnboardingWizard({
   slug,
-  firstName,
+  fullName: initialName,
   professionalTitle,
-  shortBio,
-  specializations,
   sessionType,
-  feeCurrency,
-  feeMin,
-  feeMax,
+  location: initialLocation,
+  timezone,
   suggestedHandle,
   handleChosen,
 }: {
   slug: string;
-  firstName: string;
+  fullName: string;
   professionalTitle: string;
-  shortBio: string;
-  specializations: string[];
   sessionType: SessionType;
-  feeCurrency: string;
-  feeMin: number;
-  feeMax: number;
+  location: string;
+  timezone: string;
   suggestedHandle: string;
   handleChosen: boolean;
 }) {
   const [step, setStep] = useState(0);
+  // They land on a welcome first: set up the profile now (step 1), or skip to the portal.
+  const [welcome, setWelcome] = useState(true);
+  const nameInput = useRef<HTMLInputElement>(null);
+  // The name clients see. The link suggested on the link step follows it until they type a link of their own.
+  const [fullName, setFullName] = useState(initialName);
+  const [handleEdited, setHandleEdited] = useState(false);
+  const firstName = fullName.trim().split(" ")[0] || "there";
   // The record's slug changes when they choose a link, and the rest of the form still has to refer to it.
   const [currentSlug, setCurrentSlug] = useState(slug);
   const [handle, setHandle] = useState(suggestedHandle);
@@ -85,17 +88,62 @@ export function OnboardingWizard({
   const [claiming, startClaim] = useTransition();
   const handleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedSessionType, setSelectedSessionType] = useState<SessionType>(sessionType);
-  const [category, setCategory] = useState("");
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileSize, setFileSize] = useState<number | undefined>(undefined);
+  const [location, setLocation] = useState(initialLocation);
+  const [zone, setZone] = useState(timezone);
+  const deviceZone = useDeviceTimeZone();
+  // Until the full list is ready the dropdown knows just their own zone. Working out every zone's offset takes real time,
+  // so it is done when the browser is idle, shortly after the page appears, not while the wizard is loading.
+  const [zoneOptions, setZoneOptions] = useState(() => [{ value: timezone, label: `${timezone.replace(/_/g, " ")} (${offsetLabel(timezone)})` }]);
+  useEffect(() => {
+    const build = () => {
+      const options = timeZoneOptions();
+      // The saved zone is always in the list, even if the platform's own list somehow lacks it.
+      setZoneOptions(options.some((o) => o.value === timezone) ? options : [{ value: timezone, label: timezone }, ...options]);
+    };
+    if (typeof requestIdleCallback === "function") {
+      const handle = requestIdleCallback(build, { timeout: 2500 });
+      return () => cancelIdleCallback(handle);
+    }
+    const handle = setTimeout(build, 600);
+    return () => clearTimeout(handle);
+  }, [timezone]);
 
-  const next = () => setStep((s) => Math.min(s + 1, STEP_COUNT));
+  // The steps they will see: location is only asked for when they see clients in person. `step` counts through this list.
+  const sequence = STEP_ORDER.filter((id) => id !== "location" || selectedSessionType !== "online");
+  const total = sequence.length;
+  const current: StepId | "done" = step >= total ? "done" : sequence[step];
+  // Which ways of verifying are ticked, and the file for each. All of it posts with the form when they finish.
+  const picker = useCredentialPicker();
+
+  const next = () => setStep((s) => Math.min(s + 1, total));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
-  // Moving on from the link step saves their choice first. Leaving it blank is fine: they can choose later.
+  // Moving on from the name step: if they changed the name and haven't picked a link yet, suggest one that fits it.
+  const continueFromName = () => {
+    if (!fullName.trim()) return;
+    if (handleChosen || handleEdited || fullName.trim() === initialName.trim()) {
+      next();
+      return;
+    }
+    startClaim(async () => {
+      const suggestion = await suggestHandleAction(fullName);
+      if (suggestion) {
+        setHandle(suggestion);
+        setHandleStatus(null);
+      }
+      next();
+    });
+  };
+
+  // Moving on from the link step saves their choice first. Leaving it blank is fine if they haven't chosen one yet: they can
+  // choose later. A link they already have can be changed here too, but not emptied.
   const continueFromHandle = () => {
     const wanted = handle.trim();
-    if (!wanted || handleChosen) {
+    if (!wanted && handleChosen) {
+      setHandleStatus({ ok: false, message: "Your profile link can't be blank." });
+      return;
+    }
+    if (!wanted || (handleChosen && wanted === currentSlug)) {
       next();
       return;
     }
@@ -112,6 +160,7 @@ export function OnboardingWizard({
   };
 
   const onHandleChange = (value: string) => {
+    setHandleEdited(true);
     const cleaned = value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-{2,}/g, "-");
     setHandle(cleaned);
     setHandleStatus(null);
@@ -123,7 +172,8 @@ export function OnboardingWizard({
   const advanceOnEnter = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (step === HANDLE_STEP) continueFromHandle();
+      if (current === "name") continueFromName();
+      else if (current === "link") continueFromHandle();
       else next();
     }
   };
@@ -153,14 +203,13 @@ export function OnboardingWizard({
           className="flex min-w-0 flex-1 flex-col bg-surface"
           onKeyDown={(e) => {
             // Enter shouldn't submit the whole form early from an earlier step's input.
-            if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA" && step < STEP_COUNT - 1) {
+            if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA" && step < total - 1) {
               e.preventDefault();
             }
           }}
         >
           <input type="hidden" name="slug" value={currentSlug} />
           <input type="hidden" name="sessionType" value={selectedSessionType} />
-          <input type="hidden" name="verificationCategory" value={category} />
           <PendingOverlay />
 
           {/* Three fixed regions — header, step body, footer — so every step
@@ -169,7 +218,7 @@ export function OnboardingWizard({
             {/* eslint-disable-next-line @next/next/no-img-element -- static local SVG, no optimization needed */}
             <img src="/brand/mentifylabs-logo.svg" alt={siteConfig.name} className="h-7 w-auto" />
             {/* Exits the whole flow, kept visually separate from the per-step Back/Continue pair below. */}
-            {step < STEP_COUNT && (
+            {!welcome && current !== "done" && (
               <button
                 type="submit"
                 formAction={skipOnboardingAction}
@@ -180,10 +229,10 @@ export function OnboardingWizard({
             )}
           </header>
 
-          {step < STEP_COUNT && (
+          {!welcome && current !== "done" && (
             <div className="shrink-0 px-6 pt-7 sm:px-14">
               <div className="flex gap-1.5">
-                {Array.from({ length: STEP_COUNT }, (_, i) => (
+                {Array.from({ length: total }, (_, i) => (
                   <div key={i} className="h-[3px] flex-1 rounded-full bg-black/[0.08]">
                     <div
                       className="h-full rounded-full bg-primary transition-all"
@@ -193,49 +242,83 @@ export function OnboardingWizard({
                 ))}
               </div>
               <p className="mt-3 text-xs font-medium tracking-wide text-muted uppercase">
-                Step {step + 1} of {STEP_COUNT}
+                Step {step + 1} of {total}
               </p>
             </div>
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-6 py-6 sm:px-14">
-            <div className="w-full max-w-xl">
-              <Step show={step === 0}>
+          {/* Centred with auto margins rather than justify-center: when a step is taller than the screen it scrolls from its top, instead of being cut off above. */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-6 sm:px-14">
+            <div className="my-auto w-full max-w-xl">
+              {welcome && (
+                <div>
+                  <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">Quick setup</p>
+                  <h1 className="mt-4 text-[40px] leading-[1.08] font-semibold sm:text-[56px]">
+                    Welcome, {firstName}.
+                  </h1>
+                  <p className="mt-7 max-w-md text-[17px] leading-relaxed text-muted">
+                    Your public profile is how clients find and book you. A few short questions and it&apos;s started. You can
+                    change any of it later.
+                  </p>
+
+                  <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWelcome(false);
+                        requestAnimationFrame(() => nameInput.current?.focus());
+                      }}
+                      className="rounded-xl bg-primary px-8 py-3.5 text-[15px] font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+                    >
+                      Set up my profile →
+                    </button>
+                    <button
+                      type="submit"
+                      formAction={skipOnboardingAction}
+                      className="text-sm font-medium text-muted underline decoration-muted/40 underline-offset-4 transition hover:text-foreground"
+                    >
+                      Skip for now
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* The steps stay mounted while the welcome shows (just hidden), so no answer is ever dropped from the form. */}
+              <div className={welcome ? "hidden" : ""}>
+              <Step show={current === "name"}>
+                <h1 className={headingClass}>What name goes on your public profile?</h1>
+                <input
+                  name="fullName"
+                  ref={nameInput}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  onKeyDown={advanceOnEnter}
+                  autoFocus
+                  maxLength={PUBLIC_NAME_MAX}
+                  autoComplete="name"
+                  aria-label="Your name"
+                  placeholder="e.g. Dr. Ayesha Khan"
+                  className={`mt-8 ${fieldInputClass}`}
+                />
+              </Step>
+
+              <Step show={current === "title"}>
                 <h1 className={headingClass}>What&apos;s your professional title?</h1>
                 <input
                   name="professionalTitle"
                   defaultValue={professionalTitle}
                   onKeyDown={advanceOnEnter}
-                  autoFocus
                   placeholder="e.g. Clinical Psychologist"
                   className={`mt-8 ${fieldInputClass}`}
                 />
               </Step>
 
-              <Step show={step === 1}>
-                <h1 className={headingClass}>Sum yourself up in one line.</h1>
-                <input
-                  name="shortBio"
-                  defaultValue={shortBio}
-                  onKeyDown={advanceOnEnter}
-                  placeholder="Helping clients build calmer daily routines"
-                  className={`mt-8 ${fieldInputClass}`}
-                />
-              </Step>
 
-              <Step show={step === 2}>
-                <h1 className={headingClass}>What do you help with?</h1>
-                <div className="mt-8">
-                  <EditableList
-                    name="specializations"
-                    initialItems={specializations}
-                    placeholder="e.g. Anxiety"
-                    chipClassName="bg-primary/[0.1] text-primary"
-                  />
-                </div>
-              </Step>
 
-              <Step show={step === 3}>
+
+
+
+              <Step show={current === "mode"}>
                 <h1 className={headingClass}>How do you see clients?</h1>
                 <div className="mt-8 flex flex-col gap-3 sm:max-w-sm">
                   {SESSION_OPTIONS.map(({ value, label }) => (
@@ -255,53 +338,47 @@ export function OnboardingWizard({
                 </div>
               </Step>
 
-              <Step show={step === 4}>
-                <h1 className={headingClass}>What do you charge?</h1>
-                <p className={subtitleClass}>Per session. Pick your currency, then your range. You can leave this for now.</p>
-                <div className="mt-8 sm:max-w-sm">
-                  <span className="text-sm text-muted">Currency</span>
-                  <ThemedSelect
-                    name="feeCurrency"
-                    ariaLabel="Currency"
-                    openUp
-                    defaultValue={feeCurrency}
-                    options={currencyOptions(feeCurrency)}
-                    triggerClassName="flex w-full items-center border-0 border-b-2 border-foreground bg-transparent py-2.5 text-left text-2xl sm:text-[28px]"
-                  />
-                </div>
-                <div className="mt-8 grid grid-cols-2 gap-8 sm:max-w-sm">
-                  <div>
-                    <label htmlFor="feeMin" className="text-sm text-muted">
-                      Minimum
-                    </label>
-                    <input
-                      id="feeMin"
-                      name="feeMin"
-                      type="number"
-                      min={0}
-                      defaultValue={feeMin || ""}
-                      onKeyDown={advanceOnEnter}
-                      className={fieldInputClass}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="feeMax" className="text-sm text-muted">
-                      Maximum
-                    </label>
-                    <input
-                      id="feeMax"
-                      name="feeMax"
-                      type="number"
-                      min={0}
-                      defaultValue={feeMax || ""}
-                      onKeyDown={advanceOnEnter}
-                      className={fieldInputClass}
-                    />
-                  </div>
-                </div>
+              <Step show={current === "location"}>
+                <h1 className={headingClass}>Where do you see clients in person?</h1>
+                <input
+                  name="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  onKeyDown={advanceOnEnter}
+                  maxLength={160}
+                  autoComplete="off"
+                  aria-label="Location"
+                  placeholder="Clinic name, area, city"
+                  className={`mt-8 ${fieldInputClass}`}
+                />
               </Step>
 
-              <Step show={step === HANDLE_STEP}>
+              <Step show={current === "zone"}>
+                <h1 className={headingClass}>What time zone are you in?</h1>
+                {/* Our own dropdown, not the browser's: compact, in our colours, and its list is as wide as the button and short enough to stay above the footer. */}
+                <div className="mt-8 w-full max-w-sm">
+                  <ThemedSelect
+                    name="timezone"
+                    ariaLabel="Time zone"
+                    value={zone}
+                    onChange={setZone}
+                    listMaxHeightClass="max-h-44"
+                    options={zoneOptions}
+                    triggerClassName="inline-flex w-full max-w-sm cursor-pointer items-center gap-3 rounded-lg bg-surface py-2.5 pr-3.5 pl-4 text-left text-sm font-medium ring-1 ring-black/[0.14] transition hover:bg-black/[0.03]"
+                  />
+                </div>
+                {deviceZone && deviceZone !== zone && (
+                  <p className="mt-3 text-sm text-muted">
+                    This device is set to <span className="font-medium text-foreground">{deviceZone.replace(/_/g, " ")}</span>.{" "}
+                    <button type="button" onClick={() => setZone(deviceZone)} className="font-medium text-primary hover:underline">
+                      Use it
+                    </button>
+                  </p>
+                )}
+              </Step>
+
+
+              <Step show={current === "link"}>
                 <h1 className={headingClass}>Choose your profile link.</h1>
                 <p className={subtitleClass}>
                   This is the address clients will use to find and book you.
@@ -309,10 +386,10 @@ export function OnboardingWizard({
                 <div className="mt-8 flex items-baseline gap-1 border-b-2 border-foreground">
                   <span className="shrink-0 text-xl text-muted sm:text-2xl">{siteConfig.url.replace(/^https?:\/\//, "")}/</span>
                   <input
-                    value={handleChosen ? currentSlug : handle}
+                    value={handle}
                     onChange={(e) => onHandleChange(e.target.value)}
                     onKeyDown={advanceOnEnter}
-                    disabled={handleChosen || claiming}
+                    disabled={claiming}
                     spellCheck={false}
                     autoCapitalize="none"
                     autoComplete="off"
@@ -326,68 +403,31 @@ export function OnboardingWizard({
                 </p>
               </Step>
 
-              <Step show={step === 6}>
+              <Step show={current === "credentials"}>
                 <h1 className={headingClass}>Verify your credentials.</h1>
                 <p className={subtitleClass}>
-                  Upload a degree, license or certification so clients see you&apos;re verified.
+                  Tick the ways you can verify yourself and add a file for each. You can also do this later.
                 </p>
 
-                {/* Compact on purpose: a 2×2 grid plus a single file row keeps
-                    this step the same height as the others. */}
-                <div className="mt-6 grid grid-cols-2 gap-3">
-                  {DOCUMENT_CATEGORIES.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      role="radio"
-                      aria-checked={category === c}
-                      onClick={() => setCategory(c)}
-                      className={`${optionClass} px-4 py-3 text-sm ${category === c ? optionActiveClass : optionIdleClass}`}
-                    >
-                      {c}
-                    </button>
-                  ))}
+                {/* Tall lists scroll inside the step, so this step stays the same height as the others. */}
+                <div className="themed-scrollbar mt-6 max-h-[19rem] overflow-y-auto pr-1">
+                  <CredentialPicker picker={picker} tone="wizard" />
                 </div>
-
-                <label
-                  htmlFor="verificationFile"
-                  className="mt-3 flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed border-border px-4 py-3.5 text-sm transition focus-within:border-primary hover:border-primary/40 hover:bg-black/[0.02]"
-                >
-                  <Paperclip className="size-4 shrink-0 text-muted" aria-hidden />
-                  {fileName ? (
-                    <span className="min-w-0 flex-1 truncate">
-                      {fileName}
-                      {fileSize ? <span className="text-muted"> · {formatFileSize(fileSize)}</span> : null}
-                    </span>
-                  ) : (
-                    <span className="text-muted">Choose a file — PDF, JPG, PNG or WebP</span>
-                  )}
-                </label>
-                <input
-                  id="verificationFile"
-                  name="verificationFile"
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png,image/webp"
-                  className="sr-only"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    setFileName(file?.name ?? null);
-                    setFileSize(file?.size);
-                  }}
-                />
               </Step>
 
-              <Step show={step === STEP_COUNT}>
+              <Step show={current === "done"}>
                 <h1 className={headingClass}>You&apos;re set, {firstName}.</h1>
                 <p className={subtitleClass}>
-                  Your workspace is ready. You can refine your public profile any time from Settings.
+                  Your workspace is ready. Your dashboard has a short checklist for finishing your profile: photo, About me, services, hours and the rest.
                 </p>
               </Step>
+              </div>
             </div>
           </div>
 
+          {!welcome && (
           <footer className="flex shrink-0 items-center justify-between border-t border-border px-6 py-6 sm:px-14">
-            {step > 0 && step < STEP_COUNT ? (
+            {step > 0 && current !== "done" ? (
               <button
                 type="button"
                 onClick={back}
@@ -398,11 +438,11 @@ export function OnboardingWizard({
             ) : (
               <span />
             )}
-            {step < STEP_COUNT ? (
+            {current !== "done" ? (
               <button
                 type="button"
-                onClick={step === HANDLE_STEP ? continueFromHandle : next}
-                disabled={claiming || (step === HANDLE_STEP && handleStatus?.ok === false)}
+                onClick={current === "name" ? continueFromName : current === "link" ? continueFromHandle : next}
+                disabled={claiming || (current === "name" && !fullName.trim()) || (current === "link" && handleStatus?.ok === false) || (current === "credentials" && (picker.incomplete || !!picker.problem))}
                 className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
               >
                 {claiming ? "Saving…" : "Continue →"}
@@ -416,6 +456,7 @@ export function OnboardingWizard({
               </button>
             )}
           </footer>
+          )}
         </form>
       </main>
     </div>

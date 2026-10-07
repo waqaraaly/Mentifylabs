@@ -9,6 +9,7 @@ import { Badge } from "./ui/Badge";
 import { FilterSelect } from "./ui/Inputs";
 import { EmptyState, Modal } from "./ui/Overlays";
 import { Row } from "./ui/Detail";
+import { DEFAULT_TIMEZONE, instantOf, zoneTag } from "@/lib/time";
 import { TopBar } from "./TopBar";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -32,6 +33,11 @@ export function AppointmentsView({
   const [openId, setOpenId] = useState<string | null>(null);
 
   const byPractitioner = useMemo(() => new Map(practitioners.map((p) => [p.slug, p])), [practitioners]);
+  // Times are on each practitioner's own clock, so each carries its zone tag ("PKT", "EDT") to say whose.
+  const tagOf = (b: Appointment) => {
+    const zone = byPractitioner.get(b.practitionerSlug)?.timezone ?? DEFAULT_TIMEZONE;
+    return zoneTag(zone, instantOf(b.date, b.startTime, zone));
+  };
 
   // The numbers follow the practitioner chosen, so picking one shows just their appointments.
   const forPractitioner = useMemo(
@@ -117,7 +123,7 @@ export function AppointmentsView({
                       <tr key={b.id} style={{ cursor: "default" }}>
                         <td style={{ fontWeight: 500, color: "var(--ml-ink)" }}>{byPractitioner.get(b.practitionerSlug)?.fullName ?? b.practitionerSlug}</td>
                         <td className="tnum" style={{ whiteSpace: "nowrap" }}>{day(b.date)}</td>
-                        <td className="tnum" style={{ whiteSpace: "nowrap" }}>{b.startTime}–{b.endTime}</td>
+                        <td className="tnum" style={{ whiteSpace: "nowrap" }}>{b.startTime}–{b.endTime} <span style={{ color: "var(--ml-ink-muted)" }}>{tagOf(b)}</span></td>
                         <td><Badge kind={b.status} /></td>
                         <td style={{ textAlign: "right", paddingRight: 18 }}>
                           <button className="btn btn-lg btn-primary" onClick={() => setOpenId(b.id)}>View</button>
@@ -145,7 +151,7 @@ export function AppointmentsView({
             </Row>
             {openPractitioner?.professionalTitle && <Row label="Title">{openPractitioner.professionalTitle}</Row>}
             <Row label="Date"><span className="tnum">{day(open.date)}</span></Row>
-            <Row label="Time"><span className="tnum">{open.startTime}–{open.endTime}</span></Row>
+            <Row label="Time"><span className="tnum">{open.startTime}–{open.endTime} <span style={{ color: "var(--ml-ink-muted)" }}>{tagOf(open)}</span></span></Row>
             <Row label="Mode">
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 {open.sessionType === "online" ? <Video size={14} /> : <MapPin size={14} />}

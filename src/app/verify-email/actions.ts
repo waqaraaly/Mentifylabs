@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { resendConfirmationForEmail, verifyEmailToken } from "@/lib/emailVerification";
 import { clientIp, isLimited, recordHit } from "@/lib/rateLimit";
-import { homeFor, startSession } from "@/lib/session";
+import { homeFor, startSession, twoFactorEnabledFor } from "@/lib/session";
 
 export interface ConfirmState {
   error?: string;
@@ -14,6 +14,8 @@ export async function confirmEmailAction(_prev: ConfirmState, formData: FormData
   const result = await verifyEmailToken(formData.get("token")?.toString() ?? "");
   if (!result.ok) return { error: result.message };
 
+  // Confirming an address doesn't replace the emailed code for an account with two-step sign-in.
+  if (await twoFactorEnabledFor(result.userId)) redirect("/login");
   await startSession(result.userId);
   redirect(homeFor(result.role));
 }
