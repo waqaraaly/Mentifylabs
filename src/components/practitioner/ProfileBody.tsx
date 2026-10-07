@@ -10,8 +10,8 @@ import { WavyUnderline } from "@/components/ui/WavyUnderline";
 
 /**
  * Everything on a public profile between the top bar and the footer: the hero, About me with the contact card, areas of
- * expertise, services and the timeline. The live page, the private preview and the editor's live preview all draw it
- * with this one component, so they cannot drift apart.
+ * expertise, services and the timeline. The live page and the private preview both draw it with this one component, so
+ * they cannot drift apart.
  */
 export function ProfileBody({ practitioner }: { practitioner: Practitioner }) {
   return (

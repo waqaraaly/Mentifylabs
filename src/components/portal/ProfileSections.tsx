@@ -34,8 +34,8 @@ export function ProfileSections({ sections }: { sections: ProfileSection[] }) {
   }, [sections]);
 
   return (
-    <div className="profile-sections-grid grid grid-cols-1 gap-8 lg:grid-cols-[230px_minmax(0,1fr)] lg:items-start">
-      <nav aria-label="Profile sections" className="profile-nav min-w-0 lg:sticky lg:top-8">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[230px_minmax(0,1fr)] lg:items-start">
+      <nav aria-label="Profile sections" className="min-w-0 lg:sticky lg:top-8">
         <div className="rounded-2xl bg-surface p-4 ring-1 ring-black/[0.07]">
           <ul className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
             {sections.map((s) => (

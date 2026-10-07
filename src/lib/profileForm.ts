@@ -20,8 +20,7 @@ function stringList(formData: FormData, name: string): string[] {
 }
 
 /**
- * What the profile editor's form says about the public profile, tidied and limited the way it is when saved. Saving
- * stores exactly this, and the live preview draws exactly this, so the preview can never show something Save wouldn't keep.
+ * What the profile editor's form says about the public profile, tidied and limited the way it is when saved.
  * `currentCurrency` is the one already saved: a missing or odd currency never resets it.
  */
 export function parseProfileForm(formData: FormData, currentCurrency: string): Partial<Omit<Practitioner, "slug">> {

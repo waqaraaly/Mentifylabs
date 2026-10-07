@@ -10,7 +10,6 @@ import { parseProfileForm } from "@/lib/profileForm";
 
 export async function updateProfileAction(formData: FormData) {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
-  // The form is read by the same function the live preview uses, so what Save keeps is exactly what the preview showed.
   await updatePractitionerProfile(slug, parseProfileForm(formData, (await getCurrentPractitioner()).feeRange.currency));
 
   revalidatePath("/dashboard/profile");

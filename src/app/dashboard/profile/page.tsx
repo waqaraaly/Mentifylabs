@@ -18,7 +18,6 @@ import { currencyOptions } from "@/lib/currencies";
 import { UnpublishProfileButton } from "@/components/portal/UnpublishProfileButton";
 import { publishBlockReason } from "@/lib/verification";
 import { ThemePicker } from "@/components/portal/ThemePicker";
-import { LivePreviewToggle, LiveProfileEditor } from "@/components/portal/LiveProfileEditor";
 import { BRAND_BACKGROUND, PLATFORM_ICON_PATH } from "@/components/practitioner/ContactLinks";
 import { updateProfileAction } from "./actions";
 
@@ -306,7 +305,6 @@ export default async function PublicProfilePage() {
     "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition";
 
   return (
-    <LiveProfileEditor practitioner={practitioner} formId="profile-form">
     <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
       <PageHeader
         icon={User}
@@ -324,7 +322,6 @@ export default async function PublicProfilePage() {
         description="Manage the details shown on your public profile."
         actions={
           <div className="flex flex-wrap items-start justify-end gap-2.5">
-            <LivePreviewToggle />
             {/* Only while the profile isn't live: once it is, saving updates it straight away, so the live page is the preview. */}
             {!isLive && (
               <a
@@ -363,7 +360,7 @@ export default async function PublicProfilePage() {
         }
       />
 
-      <form id="profile-form" action={updateProfileAction}>
+      <form action={updateProfileAction}>
         <input type="hidden" name="slug" value={practitioner.slug} />
 
         <ProfileSections sections={sections} />
@@ -378,6 +375,5 @@ export default async function PublicProfilePage() {
         </div>
       </form>
     </div>
-    </LiveProfileEditor>
   );
 }

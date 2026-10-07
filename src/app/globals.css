@@ -531,23 +531,6 @@ body {
   height: 100%;
 }
 
-/* With the live preview open beside the profile editor, the form needs the room more than the section menu does, so the
-   menu steps aside until the screen is wide enough for both. */
-[data-live="open"] .profile-nav {
-  display: none;
-}
-[data-live="open"] .profile-sections-grid {
-  grid-template-columns: minmax(0, 1fr);
-}
-@media (min-width: 1792px) {
-  [data-live="open"] .profile-nav {
-    display: block;
-  }
-  [data-live="open"] .profile-sections-grid {
-    grid-template-columns: 230px minmax(0, 1fr);
-  }
-}
-
 /* ---------------------------------------------------------------------------------------------------------------
    The public homepage. A small palette built from the brand: the oat page, the brand greens, and the honey dot from
    the logo. Scoped to .site so nothing else is affected.
