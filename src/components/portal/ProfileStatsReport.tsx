@@ -93,11 +93,11 @@ export function ProfileStatsReport({
           ) : (
             <div className="py-10 text-center">
               <p className="font-medium">{stats.allTime ? "No views yet" : `No views in the last ${range} days yet`}</p>
-              <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-muted">
-                {mine
-                  ? "Share your profile link on Instagram, WhatsApp or your website and the numbers will start to appear here."
-                  : "Nobody has opened this practitioner's public profile in this period."}
-              </p>
+              {!mine && (
+                <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-muted">
+                  Nobody has opened this practitioner&apos;s public profile in this period.
+                </p>
+              )}
             </div>
           )}
         </div>

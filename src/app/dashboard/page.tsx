@@ -3,9 +3,6 @@ import { ArrowRight, ArrowUpRight, ChevronRight, MapPin, Video } from "lucide-re
 import { getCurrentPractitioner, isPubliclyVisible } from "@/data/practitioners";
 import { getAppointmentsByPractitioner } from "@/data/appointments";
 import { getSlotsByPractitioner } from "@/data/slots";
-import { getWeeklyRules } from "@/data/availability";
-import { setupChecklist } from "@/lib/setupChecklist";
-import { SetupChecklist } from "@/components/portal/SetupChecklist";
 import { AutoRefresh } from "@/components/portal/AutoRefresh";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate, formatDateFull, formatTime12h, daysBetween, getDateRange, greeting, mondayOf } from "@/lib/format";
@@ -20,12 +17,10 @@ function toMinutes(time: string): number {
 
 export default async function DashboardPage() {
   const practitioner = await getCurrentPractitioner();
-  const [appointments, slots, weeklyRules] = await Promise.all([
+  const [appointments, slots] = await Promise.all([
     getAppointmentsByPractitioner(practitioner.slug),
     getSlotsByPractitioner(practitioner.slug),
-    getWeeklyRules(practitioner.slug),
   ]);
-  const checklist = setupChecklist(practitioner, weeklyRules.length);
 
   // Everything on this page is "now" on the practitioner's own clock, not the server's.
   const zone = practitioner.timezone;
@@ -136,9 +131,6 @@ export default async function DashboardPage() {
           </Link>
         )}
       </header>
-
-      {/* What is left before the profile is ready. Leaves the page by itself once everything is done. */}
-      <SetupChecklist {...checklist} />
 
       {/* Spotlight + metrics */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">

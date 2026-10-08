@@ -1,18 +1,9 @@
 import type { Practitioner } from "@/types/practitioner";
 import { WavyUnderline } from "@/components/ui/WavyUnderline";
 
-// Each theme defines 5 tile tints (--pt-tile-1..5) in globals.css — all
-// currently set to the same color as the "Book a Session" button
-// (--pt-accent). Cycled by index; these must be literal class names (not
-// interpolated) for Tailwind to compile them.
-const TILE_CLASSES = [
-  "bg-(--pt-tile-1) hover:bg-(--pt-tile-1-hover)",
-  "bg-(--pt-tile-2) hover:bg-(--pt-tile-2-hover)",
-  "bg-(--pt-tile-3) hover:bg-(--pt-tile-3-hover)",
-  "bg-(--pt-tile-4) hover:bg-(--pt-tile-4-hover)",
-  "bg-(--pt-tile-5) hover:bg-(--pt-tile-5-hover)",
-];
-
+// Rows three to a row (two on a small screen), each with a bullet point at the start of the name. A theme sets the fill
+// (--pt-tile-1), and may also set the text colour (--pt-tile-fg) and an outline (--pt-tile-ring), so it can choose
+// between solid and outlined rows. Themes that set neither get white text on a solid row, as before.
 export function AreasOfExpertise({ practitioner }: { practitioner: Practitioner }) {
   if (practitioner.specializations.length === 0) return null;
 
@@ -23,22 +14,17 @@ export function AreasOfExpertise({ practitioner }: { practitioner: Practitioner 
         <WavyUnderline className="absolute inset-x-0 -bottom-3.5 h-3 w-full" />
       </h2>
 
-      {/* A grid of self-contained tiles rather than a chip row or a plain
-          list of identical chips. */}
-      <div className="mt-9 flex flex-wrap gap-3">
-        {practitioner.specializations.map((specialization, i) => (
-          <div
+      <ul className="mt-9 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
+        {practitioner.specializations.map((specialization) => (
+          <li
             key={specialization}
-            className={`group relative overflow-hidden rounded-[10px] border border-transparent px-4 py-[9.6px] sm:px-[19.2px] sm:py-[11.2px] transition-all duration-300 hover:-translate-y-0.5 hover:border-(--pt-tile-border) hover:shadow-[0_14px_26px_-14px_rgba(32,34,31,0.22)] ${TILE_CLASSES[i % TILE_CLASSES.length]}`}
+            className="flex items-center gap-3.5 rounded-[14px] bg-(--pt-tile-1) px-5 py-4 text-[16px] leading-snug font-medium shadow-[inset_0_0_0_1.5px_var(--pt-tile-ring,transparent)] [overflow-wrap:anywhere] text-(--pt-tile-fg,var(--pt-accent-foreground)) transition hover:bg-(--pt-tile-1-hover) sm:text-[17px]"
           >
-            <p
-              className="relative text-[14.4px] leading-snug [overflow-wrap:anywhere] text-(--pt-accent-foreground) [font-weight:var(--pt-tile-text-weight)] sm:text-base"
-            >
-              {specialization}
-            </p>
-          </div>
+            <span aria-hidden className="size-2 shrink-0 rounded-full bg-current opacity-75" />
+            <span className="min-w-0">{specialization}</span>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

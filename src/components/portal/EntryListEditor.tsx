@@ -147,7 +147,7 @@ export function EntryListEditor({
       <button
         type="button"
         onClick={add}
-        className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.04] px-4 py-2 text-sm font-medium transition hover:bg-black/[0.07]"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-black/[0.04] px-4 py-2 text-sm font-medium transition hover:bg-black/[0.07]"
       >
         <Plus className="size-4" aria-hidden />
         {addLabel}

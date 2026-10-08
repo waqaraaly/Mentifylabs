@@ -83,7 +83,7 @@ export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
               offset shape peeking from one corner. */}
           <div
             className="absolute -top-[15.4px] -right-[15.4px] -bottom-[15.4px] -left-[15.4px]"
-            style={{ background: "var(--pt-outer)", borderRadius: blobRadius }}
+            style={{ background: "var(--pt-ring, var(--pt-outer))", borderRadius: blobRadius }}
             aria-hidden
           />
           <div

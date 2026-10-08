@@ -7,7 +7,6 @@ import { LoadingOverlay } from "@/components/ui/BrainLoader";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { siteConfig } from "@/lib/site";
 import { offsetLabel, timeZoneOptions } from "@/lib/time";
-import { useDeviceTimeZone } from "@/lib/useDeviceTimeZone";
 import type { SessionType } from "@/types/practitioner";
 import { checkHandleAction } from "@/app/dashboard/profile/actions";
 import { claimHandleAction, finishOnboardingAction, skipOnboardingAction, suggestHandleAction } from "./actions";
@@ -90,7 +89,6 @@ export function OnboardingWizard({
   const [selectedSessionType, setSelectedSessionType] = useState<SessionType>(sessionType);
   const [location, setLocation] = useState(initialLocation);
   const [zone, setZone] = useState(timezone);
-  const deviceZone = useDeviceTimeZone();
   // Until the full list is ready the dropdown knows just their own zone. Working out every zone's offset takes real time,
   // so it is done when the browser is idle, shortly after the page appears, not while the wizard is loading.
   const [zoneOptions, setZoneOptions] = useState(() => [{ value: timezone, label: `${timezone.replace(/_/g, " ")} (${offsetLabel(timezone)})` }]);
@@ -367,14 +365,6 @@ export function OnboardingWizard({
                     triggerClassName="inline-flex w-full max-w-sm cursor-pointer items-center gap-3 rounded-lg bg-surface py-2.5 pr-3.5 pl-4 text-left text-sm font-medium ring-1 ring-black/[0.14] transition hover:bg-black/[0.03]"
                   />
                 </div>
-                {deviceZone && deviceZone !== zone && (
-                  <p className="mt-3 text-sm text-muted">
-                    This device is set to <span className="font-medium text-foreground">{deviceZone.replace(/_/g, " ")}</span>.{" "}
-                    <button type="button" onClick={() => setZone(deviceZone)} className="font-medium text-primary hover:underline">
-                      Use it
-                    </button>
-                  </p>
-                )}
               </Step>
 
 
@@ -418,7 +408,7 @@ export function OnboardingWizard({
               <Step show={current === "done"}>
                 <h1 className={headingClass}>You&apos;re set, {firstName}.</h1>
                 <p className={subtitleClass}>
-                  Your workspace is ready. Your dashboard has a short checklist for finishing your profile: photo, About me, services, hours and the rest.
+                  Your account is ready. Finish your profile so clients can find you.
                 </p>
               </Step>
               </div>
@@ -440,6 +430,7 @@ export function OnboardingWizard({
             )}
             {current !== "done" ? (
               <button
+                key="continue"
                 type="button"
                 onClick={current === "name" ? continueFromName : current === "link" ? continueFromHandle : next}
                 disabled={claiming || (current === "name" && !fullName.trim()) || (current === "link" && handleStatus?.ok === false) || (current === "credentials" && (picker.incomplete || !!picker.problem))}
@@ -448,7 +439,10 @@ export function OnboardingWizard({
                 {claiming ? "Saving…" : "Continue →"}
               </button>
             ) : (
+              // A different key from "Continue", so React puts in a new button instead of turning the Continue button into a
+              // submit button in the middle of the click. That swap made the click on the last step submit the form straight away.
               <button
+                key="finish"
                 type="submit"
                 className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
               >

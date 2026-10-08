@@ -64,7 +64,7 @@ export interface Practitioner {
   socialLinks: SocialLink[];
   websiteUrl?: string;
   contactMethods: ContactMethod[];
-  /** The public profile page's color palette. Defaults to "sage" when unset. */
+  /** The public profile page's color palette. Defaults to "moss-honey" when unset. */
   colorTheme?: ColorThemeId;
 
   // Super Admin account lifecycle
@@ -84,6 +84,8 @@ export interface Practitioner {
   verificationNote?: string;
   /** Set once they dismiss the first-login setup popup; shown only until then. */
   verificationPromptSeenAt?: string;
+  /** Set the first time they save their public profile; the dashboard asks them to complete it until then. */
+  profileSavedAt?: string;
 
   /** Set once they finish (or skip) the guided first-login setup at /onboarding. Gates dashboard access. */
   onboardedAt?: string;

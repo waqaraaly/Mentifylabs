@@ -3,11 +3,11 @@
  * and add a file for each. The value is what is stored and what an admin reads, so it is written to be read.
  */
 export const CREDENTIAL_TYPES = [
-  { category: "License", hint: "Your professional license or registration certificate." },
-  { category: "Degree", hint: "Your degree certificate or transcript." },
-  { category: "Professional membership", hint: "Proof you belong to a professional body or association." },
-  { category: "Experience letter", hint: "A letter from a clinic, hospital or employer." },
-  { category: "Other", hint: "Anything else that shows your qualifications." },
+  { category: "License" },
+  { category: "Degree" },
+  { category: "Professional membership" },
+  { category: "Experience letter" },
+  { category: "Other" },
 ] as const;
 
 export type DocumentCategory = (typeof CREDENTIAL_TYPES)[number]["category"];

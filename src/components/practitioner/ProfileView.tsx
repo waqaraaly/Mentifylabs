@@ -2,12 +2,10 @@ import Link from "next/link";
 import { Eye } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import type { Slot } from "@/types/slot";
-import { siteConfig } from "@/lib/site";
 import { DEFAULT_COLOR_THEME } from "@/lib/themes";
 import { ProfileBody } from "@/components/practitioner/ProfileBody";
 import { ProfileFooter } from "@/components/practitioner/ProfileFooter";
 import { StickyBookingBar } from "@/components/practitioner/StickyBookingBar";
-import { BookSessionButton } from "@/components/practitioner/BookSessionButton";
 import { BookingModal } from "@/components/practitioner/BookingModal";
 import { StructuredData } from "@/components/practitioner/StructuredData";
 import { ProfileViewTracker } from "@/components/practitioner/ProfileViewTracker";
@@ -30,8 +28,9 @@ export function ProfileView({
   return (
     <main
       data-pt-theme={practitioner.colorTheme ?? DEFAULT_COLOR_THEME}
-      // The floating booking bar sits over the bottom of the page, so there is room under the footer for it.
-      className={`min-h-screen bg-(--pt-outer) p-[7.5px] sm:p-[16.5px] ${preview ? "" : "pb-28 sm:pb-28"}`}
+      // The frame is the same width on every side. The page inside grows to fill the screen, so a short profile does not
+      // leave a wide band of frame colour at the bottom.
+      className="flex min-h-screen flex-col bg-(--pt-outer) p-[7.5px] sm:p-[16.5px]"
     >
       {preview && (
         <div className="mx-auto mb-[7.5px] flex max-w-[1360px] items-center gap-2.5 rounded-2xl bg-foreground px-5 py-3 text-sm font-medium text-background">
@@ -43,36 +42,23 @@ export function ProfileView({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[36px] bg-(--pt-bg) text-(--pt-text)">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-[36px] bg-(--pt-bg) text-(--pt-text)">
         <StructuredData practitioner={practitioner} />
 
         {!preview && <ProfileViewTracker slug={practitioner.slug} />}
 
         {!preview && practitioner.acceptingBookings && <BookingModal practitioner={practitioner} slots={slots} />}
 
-        <div className="sticky top-0 z-50 border-b border-(--pt-border) bg-(--pt-bg)">
-          <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-4 px-[7.7px] py-[14px] sm:px-[12.8px] lg:px-[25.6px]">
-            <p className="text-xl tracking-[0.02em] text-(--pt-text) sm:text-2xl">{siteConfig.name}</p>
-            {preview ? (
-              <span
-                title="Publish your profile to let clients book you"
-                className="shrink-0 rounded-full bg-(--pt-icon-fill) px-4 py-2.5 text-[15px] font-semibold whitespace-nowrap text-(--pt-muted) sm:px-6"
-              >
-                Book a Session
-              </span>
-            ) : practitioner.acceptingBookings ? (
-              <BookSessionButton />
-            ) : (
-              <span className="shrink-0 rounded-full bg-(--pt-icon-fill) px-4 py-2.5 text-[14px] font-semibold whitespace-nowrap text-(--pt-muted) sm:px-6 sm:text-[15px]">
-                Not taking new bookings
-              </span>
-            )}
-          </div>
+        {/* A plain full-width wrapper: the page is a flex column, and the sections inside have auto side margins, which would shrink them. */}
+        <div className="w-full">
+          <ProfileBody practitioner={practitioner} />
         </div>
 
-        <ProfileBody practitioner={practitioner} />
-
-        <ProfileFooter />
+        {/* The footer follows the last section after a fixed gap, whatever the screen height. The floating booking bar rests
+            over the page, so the room for it is inside the page, under the footer, not in the frame. */}
+        <div className={preview ? "" : "pb-20"}>
+          <ProfileFooter />
+        </div>
       </div>
 
       {!preview && <StickyBookingBar slots={slots} practitionerZone={practitioner.timezone} accepting={practitioner.acceptingBookings} />}

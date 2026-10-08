@@ -211,7 +211,7 @@ export function SlugEditor({
             <p className={availability.ok ? "text-success" : "text-alert"}>{availability.message}</p>
           ) : (
             <p className="text-muted">
-              {isChosen ? "3 to 30 characters: lowercase letters, numbers and hyphens." : "Choose the link clients will use to find you. 3 to 30 characters: lowercase letters, numbers and hyphens. You can't publish your profile until you do."}
+              3 to 30 characters: lowercase letters, numbers and hyphens.
             </p>
           )}
           {isChosen && changed && !error && (

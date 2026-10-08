@@ -15,13 +15,12 @@ export function VerificationUploadForm({ slug }: { slug: string }) {
       <input type="hidden" name="slug" value={slug} />
 
       <p className="mb-4 text-sm leading-relaxed text-muted">
-        Tick every way you can verify yourself, then add a file for each. You can choose more than one.
+        Choose what you&apos;re sending and add a file for each. One is enough; add more if you have them. PDF, JPG, PNG or WebP, up to 10 MB each and 30 MB in all.
       </p>
 
       <CredentialPicker picker={picker} />
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-black/[0.06] pt-5">
-        <p className="text-xs text-muted">PDF, JPG, PNG or WebP, up to 10 MB each.</p>
+      <div className="mt-5 flex justify-end border-t border-black/[0.06] pt-5">
         <button
           type="submit"
           disabled={pending || !picker.ready}
@@ -38,7 +37,7 @@ export function VerificationUploadForm({ slug }: { slug: string }) {
       {state.submitted && !pending && (
         <p role="status" className="mt-3 flex items-center gap-1.5 text-sm font-medium text-primary">
           <Check className="size-4" aria-hidden />
-          Submitted. The MentifyLabs team will review it shortly.
+          Submitted. We&apos;ll let you know once it&apos;s reviewed.
         </p>
       )}
     </form>

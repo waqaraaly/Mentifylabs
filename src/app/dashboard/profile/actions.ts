@@ -10,9 +10,14 @@ import { parseProfileForm } from "@/lib/profileForm";
 
 export async function updateProfileAction(formData: FormData) {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
-  await updatePractitionerProfile(slug, parseProfileForm(formData, (await getCurrentPractitioner()).feeRange.currency));
+  const me = await getCurrentPractitioner();
+  await updatePractitionerProfile(slug, {
+    ...parseProfileForm(formData, me.feeRange.currency),
+    ...(me.profileSavedAt ? {} : { profileSavedAt: new Date().toISOString() }),
+  });
 
   revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard", "layout");
   revalidatePath(`/${slug}`);
   revalidateAdminViews();
 }

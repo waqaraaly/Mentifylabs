@@ -47,7 +47,7 @@ describe("what the profile editor's form says about the profile", () => {
     expect(parse({ sessionType: "offline" }).sessionType).toBe("offline");
     expect(parse({ sessionType: "teleport" }).sessionType).toBe("both");
     expect(parse({ colorTheme: "ink-blue" }).colorTheme).toBe("ink-blue");
-    expect(parse({ colorTheme: "pitch-black" }).colorTheme).toBe("sage");
+    expect(parse({ colorTheme: "pitch-black" }).colorTheme).toBe("moss-honey");
   });
 
   it("keeps contact details that have a label, even if the value is empty, and which are public", () => {

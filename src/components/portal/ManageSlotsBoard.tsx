@@ -292,7 +292,7 @@ export function ManageSlotsBoard({
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1 border-b border-border px-6 py-5">
               <div>
                 <p className="text-base font-semibold tracking-tight">Weekly hours</p>
-                <p className="text-sm text-muted">Your regular availability. Repeats every week until you change it. Changes here don&apos;t affect dates listed under Special dates.</p>
+                <p className="text-sm text-muted">Your regular availability. Repeats every week until you change it.</p>
               </div>
             </div>
             <WeeklyPatternGrid weeklyRules={weeklyRules} practitionerSlug={practitionerSlug} />

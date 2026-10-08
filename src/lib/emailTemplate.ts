@@ -7,7 +7,6 @@ const C = {
   rule: "#e6e4cf", // --border
   moss: "#3f4e30", // --hero, the deepest moss: the header band and the button
   leaf: "#6e8356", // --primary, the brand green
-  honey: "#f6e8c8", // --accent
 };
 // Georgia for the heading echoes the serif the public profile uses; the body stays in the system sans so it renders everywhere.
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -35,29 +34,31 @@ const multiline = (s: string) => escapeHtml(s).replace(/\n/g, "<br>");
 export function renderEmailHtml(content: EmailContent, greeting: string): string {
   const { eyebrow, heading, body, note, button, footnote } = content;
 
+  const para = (t: string) => `<p style="margin:0 0 18px;font-size:16px;line-height:1.7;color:${C.text};">${multiline(t)}</p>`;
+
   // A one-time code reads better set large on its own than as a quoted sentence.
   const isCode = !!note && /^\d{4,8}$/.test(note.text.trim());
   const noteHtml = note
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 28px;"><tr>
-        <td style="background:${C.page};border-left:3px solid ${C.leaf};border-radius:0 8px 8px 0;padding:16px 20px;">
-          <div style="font-size:13px;color:${C.muted};margin-bottom:${isCode ? 8 : 6}px;">${escapeHtml(note.label)}</div>
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 30px;"><tr>
+        <td style="border-left:2px solid ${C.leaf};padding:2px 0 2px 18px;">
+          <div style="font-size:13px;line-height:1.4;color:${C.muted};margin-bottom:${isCode ? 8 : 5}px;">${escapeHtml(note.label)}</div>
           ${
             isCode
-              ? `<div style="font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:30px;line-height:1.1;font-weight:700;letter-spacing:.18em;color:${C.text};">${escapeHtml(note.text.trim())}</div>`
-              : `<div style="font-size:16px;line-height:1.55;color:${C.text};">${multiline(note.text)}</div>`
+              ? `<div style="font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:32px;line-height:1.1;font-weight:600;letter-spacing:.16em;color:${C.text};">${escapeHtml(note.text.trim())}</div>`
+              : `<div style="font-family:${SERIF};font-size:17px;line-height:1.6;color:${C.text};">${multiline(note.text)}</div>`
           }
         </td></tr></table>`
     : "";
 
   const buttonHtml = button
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 28px;"><tr>
-        <td style="background:${C.moss};border-radius:8px;">
-          <a href="${escapeHtml(button.url)}" style="display:inline-block;padding:14px 28px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;">${escapeHtml(button.label)}</a>
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 30px;"><tr>
+        <td style="background:${C.moss};border-radius:5px;">
+          <a href="${escapeHtml(button.url)}" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">${escapeHtml(button.label)}</a>
         </td></tr></table>`
     : "";
 
   const footnoteHtml = footnote
-    ? `<p style="margin:0;font-size:14px;line-height:1.6;color:${C.muted};">${multiline(footnote)}</p>`
+    ? `<p style="margin:0 0 6px;font-size:14px;line-height:1.65;color:${C.muted};">${multiline(footnote)}</p>`
     : "";
 
   return `<!doctype html>
@@ -65,29 +66,25 @@ export function renderEmailHtml(content: EmailContent, greeting: string): string
 <body style="margin:0;padding:0;background:${C.page};font-family:${SANS};color:${C.text};">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(body[0] ?? heading)}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};">
-    <tr><td align="center" style="padding:32px 12px 40px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${C.card};border-radius:14px;">
-        <tr><td style="background:${C.moss};border-radius:14px 14px 0 0;padding:20px 36px;">
+    <tr><td align="center" style="padding:40px 16px 48px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;">
+        <tr><td style="padding:0 2px 18px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td style="font-size:20px;font-weight:700;letter-spacing:-.01em;color:#ffffff;">Mentify<span style="font-weight:400;color:${C.honey};">Labs</span></td>
-            <td align="right" style="font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:${C.honey};">${escapeHtml(eyebrow)}</td>
+            <td style="font-family:${SERIF};font-size:21px;line-height:1;color:${C.moss};"><span style="font-weight:700;">Mentify</span>Labs</td>
+            <td align="right" style="font-size:13px;line-height:1;color:${C.muted};">${escapeHtml(eyebrow)}</td>
           </tr></table>
         </td></tr>
-        <tr><td style="padding:36px 36px 8px;">
-          <h1 style="margin:0 0 22px;font-family:${SERIF};font-size:27px;line-height:1.25;font-weight:700;color:${C.text};">${escapeHtml(heading)}</h1>
-          <p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:${C.text};">${escapeHtml(greeting)}</p>
-          ${body.map((t) => `<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:${C.text};">${multiline(t)}</p>`).join("")}
+        <tr><td style="background:${C.card};border:1px solid ${C.rule};border-radius:6px;padding:40px 40px 22px;">
+          <h1 style="margin:0 0 26px;font-family:${SERIF};font-size:26px;line-height:1.3;font-weight:400;color:${C.text};">${escapeHtml(heading)}</h1>
+          ${para(greeting)}
+          ${body.map(para).join("")}
           ${noteHtml}
           ${buttonHtml}
+          ${footnoteHtml}
         </td></tr>
-        ${
-          footnoteHtml
-            ? `<tr><td style="padding:0 36px 28px;">${footnoteHtml}</td></tr>`
-            : `<tr><td style="padding:0 36px 12px;font-size:0;line-height:0;">&nbsp;</td></tr>`
-        }
-        <tr><td style="border-top:1px solid ${C.rule};padding:20px 36px 24px;font-size:13px;line-height:1.6;color:${C.muted};">
+        <tr><td style="padding:20px 2px 0;font-size:13px;line-height:1.65;color:${C.muted};">
           The MentifyLabs team<br>
-          Sent because of activity on your MentifyLabs account.
+          You are getting this because of activity on your MentifyLabs account.
         </td></tr>
       </table>
     </td></tr>

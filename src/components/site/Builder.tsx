@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MiniPreview, PagePreview, type PreviewState } from "@/components/site/PagePreview";
 import { handleFromName } from "@/lib/handleFromName";
-import { COLOR_THEMES, type ColorThemeId } from "@/lib/themes";
+import { COLOR_THEMES, DEFAULT_COLOR_THEME, type ColorThemeId } from "@/lib/themes";
 import type { SessionType } from "@/types/practitioner";
 
 const AREAS = ["Anxiety", "Depression", "Burnout", "Relationships", "Trauma", "Grief", "ADHD", "OCD"];
@@ -43,7 +43,7 @@ export function Builder() {
   const [title, setTitle] = useState("");
   const [areas, setAreas] = useState<string[]>(["Anxiety", "Burnout", "Relationships"]);
   const [mode, setMode] = useState<SessionType>("online");
-  const [theme, setTheme] = useState<ColorThemeId>("sage");
+  const [theme, setTheme] = useState<ColorThemeId>(DEFAULT_COLOR_THEME);
   const [step, setStep] = useState(1);
   const column = useRef<HTMLDivElement>(null);
 

@@ -62,14 +62,11 @@ export function useCredentialPicker() {
 
 const TONES = {
   portal: {
-    // The one-line explanation under each option. Setup keeps the list to the names alone.
-    hints: true,
     option: "rounded-xl bg-black/[0.025] ring-1 ring-transparent transition",
     optionOn: "bg-primary/[0.05] ring-primary/40",
     file: "flex cursor-pointer items-center gap-2.5 rounded-lg bg-surface px-3.5 py-2.5 text-sm ring-1 ring-black/[0.08] transition hover:ring-primary/40 focus-within:ring-primary/40",
   },
   wizard: {
-    hints: false,
     option: "rounded-xl border border-border transition",
     optionOn: "border-primary bg-primary/[0.04]",
     file: "flex cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-border px-3.5 py-2.5 text-sm transition hover:border-primary/40 focus-within:border-primary",
@@ -86,7 +83,7 @@ export function CredentialPicker({ picker, tone = "portal" }: { picker: ReturnTy
   return (
     <div>
       <ul className="space-y-2.5">
-        {CREDENTIAL_TYPES.map(({ category, hint }) => {
+        {CREDENTIAL_TYPES.map(({ category }) => {
           const on = picker.selected.includes(category);
           const file = picker.files[category];
           return (
@@ -102,7 +99,6 @@ export function CredentialPicker({ picker, tone = "portal" }: { picker: ReturnTy
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-medium">{category}</span>
-                  {look.hints && <span className="mt-0.5 block text-xs leading-relaxed text-muted">{hint}</span>}
                 </span>
               </label>
 

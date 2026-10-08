@@ -82,6 +82,7 @@ interface PractitionerRow {
   verified_on: string | null;
   verification_note: string | null;
   verification_prompt_seen_at: string | null;
+  profile_saved_at: string | null;
   onboarded_at: string | null;
   accepting_bookings: number;
 }
@@ -127,6 +128,7 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     verifiedOn: opt(r.verified_on),
     verificationNote: opt(r.verification_note),
     verificationPromptSeenAt: opt(r.verification_prompt_seen_at),
+    profileSavedAt: opt(r.profile_saved_at),
     onboardedAt: opt(r.onboarded_at),
     acceptingBookings: r.accepting_bookings !== 0,
   };
@@ -167,6 +169,7 @@ const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "slugChosenAt" | "feeR
   verifiedOn: ["verified_on"],
   verificationNote: ["verification_note"],
   verificationPromptSeenAt: ["verification_prompt_seen_at"],
+  profileSavedAt: ["profile_saved_at"],
   onboardedAt: ["onboarded_at"],
   acceptingBookings: ["accepting_bookings"],
 };

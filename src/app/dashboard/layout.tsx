@@ -10,7 +10,6 @@ import { DashboardNav } from "@/components/portal/DashboardNav";
 import { PortalAside } from "@/components/portal/PortalAside";
 import { VerificationBanner } from "@/components/portal/VerificationBanner";
 import { PortalTimeZoneProvider } from "@/components/portal/PortalTimeZone";
-import { TimeZoneNotice } from "@/components/portal/TimeZoneNotice";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   // Live data from D1 on every request, never a copy prerendered at build time.
@@ -77,7 +76,6 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
 
       <main className="min-w-0 flex-1 px-[clamp(15px,2.5vw,37.5px)] pt-6 pb-[17.6px] lg:pt-8">
         <PortalTimeZoneProvider zone={practitioner.timezone}>
-          <TimeZoneNotice saved={practitioner.timezone} />
           <VerificationBanner practitioner={practitioner} />
           {children}
         </PortalTimeZoneProvider>

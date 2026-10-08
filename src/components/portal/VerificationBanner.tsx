@@ -3,7 +3,7 @@
 import { useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertTriangle, BadgeCheck, Clock, X } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Clock, UserRound, X } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import { isVerificationRejected } from "@/lib/verification";
 
@@ -48,6 +48,9 @@ interface BannerSpec {
   icon: ReactNode;
   text: ReactNode;
   action: string;
+  href: string;
+  /** A setup reminder rather than a status change: shown on the dashboard only, so it doesn't nag on every page. */
+  dashboardOnly?: boolean;
 }
 
 /**
@@ -59,7 +62,20 @@ interface BannerSpec {
  * - otherwise a reminder that publishing and accepting bookings need verification first.
  */
 function bannerFor(practitioner: Practitioner): BannerSpec | null {
-  if (practitioner.verificationStatus === "verified") return null;
+  const profileSaved = !!practitioner.profileSavedAt;
+
+  if (practitioner.verificationStatus === "verified") {
+    if (profileSaved) return null;
+    return {
+      key: "complete-profile",
+      tone: "accent",
+      icon: <UserRound className="size-4 shrink-0" aria-hidden />,
+      text: "Complete your profile so clients can find and book you.",
+      action: "Complete profile",
+      href: "/dashboard/profile",
+      dashboardOnly: true,
+    };
+  }
 
   if (practitioner.verificationStatus === "pending") {
     return {
@@ -68,6 +84,7 @@ function bannerFor(practitioner: Practitioner): BannerSpec | null {
       icon: <Clock className="size-4 shrink-0" aria-hidden />,
       text: "Your credentials are under review. We'll let you know once they're verified.",
       action: "View status",
+      href: "/dashboard/verification",
     };
   }
 
@@ -79,6 +96,7 @@ function bannerFor(practitioner: Practitioner): BannerSpec | null {
       // The admin's reason is on the Verification page, not repeated on every page.
       text: "Your verification needs changes.",
       action: "Submit again",
+      href: "/dashboard/verification",
     };
   }
 
@@ -89,6 +107,7 @@ function bannerFor(practitioner: Practitioner): BannerSpec | null {
       icon: <AlertTriangle className="size-4 shrink-0" aria-hidden />,
       text: "Your profile access has been held. Please verify your account to restore it.",
       action: "Verify now",
+      href: "/dashboard/verification",
     };
   }
 
@@ -96,11 +115,16 @@ function bannerFor(practitioner: Practitioner): BannerSpec | null {
   if (!practitioner.verificationPromptSeenAt) return null;
 
   return {
-    key: "unverified",
+    key: profileSaved ? "unverified" : "unverified:complete-profile",
     tone: "accent",
     icon: <BadgeCheck className="size-4 shrink-0" aria-hidden />,
-    text: "Verify your credentials to publish your profile and accept bookings.",
-    action: "Verify now",
+    text: profileSaved
+      ? "Verify your credentials to publish your profile and accept bookings."
+      : "Complete your profile and verify your credentials to publish and accept bookings.",
+    action: profileSaved ? "Verify now" : "Get started",
+    // Until the profile is saved, the profile comes first; the credentials step follows from its own page.
+    href: profileSaved ? "/dashboard/verification" : "/dashboard/profile",
+    dashboardOnly: true,
   };
 }
 
@@ -126,11 +150,12 @@ export function VerificationBanner({ practitioner }: { practitioner: Practitione
   );
 
   // The Verification page already shows the full status, so the banner would only repeat it there.
-  if (!spec || dismissed || pathname.startsWith("/dashboard/verification")) return null;
+  if (!spec || dismissed || pathname.startsWith(spec.href)) return null;
+  if (spec.dashboardOnly && pathname !== "/dashboard") return null;
 
   return (
     <div className={`mb-6 flex items-center gap-1 rounded-xl text-sm font-medium ring-1 transition ${TONES[spec.tone]}`}>
-      <Link href="/dashboard/verification" className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-2 pl-4">
+      <Link href={spec.href} className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-2 pl-4">
         {spec.icon}
         {spec.text}
         <span className="ml-auto shrink-0 underline">{spec.action}</span>
