@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Practitioner } from "@/types/practitioner";
-import { WavyUnderline } from "@/components/ui/WavyUnderline";
+import { HighlightMark } from "@/components/ui/HighlightMark";
 import { ArrowScroller } from "@/components/ui/ArrowScroller";
 
 type Entry = { title: string; subtitle: string; years: string; startYear: number };
@@ -127,9 +127,9 @@ export function ProfessionalJourney({ practitioner }: { practitioner: Practition
 
   return (
     <section className="mt-24 sm:mt-32">
-      <h2 className="relative inline-block text-[28px] font-medium text-(--pt-text) sm:text-[38px]">
+      <h2 className="relative isolate inline-block text-[28px] font-medium text-(--pt-text) sm:text-[38px]">
         Professional Journey
-        <WavyUnderline className="absolute inset-x-0 -bottom-3.5 h-3 w-full" />
+        <HighlightMark />
       </h2>
 
       <div className="relative mx-auto mt-11 flex w-fit rounded-xl border border-(--pt-toggle-border) bg-(--pt-toggle-track) p-[5px]">

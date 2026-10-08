@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   LayoutDashboard,
   LineChart,
+  Lightbulb,
   LogOut,
   Menu,
   Settings,
@@ -18,7 +19,7 @@ import {
 } from "lucide-react";
 import { signOutAction } from "@/app/login/actions";
 
-type CountKey = "practitioners" | "pending" | "appointmentsToday";
+type CountKey = "practitioners" | "pending" | "appointmentsToday" | "suggestions";
 
 interface NavItem {
   href: string;
@@ -44,6 +45,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/practitioners", label: "Practitioners", icon: Users, countKey: "practitioners" },
       { href: "/admin/appointments", label: "Appointments", icon: Calendar, countKey: "appointmentsToday" },
+      { href: "/admin/suggestions", label: "Suggestions", icon: Lightbulb, countKey: "suggestions", attention: true },
       { href: "/admin/super-admins", label: "Super Admins", icon: UserCog },
     ],
   },
@@ -65,6 +67,8 @@ export interface SidebarCounts {
   practitioners: number;
   pending: number;
   appointmentsToday: number;
+  /** Suggestions nobody has reviewed yet. */
+  suggestions: number;
 }
 
 export function Sidebar({ counts, admin }: { counts: SidebarCounts; admin: { name: string; email: string } }) {

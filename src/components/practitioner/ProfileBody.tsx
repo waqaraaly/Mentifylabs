@@ -6,7 +6,7 @@ import { ReachOutCard } from "@/components/practitioner/ReachOutCard";
 import { AreasOfExpertise } from "@/components/practitioner/AreasOfExpertise";
 import { ServicesOffered } from "@/components/practitioner/ServicesOffered";
 import { ProfessionalJourney } from "@/components/practitioner/ProfessionalJourney";
-import { WavyUnderline } from "@/components/ui/WavyUnderline";
+import { HighlightMark } from "@/components/ui/HighlightMark";
 
 /**
  * Everything on a public profile between the top bar and the footer: the hero, About me with the contact card, areas of
@@ -38,9 +38,9 @@ export function ProfileBody({ practitioner }: { practitioner: Practitioner }) {
           <div className={`grid gap-12 ${bioOf(practitioner) ? "lg:grid-cols-[1.4fr_1fr]" : ""}`}>
             {bioOf(practitioner) && (
               <section>
-                <h2 className="relative inline-block max-w-[18ch] text-[28px] leading-tight font-medium text-(--pt-text) sm:text-[38px]">
+                <h2 className="relative isolate inline-block max-w-[18ch] text-[28px] leading-tight font-medium text-(--pt-text) sm:text-[38px]">
                   About Me
-                  <WavyUnderline className="absolute inset-x-0 -bottom-3.5 h-3 w-full" />
+                  <HighlightMark />
                 </h2>
                 <div className="mt-8 max-w-[68ch] text-lg leading-[1.75] [overflow-wrap:anywhere] text-(--pt-text)">
                   <AboutSection practitioner={practitioner} />

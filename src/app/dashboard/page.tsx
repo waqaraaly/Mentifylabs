@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, ChevronRight, MapPin, Video } from "lucide-react";
+import { ArrowRight, ChevronRight, MapPin, Video } from "lucide-react";
 import { getCurrentPractitioner, isPubliclyVisible } from "@/data/practitioners";
 import { getAppointmentsByPractitioner } from "@/data/appointments";
 import { getSlotsByPractitioner } from "@/data/slots";
 import { AutoRefresh } from "@/components/portal/AutoRefresh";
+import { PublicLinkBar } from "@/components/portal/PublicLinkBar";
+import { siteConfig } from "@/lib/site";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate, formatDateFull, formatTime12h, daysBetween, getDateRange, greeting, mondayOf } from "@/lib/format";
 import { wallClockIn } from "@/lib/time";
@@ -125,10 +127,7 @@ export default async function DashboardPage() {
         </div>
         {/* A link to the page clients see, once there is one. Until the profile is live there is nothing to link to. */}
         {isPubliclyVisible(practitioner) && (
-          <Link href={`/${practitioner.slug}`} target="_blank" rel="noopener" className={cardLink}>
-            Public profile
-            <ArrowUpRight className="size-3.5" aria-hidden />
-          </Link>
+          <PublicLinkBar host={siteConfig.url.replace(/^https?:\/\//, "")} slug={practitioner.slug} />
         )}
       </header>
 

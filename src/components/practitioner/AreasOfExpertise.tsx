@@ -1,5 +1,5 @@
 import type { Practitioner } from "@/types/practitioner";
-import { WavyUnderline } from "@/components/ui/WavyUnderline";
+import { HighlightMark } from "@/components/ui/HighlightMark";
 
 // Rows three to a row (two on a small screen), each with a bullet point at the start of the name. A theme sets the fill
 // (--pt-tile-1), and may also set the text colour (--pt-tile-fg) and an outline (--pt-tile-ring), so it can choose
@@ -9,9 +9,9 @@ export function AreasOfExpertise({ practitioner }: { practitioner: Practitioner 
 
   return (
     <section className="mt-24 sm:mt-32">
-      <h2 className="relative inline-block text-[28px] font-medium text-(--pt-text) sm:text-[38px]">
+      <h2 className="relative isolate inline-block text-[28px] font-medium text-(--pt-text) sm:text-[38px]">
         Areas of expertise
-        <WavyUnderline className="absolute inset-x-0 -bottom-3.5 h-3 w-full" />
+        <HighlightMark />
       </h2>
 
       <ul className="mt-9 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">

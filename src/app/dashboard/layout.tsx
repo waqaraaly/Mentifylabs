@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ArrowUpRight, LogOut } from "lucide-react";
+import { ArrowUpRight, Lightbulb, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/login/actions";
 import { getCurrentPractitioner, isPubliclyVisible } from "@/data/practitioners";
 import { getAppointmentsByPractitioner } from "@/data/appointments";
@@ -41,6 +41,19 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
           </div>
 
           <div className="lg:flex-1" />
+
+          {/* A quiet way to send ideas: it opens the suggestion form in a new tab. */}
+          <div className="px-6 pb-4">
+            <a
+              href="/dashboard/suggestions"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1.5 text-xs text-sidebar-fg transition hover:text-sidebar-strong"
+            >
+              <Lightbulb className="size-3.5" aria-hidden />
+              Help us improve the platform
+            </a>
+          </div>
 
           <div className="flex items-center gap-3 border-t-2 border-sidebar-border px-6 py-6">
             <div className="ring-sidebar-border flex size-9 shrink-0 items-center justify-center rounded-full bg-sidebar-active text-xs font-semibold text-sidebar-active-fg ring-1">

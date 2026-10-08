@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Practitioner } from "@/types/practitioner";
-import { WavyUnderline } from "@/components/ui/WavyUnderline";
+import { HighlightMark } from "@/components/ui/HighlightMark";
 import { formatFeeAmounts, hasFeeRange } from "@/lib/fees";
 import { experienceYearsOf, headlineOf } from "@/lib/profileDisplay";
 
@@ -112,9 +112,9 @@ export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
         <div>
           <h1 className="flex flex-wrap items-center gap-3.5 text-4xl leading-[1.08] font-bold [overflow-wrap:anywhere] text-(--pt-text) sm:text-5xl">
             {firstNames && <span>{firstNames} </span>}
-            <span className="relative inline-block">
+            <span className="relative isolate inline-block">
               {lastName}
-              <WavyUnderline className="absolute inset-x-0 -bottom-2 h-2.5 w-full" />
+              <HighlightMark />
             </span>
             {isVerified && (
               <VerifiedTooltip label="Verified practitioner">

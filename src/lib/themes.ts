@@ -1,4 +1,4 @@
-export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "juniper-brick" | "ocean-mist" | "fog-teal" | "olive-grove" | "clinic-blue" | "eucalyptus" | "lagoon" | "lavender-mist" | "moss-honey" | "cobalt" | "blue-sand" | "deep-violet" | "navy-ice" | "night-sky" | "clinical-teal" | "evergreen" | "forest-green";
+export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "juniper-brick" | "ocean-mist" | "fog-teal" | "olive-grove" | "clinic-blue" | "eucalyptus" | "lagoon" | "lavender-mist" | "moss-honey" | "cobalt" | "blue-sand" | "navy-ice" | "night-sky" | "clinical-teal" | "evergreen" | "forest-green";
 
 export type ColorThemeGroup = "Greens" | "Blues" | "Teals" | "Violet and yellow";
 
@@ -113,13 +113,6 @@ export const COLOR_THEMES: ColorThemeOption[] = [
     name: "Blue and sand",
     description: "Warm sand with a bright blue accent.",
     swatches: ["#fbfaf8", "#efe7db", "#2A72DE", "#f6f2eb"],
-  },
-  {
-    id: "deep-violet",
-    group: "Violet and yellow",
-    name: "Deep violet",
-    description: "Pale violet-white with a deep purple accent.",
-    swatches: ["#fbfafd", "#d9f2fa", "#351F65", "#eaf8fc"],
   },
   {
     id: "navy-ice",

@@ -711,6 +711,8 @@ body {
   /* The ring around the portrait. Themes without one use the frame colour. */
   --pt-ring: #ebe8d8;
   --pt-bg: #f6f4ea;
+  /* The highlighter behind headings: honey, so the theme's second colour appears on the page. Other themes use a tint of their own accent. */
+  --pt-marker: rgba(240, 192, 90, 0.75);
   --pt-text: #2e3522;
   --pt-tagline: #52573f;
   --pt-muted: #6f7257;
@@ -847,52 +849,6 @@ body {
   --pt-tile-4-hover: #2462bf;
   --pt-tile-5: #2A72DE;
   --pt-tile-5-hover: #2462bf;
-}
-
-[data-pt-theme="deep-violet"] {
-  --pt-outer: #d9f2fa;
-  --pt-bg: #fbfafd;
-  --pt-text: #1d1433;
-  --pt-tagline: #423b59;
-  --pt-muted: #615a78;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #ddf3fa;
-  --pt-accent: #351F65;
-  --pt-accent-hover: #2e1b57;
-  /* Icon glyphs inside the Reach Out card. */
-  --pt-accent-light: #ffffff;
-  --pt-accent-foreground: #ffffff;
-  --pt-tint2: #eaf8fc;
-  --pt-border: #e6f7fc;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #25164a;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #25164a;
-  --pt-dark-card-shadow: rgba(37, 22, 74, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #351F65;
-  --pt-modal-sidebar: #351F65;
-  --pt-toggle-track: transparent;
-  --pt-toggle-border: #1d1433;
-  --pt-input-bg: #f1fafd;
-  --pt-input-border: #e1f5fb;
-  --pt-tile-text-size: 19px;
-  --pt-tile-text-size-sm: 19px;
-  --pt-tile-text-weight: 500;
-
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #351F65;
-  --pt-tile-1-hover: #2e1b57;
-  --pt-tile-2: #351F65;
-  --pt-tile-2-hover: #2e1b57;
-  --pt-tile-3: #351F65;
-  --pt-tile-3-hover: #2e1b57;
-  --pt-tile-4: #351F65;
-  --pt-tile-4-hover: #2e1b57;
-  --pt-tile-5: #351F65;
-  --pt-tile-5-hover: #2e1b57;
 }
 
 [data-pt-theme="navy-ice"] {

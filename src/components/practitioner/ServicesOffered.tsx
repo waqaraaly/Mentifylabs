@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
-import { WavyUnderline } from "@/components/ui/WavyUnderline";
+import { HighlightMark } from "@/components/ui/HighlightMark";
 
 // One service per line, each led by a right-pointing arrow in the theme's accent colour.
 export function ServicesOffered({ practitioner }: { practitioner: Practitioner }) {
@@ -8,9 +8,9 @@ export function ServicesOffered({ practitioner }: { practitioner: Practitioner }
 
   return (
     <section className="mt-24 sm:mt-32">
-      <h2 className="relative inline-block text-[28px] font-medium text-(--pt-text) sm:text-[38px]">
+      <h2 className="relative isolate inline-block text-[28px] font-medium text-(--pt-text) sm:text-[38px]">
         Services offered
-        <WavyUnderline className="absolute inset-x-0 -bottom-3.5 h-3 w-full" />
+        <HighlightMark />
       </h2>
 
       <ul className="mt-11 space-y-5">
