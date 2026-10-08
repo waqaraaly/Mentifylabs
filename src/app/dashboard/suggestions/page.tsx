@@ -10,7 +10,7 @@ export default function SuggestionsPage() {
       <PageHeader
         icon={Lightbulb}
         title="Help us improve the platform"
-        description="Tell us what would make MentifyLabs better for you. There are no right answers, and it takes a minute."
+        description="Tell us what would make MentifyLabs better for you."
       />
       <SuggestionForm />
     </div>

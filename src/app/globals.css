@@ -330,55 +330,6 @@ body {
   --pt-tile-5-hover: #c7e3f0;
 }
 
-/* Juniper & Brick — warm paper, deep juniper green, brick-red underlines. */
-[data-pt-theme="juniper-brick"] {
-  --pt-outer: #e9ded3;
-  --pt-bg: #faf8f3;
-  --pt-text: #22271f;
-  --pt-tagline: #4b5248;
-  --pt-muted: #71786b;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #cfdcd3;
-  --pt-accent: #2e4f44;
-  --pt-accent-hover: #233e35;
-  /* Icon glyphs inside the Reach Out card. */
-  --pt-accent-light: #ffffff;
-  --pt-accent-foreground: #ffffff;
-  --pt-tint2: #edebe0;
-  --pt-border: #e7e1d5;
-  /* The wavy heading underlines are brick red, the theme's warm note. */
-  --pt-wave: #b0432f;
-  /* Reach Out card: a filled panel in this theme's deep accent, white text. */
-  --pt-dark-card: #2e4f44;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #2e4f44;
-  --pt-dark-card-shadow: rgba(46, 79, 68, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #2e4f44;
-  --pt-modal-sidebar: #2e4f44;
-  --pt-toggle-track: transparent;
-  --pt-toggle-border: #22271f;
-  --pt-input-bg: #edebe0;
-  --pt-input-border: #e7e1d5;
-  --pt-tile-text-size: 19px;
-  --pt-tile-text-size-sm: 19px;
-  --pt-tile-text-weight: 500;
-
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #2e4f44;
-  --pt-tile-1-hover: #233e35;
-  --pt-tile-2: #2e4f44;
-  --pt-tile-2-hover: #233e35;
-  --pt-tile-3: #2e4f44;
-  --pt-tile-3-hover: #233e35;
-  --pt-tile-4: #2e4f44;
-  --pt-tile-4-hover: #233e35;
-  --pt-tile-5: #2e4f44;
-  --pt-tile-5-hover: #233e35;
-}
-
 /* Ocean Mist — crisp white, pale aqua frame, deep ocean-teal accent. */
 [data-pt-theme="ocean-mist"] {
   --pt-outer: #cfe8ee;
@@ -614,102 +565,11 @@ body {
   --pt-tile-5-hover: #2f6552;
 }
 
-[data-pt-theme="lagoon"] {
-  --pt-outer: #d3ebec;
-  --pt-bg: #f7fbfb;
-  --pt-text: #183338;
-  --pt-tagline: #395559;
-  --pt-muted: #547074;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #d7edee;
-  --pt-accent: #1b7478;
-  --pt-accent-hover: #176467;
-  /* Icon glyphs inside the Reach Out card. */
-  --pt-accent-light: #ffffff;
-  --pt-accent-foreground: #ffffff;
-  --pt-tint2: #e7f4f5;
-  --pt-border: #e2f2f3;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #12494d;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #12494d;
-  --pt-dark-card-shadow: rgba(18, 73, 77, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #1b7478;
-  --pt-modal-sidebar: #1b7478;
-  --pt-toggle-track: transparent;
-  --pt-toggle-border: #183338;
-  --pt-input-bg: #eef7f8;
-  --pt-input-border: #dceff0;
-  --pt-tile-text-size: 19px;
-  --pt-tile-text-size-sm: 19px;
-  --pt-tile-text-weight: 500;
-
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #1b7478;
-  --pt-tile-1-hover: #176467;
-  --pt-tile-2: #1b7478;
-  --pt-tile-2-hover: #176467;
-  --pt-tile-3: #1b7478;
-  --pt-tile-3-hover: #176467;
-  --pt-tile-4: #1b7478;
-  --pt-tile-4-hover: #176467;
-  --pt-tile-5: #1b7478;
-  --pt-tile-5-hover: #176467;
-}
-
-[data-pt-theme="lavender-mist"] {
-  --pt-outer: #e5e0f3;
-  --pt-bg: #fafafc;
-  --pt-text: #2a2740;
-  --pt-tagline: #4a4664;
-  --pt-muted: #645f82;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #e8e3f4;
-  --pt-accent: #6558a0;
-  --pt-accent-hover: #574c8a;
-  /* Icon glyphs inside the Reach Out card. */
-  --pt-accent-light: #ffffff;
-  --pt-accent-foreground: #ffffff;
-  --pt-tint2: #f1eef8;
-  --pt-border: #eeebf7;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #43397a;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #43397a;
-  --pt-dark-card-shadow: rgba(67, 57, 122, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #6558a0;
-  --pt-modal-sidebar: #6558a0;
-  --pt-toggle-track: transparent;
-  --pt-toggle-border: #2a2740;
-  --pt-input-bg: #f5f3fa;
-  --pt-input-border: #eae6f5;
-  --pt-tile-text-size: 19px;
-  --pt-tile-text-size-sm: 19px;
-  --pt-tile-text-weight: 500;
-
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #6558a0;
-  --pt-tile-1-hover: #574c8a;
-  --pt-tile-2: #6558a0;
-  --pt-tile-2-hover: #574c8a;
-  --pt-tile-3: #6558a0;
-  --pt-tile-3-hover: #574c8a;
-  --pt-tile-4: #6558a0;
-  --pt-tile-4-hover: #574c8a;
-  --pt-tile-5: #6558a0;
-  --pt-tile-5-hover: #574c8a;
-}
-
 [data-pt-theme="moss-honey"] {
-  --pt-outer: #ebe8d8;
+  /* The frame around the page: moss green, the same as the Book a Session button. */
+  --pt-outer: #66794f;
   /* The ring around the portrait. Themes without one use the frame colour. */
-  --pt-ring: #ebe8d8;
+  --pt-ring: #66794f;
   --pt-bg: #f6f4ea;
   /* The highlighter behind headings: honey, so the theme's second colour appears on the page. Other themes use a tint of their own accent. */
   --pt-marker: rgba(240, 192, 90, 0.75);
@@ -717,7 +577,7 @@ body {
   --pt-tagline: #52573f;
   --pt-muted: #6f7257;
   /* Label text inside the Reach Out card. */
-  --pt-muted-light: #fbfcf7;
+  --pt-muted-light: #eef2e4;
   --pt-accent: #66794f;
   --pt-accent-hover: #586844;
   /* Icon glyphs inside the Reach Out card. */
@@ -725,13 +585,13 @@ body {
   --pt-accent-foreground: #ffffff;
   --pt-tint2: #ebe8d8;
   --pt-border: #e6e4cf;
-  /* Reach Out card: a filled panel in the same moss green as the Book a Session button, white text. */
+  /* Reach Out card: a deep moss panel, the same green as the frame, with white text and white icons in soft translucent circles. */
   --pt-dark-card: #66794f;
-  --pt-dark-divider: rgba(255, 255, 255, 0.2);
+  --pt-dark-divider: rgba(255, 255, 255, 0.22);
   --pt-dark-card-foreground: #ffffff;
   --pt-dark-card-border: #66794f;
   --pt-dark-card-shadow: rgba(102, 121, 79, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.1);
+  --pt-icon-fill: rgba(255, 255, 255, 0.18);
   --pt-icon-border: rgba(255, 255, 255, 0.4);
   --pt-tile-border: #66794f;
   --pt-modal-sidebar: #66794f;
@@ -743,20 +603,22 @@ body {
   --pt-tile-text-size-sm: 19px;
   --pt-tile-text-weight: 500;
 
-  /* Oat and moss: the frame and page are the two oat tones, and moss is kept for the button and the contact card. Area rows
-     are outlined in moss with deep moss text, not filled. */
+  /* The Professional Journey line: the same 1px, in a darker oat-moss so it shows up. */
+  --pt-timeline: #b4bc9f;
+
+  /* Areas of expertise are plain oat: a filled oat tile with deep moss text and no outline. */
   --pt-tile-fg: #3f4e30;
-  --pt-tile-ring: #66794f;
-  --pt-tile-1: transparent;
-  --pt-tile-1-hover: rgba(102, 121, 79, 0.12);
-  --pt-tile-2: transparent;
-  --pt-tile-2-hover: rgba(102, 121, 79, 0.12);
-  --pt-tile-3: transparent;
-  --pt-tile-3-hover: rgba(102, 121, 79, 0.12);
-  --pt-tile-4: transparent;
-  --pt-tile-4-hover: rgba(102, 121, 79, 0.12);
-  --pt-tile-5: transparent;
-  --pt-tile-5-hover: rgba(102, 121, 79, 0.12);
+  --pt-tile-ring: transparent;
+  --pt-tile-1: #ebe8d8;
+  --pt-tile-1-hover: #e0dcc7;
+  --pt-tile-2: #ebe8d8;
+  --pt-tile-2-hover: #e0dcc7;
+  --pt-tile-3: #ebe8d8;
+  --pt-tile-3-hover: #e0dcc7;
+  --pt-tile-4: #ebe8d8;
+  --pt-tile-4-hover: #e0dcc7;
+  --pt-tile-5: #ebe8d8;
+  --pt-tile-5-hover: #e0dcc7;
 }
 
 [data-pt-theme="cobalt"] {
@@ -851,52 +713,6 @@ body {
   --pt-tile-5-hover: #2462bf;
 }
 
-[data-pt-theme="navy-ice"] {
-  --pt-outer: #dce9fd;
-  --pt-bg: #fafcff;
-  --pt-text: #0b1a30;
-  --pt-tagline: #324259;
-  --pt-muted: #52627a;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #e0ebfd;
-  --pt-accent: #00234B;
-  --pt-accent-hover: #001e40;
-  /* Icon glyphs inside the Reach Out card. */
-  --pt-accent-light: #ffffff;
-  --pt-accent-foreground: #ffffff;
-  --pt-tint2: #ecf3fe;
-  --pt-border: #e8f1fe;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #00234B;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #00234B;
-  --pt-dark-card-shadow: rgba(0, 35, 75, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #00234B;
-  --pt-modal-sidebar: #00234B;
-  --pt-toggle-track: transparent;
-  --pt-toggle-border: #0b1a30;
-  --pt-input-bg: #f2f7fe;
-  --pt-input-border: #e3edfd;
-  --pt-tile-text-size: 19px;
-  --pt-tile-text-size-sm: 19px;
-  --pt-tile-text-weight: 500;
-
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #00234B;
-  --pt-tile-1-hover: #001e40;
-  --pt-tile-2: #00234B;
-  --pt-tile-2-hover: #001e40;
-  --pt-tile-3: #00234B;
-  --pt-tile-3-hover: #001e40;
-  --pt-tile-4: #00234B;
-  --pt-tile-4-hover: #001e40;
-  --pt-tile-5: #00234B;
-  --pt-tile-5-hover: #001e40;
-}
-
 [data-pt-theme="night-sky"] {
   --pt-outer: #dfe6fa;
   --pt-bg: #fafbfe;
@@ -941,144 +757,6 @@ body {
   --pt-tile-4-hover: #4a62ad;
   --pt-tile-5: #5672c9;
   --pt-tile-5-hover: #4a62ad;
-}
-
-[data-pt-theme="clinical-teal"] {
-  --pt-outer: #e0eef0;
-  --pt-bg: #fafcfd;
-  --pt-text: #0e2433;
-  --pt-tagline: #364b59;
-  --pt-muted: #566b78;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #e3f0f2;
-  --pt-accent: #017A8F;
-  --pt-accent-hover: #01697b;
-  /* Icon glyphs inside the Reach Out card. */
-  --pt-accent-light: #ffffff;
-  --pt-accent-foreground: #ffffff;
-  --pt-tint2: #eef6f7;
-  --pt-border: #ebf4f5;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #133D54;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #133D54;
-  --pt-dark-card-shadow: rgba(19, 61, 84, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #017A8F;
-  --pt-modal-sidebar: #017A8F;
-  --pt-toggle-track: transparent;
-  --pt-toggle-border: #0e2433;
-  --pt-input-bg: #f3f9f9;
-  --pt-input-border: #e6f1f3;
-  --pt-tile-text-size: 19px;
-  --pt-tile-text-size-sm: 19px;
-  --pt-tile-text-weight: 500;
-
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #017A8F;
-  --pt-tile-1-hover: #01697b;
-  --pt-tile-2: #017A8F;
-  --pt-tile-2-hover: #01697b;
-  --pt-tile-3: #017A8F;
-  --pt-tile-3-hover: #01697b;
-  --pt-tile-4: #017A8F;
-  --pt-tile-4-hover: #01697b;
-  --pt-tile-5: #017A8F;
-  --pt-tile-5-hover: #01697b;
-}
-
-[data-pt-theme="evergreen"] {
-  --pt-outer: #e4f2f0;
-  --pt-bg: #fcfbf9;
-  --pt-text: #0a1f1a;
-  --pt-tagline: #374944;
-  --pt-muted: #5b6b66;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #e7f3f2;
-  --pt-accent: #01382E;
-  --pt-accent-hover: #013028;
-  /* Icon glyphs inside the Reach Out card. */
-  --pt-accent-light: #ffffff;
-  --pt-accent-foreground: #ffffff;
-  --pt-tint2: #f0f8f7;
-  --pt-border: #edf7f5;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #01382E;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #01382E;
-  --pt-dark-card-shadow: rgba(1, 56, 46, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #01382E;
-  --pt-modal-sidebar: #01382E;
-  --pt-toggle-track: transparent;
-  --pt-toggle-border: #0a1f1a;
-  --pt-input-bg: #f5faf9;
-  --pt-input-border: #e9f5f3;
-  --pt-tile-text-size: 19px;
-  --pt-tile-text-size-sm: 19px;
-  --pt-tile-text-weight: 500;
-
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #01382E;
-  --pt-tile-1-hover: #013028;
-  --pt-tile-2: #01382E;
-  --pt-tile-2-hover: #013028;
-  --pt-tile-3: #01382E;
-  --pt-tile-3-hover: #013028;
-  --pt-tile-4: #01382E;
-  --pt-tile-4-hover: #013028;
-  --pt-tile-5: #01382E;
-  --pt-tile-5-hover: #013028;
-}
-
-[data-pt-theme="forest-green"] {
-  --pt-outer: #dff0dc;
-  --pt-bg: #fafdfa;
-  --pt-text: #10241c;
-  --pt-tagline: #394d43;
-  --pt-muted: #5a6e63;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #e2f2e0;
-  --pt-accent: #397A4A;
-  --pt-accent-hover: #316940;
-  /* Icon glyphs inside the Reach Out card. */
-  --pt-accent-light: #ffffff;
-  --pt-accent-foreground: #ffffff;
-  --pt-tint2: #edf7ec;
-  --pt-border: #eaf5e8;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #184C3D;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #184C3D;
-  --pt-dark-card-shadow: rgba(24, 76, 61, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #397A4A;
-  --pt-modal-sidebar: #397A4A;
-  --pt-toggle-track: transparent;
-  --pt-toggle-border: #10241c;
-  --pt-input-bg: #f3f9f2;
-  --pt-input-border: #e5f3e3;
-  --pt-tile-text-size: 19px;
-  --pt-tile-text-size-sm: 19px;
-  --pt-tile-text-weight: 500;
-
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #397A4A;
-  --pt-tile-1-hover: #316940;
-  --pt-tile-2: #397A4A;
-  --pt-tile-2-hover: #316940;
-  --pt-tile-3: #397A4A;
-  --pt-tile-3-hover: #316940;
-  --pt-tile-4: #397A4A;
-  --pt-tile-4-hover: #316940;
-  --pt-tile-5: #397A4A;
-  --pt-tile-5-hover: #316940;
 }
 
 /* The loader script sizes its canvas in device pixels and leaves display size

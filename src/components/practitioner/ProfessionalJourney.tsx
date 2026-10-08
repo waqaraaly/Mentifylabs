@@ -79,7 +79,7 @@ function StraightTimeline({ entries }: { entries: Entry[] }) {
       <div className="px-2" style={{ minWidth }}>
         <div className="relative h-5">
           <div
-            className="absolute top-1/2 h-px -translate-y-1/2 bg-(--pt-border)"
+            className="absolute top-1/2 h-px -translate-y-1/2 bg-(--pt-timeline,var(--pt-border))"
             style={{ left: `${columnXs[0]}%`, right: `${100 - columnXs[lastIndex]}%` }}
             aria-hidden
           />

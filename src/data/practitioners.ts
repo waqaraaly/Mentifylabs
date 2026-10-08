@@ -1,7 +1,7 @@
 import { isLive } from "@/lib/practitionerState";
 import { DEFAULT_REJECTION_REASON } from "@/lib/verification";
 import type { ContactMethod, Practitioner } from "@/types/practitioner";
-import type { ColorThemeId } from "@/lib/themes";
+import { isColorThemeId, type ColorThemeId } from "@/lib/themes";
 import { isSupportedSocialLink } from "@/lib/social";
 import { all, first, run } from "@/lib/db";
 import { countStoredDocuments } from "@/data/documents";
@@ -114,7 +114,8 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     socialLinks: json(r.social_links),
     websiteUrl: opt(r.website_url),
     contactMethods: json(r.contact_methods),
-    colorTheme: opt(r.color_theme),
+    // A theme that has since been removed reads as unset, so the profile falls back to the default instead of losing its colours.
+    colorTheme: isColorThemeId(r.color_theme) ? r.color_theme : undefined,
     status: r.status,
     profileStatus: r.profile_status,
     creationMethod: r.creation_method,

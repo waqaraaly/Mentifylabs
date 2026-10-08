@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import { COLOR_THEMES, COLOR_THEME_GROUPS, type ColorThemeId } from "@/lib/themes";
 
 /**
- * Twenty colour themes, shown as small swatches in four families instead of twenty large cards. A live preview above
+ * The colour themes, shown as small swatches in a few families instead of large cards. A live preview above
  * them is drawn with the chosen theme's own colours, so what is shown is what the public page will use. Each swatch is
  * a native radio input, so the choice still submits with the rest of the profile form through `name="colorTheme"`.
  */
@@ -31,9 +31,9 @@ export function ThemePicker({ selected }: { selected: ColorThemeId }) {
               </div>
             </div>
             <div className="mt-3 flex gap-1.5">
-              <span className="rounded bg-(--pt-tile-1) px-2 py-1 text-[9px] font-medium text-(--pt-accent-foreground)">Anxiety</span>
-              <span className="rounded bg-(--pt-tile-1) px-2 py-1 text-[9px] font-medium text-(--pt-accent-foreground)">Stress</span>
-              <span className="ml-auto h-5 w-12 rounded bg-(--pt-dark-card)" />
+              <span className="rounded bg-(--pt-tile-1) px-2 py-1 text-[9px] font-medium text-(--pt-tile-fg,var(--pt-accent-foreground))">Anxiety</span>
+              <span className="rounded bg-(--pt-tile-1) px-2 py-1 text-[9px] font-medium text-(--pt-tile-fg,var(--pt-accent-foreground))">Stress</span>
+              <span className="ml-auto h-5 w-12 rounded bg-(--pt-dark-card) ring-1 ring-(--pt-dark-card-border)" />
             </div>
           </div>
         </div>

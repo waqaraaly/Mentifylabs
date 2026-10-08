@@ -1,10 +1,10 @@
-export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "juniper-brick" | "ocean-mist" | "fog-teal" | "olive-grove" | "clinic-blue" | "eucalyptus" | "lagoon" | "lavender-mist" | "moss-honey" | "cobalt" | "blue-sand" | "navy-ice" | "night-sky" | "clinical-teal" | "evergreen" | "forest-green";
+export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "ocean-mist" | "fog-teal" | "olive-grove" | "clinic-blue" | "eucalyptus" | "moss-honey" | "cobalt" | "blue-sand" | "night-sky";
 
-export type ColorThemeGroup = "Greens" | "Blues" | "Teals" | "Violet and yellow";
+export type ColorThemeGroup = "Greens" | "Blues" | "Teals" | "Yellow";
 
 export interface ColorThemeOption {
   id: ColorThemeId;
-  /** Which family the picker files it under, so twenty options read as four short rows. */
+  /** Which family the picker files it under, so the options read as a few short rows. */
   group: ColorThemeGroup;
   name: string;
   description: string;
@@ -20,8 +20,8 @@ export const COLOR_THEMES: ColorThemeOption[] = [
     id: "moss-honey",
     group: "Greens",
     name: "Moss and honey",
-    description: "Oat cream and oat frame with moss green on buttons and the contact card. The default.",
-    swatches: ["#f6f4ea", "#ebe8d8", "#66794f", "#f6e8c8"],
+    description: "Oat cream page in a moss green frame, with moss green on buttons and the contact card. The default.",
+    swatches: ["#f6f4ea", "#66794f", "#66794f", "#f6e8c8"],
   },
   {
     id: "sage",
@@ -39,17 +39,10 @@ export const COLOR_THEMES: ColorThemeOption[] = [
   },
   {
     id: "golden-hour",
-    group: "Violet and yellow",
+    group: "Yellow",
     name: "Yellow",
     description: "White with a golden-yellow accent.",
     swatches: ["#FFFFFF", "#FFCC1C", "#FFD74D", "#DDEEF6"],
-  },
-  {
-    id: "juniper-brick",
-    group: "Greens",
-    name: "Green and brick red",
-    description: "Warm paper with deep green and brick-red accents.",
-    swatches: ["#FAF8F3", "#E9DED3", "#2E4F44", "#B0432F"],
   },
   {
     id: "ocean-mist",
@@ -87,20 +80,6 @@ export const COLOR_THEMES: ColorThemeOption[] = [
     swatches: ["#f8faf9", "#d8eae1", "#37755f", "#eaf3ee"],
   },
   {
-    id: "lagoon",
-    group: "Teals",
-    name: "Lagoon",
-    description: "Light aqua with a deep lagoon-teal accent.",
-    swatches: ["#f7fbfb", "#d3ebec", "#1b7478", "#e7f4f5"],
-  },
-  {
-    id: "lavender-mist",
-    group: "Violet and yellow",
-    name: "Lavender mist",
-    description: "Soft lilac with a muted violet accent.",
-    swatches: ["#fafafc", "#e5e0f3", "#6558a0", "#f1eef8"],
-  },
-  {
     id: "cobalt",
     group: "Blues",
     name: "Cobalt",
@@ -115,44 +94,16 @@ export const COLOR_THEMES: ColorThemeOption[] = [
     swatches: ["#fbfaf8", "#efe7db", "#2A72DE", "#f6f2eb"],
   },
   {
-    id: "navy-ice",
-    group: "Blues",
-    name: "Navy and ice",
-    description: "Cool white with a deep navy accent and an ice-blue frame.",
-    swatches: ["#fafcff", "#dce9fd", "#00234B", "#ecf3fe"],
-  },
-  {
     id: "night-sky",
     group: "Blues",
     name: "Night sky",
     description: "Soft periwinkle white with a night-sky navy card.",
     swatches: ["#fafbfe", "#dfe6fa", "#5672c9", "#edf1fc"],
   },
-  {
-    id: "clinical-teal",
-    group: "Teals",
-    name: "Clinical teal",
-    description: "Cool white with a clinical teal accent and navy card.",
-    swatches: ["#fafcfd", "#e0eef0", "#017A8F", "#eef6f7"],
-  },
-  {
-    id: "evergreen",
-    group: "Greens",
-    name: "Evergreen",
-    description: "Warm white with a very deep green accent.",
-    swatches: ["#fcfbf9", "#e4f2f0", "#01382E", "#f0f8f7"],
-  },
-  {
-    id: "forest-green",
-    group: "Greens",
-    name: "Forest green",
-    description: "Pale green-white with a mid forest-green accent.",
-    swatches: ["#fafdfa", "#dff0dc", "#397A4A", "#edf7ec"],
-  },
 ];
 
 /** The families in the order the picker shows them. */
-export const COLOR_THEME_GROUPS: ColorThemeGroup[] = ["Greens", "Blues", "Teals", "Violet and yellow"];
+export const COLOR_THEME_GROUPS: ColorThemeGroup[] = ["Greens", "Blues", "Teals", "Yellow"];
 
 export const DEFAULT_COLOR_THEME: ColorThemeId = "moss-honey";
 
