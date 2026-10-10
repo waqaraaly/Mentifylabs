@@ -7,7 +7,7 @@ import { COLOR_THEMES, COLOR_THEME_GROUPS, type ColorThemeId } from "@/lib/theme
 /**
  * The colour themes, shown as small swatches in a few families instead of large cards. A live preview above
  * them is drawn with the chosen theme's own colours, so what is shown is what the public page will use. Each swatch is
- * a native radio input, so the choice still submits with the rest of the profile form through `name="colorTheme"`.
+ * a button with the radio role, and the choice submits with the rest of the profile form through a hidden `name="colorTheme"` field.
  */
 export function ThemePicker({ selected }: { selected: ColorThemeId }) {
   const [current, setCurrent] = useState<ColorThemeId>(selected);
@@ -43,33 +43,38 @@ export function ThemePicker({ selected }: { selected: ColorThemeId }) {
         </div>
       </div>
 
-      <div role="radiogroup" aria-label="Color theme" className="space-y-4">
+      {/* The choice travels in a hidden field, not in native radios: the form is reset after a save, and a reset would put
+          native radios back to what they were when the page first loaded. */}
+      <input type="hidden" name="colorTheme" value={current} />
+      <div role="radiogroup" aria-label="Color theme" id="colorTheme" className="space-y-4">
         {COLOR_THEME_GROUPS.map((group) => (
           <div key={group} className="grid items-center gap-x-4 gap-y-2 sm:grid-cols-[120px_1fr]">
             <p className="text-xs font-medium tracking-[0.04em] text-muted">{group}</p>
             <div className="flex flex-wrap gap-2.5">
               {COLOR_THEMES.filter((t) => t.group === group).map((t) => (
-                <label key={t.id} title={t.name} className="group relative cursor-pointer">
-                  <input
-                    type="radio"
-                    name="colorTheme"
-                    value={t.id}
-                    checked={current === t.id}
-                    onChange={() => setCurrent(t.id)}
-                    className="peer sr-only"
-                  />
-                  <span className="sr-only">{t.name}</span>
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={current === t.id}
+                  aria-label={t.name}
+                  title={t.name}
+                  onClick={() => setCurrent(t.id)}
+                  className="group relative cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
                   {/* The frame colour as a rounded square, with the accent as a circle inside it. */}
                   <span
                     aria-hidden
-                    className="flex size-11 items-center justify-center rounded-xl ring-1 ring-black/[0.1] transition peer-checked:ring-2 peer-checked:ring-primary peer-checked:ring-offset-2 peer-focus-visible:ring-2 peer-focus-visible:ring-primary group-hover:scale-105"
+                    className={`flex size-11 items-center justify-center rounded-xl transition group-hover:scale-105 ${
+                      current === t.id ? "ring-2 ring-primary ring-offset-2" : "ring-1 ring-black/[0.1]"
+                    }`}
                     style={{ background: t.swatches[1] }}
                   >
                     <span className="flex size-6 items-center justify-center rounded-full shadow-sm" style={{ background: t.swatches[2] }}>
                       <Check className={`size-3.5 text-white drop-shadow-[0_0_1px_rgba(0,0,0,0.7)] ${current === t.id ? "opacity-100" : "opacity-0"}`} strokeWidth={3} />
                     </span>
                   </span>
-                </label>
+                </button>
               ))}
             </div>
           </div>

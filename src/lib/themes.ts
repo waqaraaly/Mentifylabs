@@ -1,4 +1,4 @@
-export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "ocean-mist" | "fog-teal" | "olive-grove" | "clinic-blue" | "eucalyptus" | "moss-honey" | "cobalt" | "blue-sand" | "night-sky";
+export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "ocean-mist" | "fog-teal" | "teal-tints" | "olive-grove" | "clinic-blue" | "eucalyptus" | "moss-honey" | "blue-sand" | "sage-clay" | "soft-sky";
 
 export type ColorThemeGroup = "Greens" | "Blues" | "Teals" | "Yellow";
 
@@ -21,7 +21,7 @@ export const COLOR_THEMES: ColorThemeOption[] = [
     group: "Greens",
     name: "Moss and honey",
     description: "Oat cream page in a moss green frame, with moss green on buttons and the contact card. The default.",
-    swatches: ["#f6f4ea", "#66794f", "#66794f", "#f6e8c8"],
+    swatches: ["#f6f4ea", "#7f9166", "#66794f", "#f6e8c8"],
   },
   {
     id: "sage",
@@ -59,11 +59,18 @@ export const COLOR_THEMES: ColorThemeOption[] = [
     swatches: ["#F6F8F8", "#D3E2E3", "#3E5E60", "#E8EDED"],
   },
   {
+    id: "teal-tints",
+    group: "Teals",
+    name: "Pale teal tints",
+    description: "White page in a pale teal frame, with deeper teal boxes and contact card.",
+    swatches: ["#ffffff", "#e0f0f2", "#3B7C8A", "#4A9DA8"],
+  },
+  {
     id: "olive-grove",
     group: "Greens",
-    name: "Olive",
-    description: "Warm white with a muted deep olive accent.",
-    swatches: ["#F8F8F6", "#DEE3D3", "#56603E", "#ECEDE8"],
+    name: "Greige and olive",
+    description: "Warm greige frame and cream page with a deep olive accent.",
+    swatches: ["#f8f5ef", "#d6cfc2", "#55603a", "#ebe6da"],
   },
   {
     id: "clinic-blue",
@@ -76,29 +83,29 @@ export const COLOR_THEMES: ColorThemeOption[] = [
     id: "eucalyptus",
     group: "Greens",
     name: "Eucalyptus",
-    description: "Pale grey-green with a deep eucalyptus accent.",
-    swatches: ["#f8faf9", "#d8eae1", "#37755f", "#eaf3ee"],
-  },
-  {
-    id: "cobalt",
-    group: "Blues",
-    name: "Cobalt",
-    description: "White with a clear cobalt-blue accent.",
-    swatches: ["#fafcfe", "#d6e9f6", "#0372BC", "#e8f3fa"],
+    description: "Pale grey-green in a sage green frame, with a deep green contact card and soft sage boxes.",
+    swatches: ["#f8faf9", "#7a9471", "#37755f", "#dde8d3"],
   },
   {
     id: "blue-sand",
     group: "Blues",
-    name: "Blue and sand",
-    description: "Warm sand with a bright blue accent.",
-    swatches: ["#fbfaf8", "#efe7db", "#2A72DE", "#f6f2eb"],
+    name: "Denim and oat",
+    description: "Warm oat page in a denim blue frame, with oat cards and a denim accent.",
+    swatches: ["#faf6ed", "#3f6aa8", "#3f6aa8", "#efe7d6"],
   },
   {
-    id: "night-sky",
+    id: "sage-clay",
+    group: "Greens",
+    name: "Sage and clay",
+    description: "Pale sage frame and sage button, with clay-tint boxes and a sage contact card.",
+    swatches: ["#f7f5f0", "#eef0e8", "#7a9471", "#f2e7da"],
+  },
+  {
+    id: "soft-sky",
     group: "Blues",
-    name: "Night sky",
-    description: "Soft periwinkle white with a night-sky navy card.",
-    swatches: ["#fafbfe", "#dfe6fa", "#5672c9", "#edf1fc"],
+    name: "Soft sky",
+    description: "A soft sky-blue frame, a sky-blue button, and a deep blue contact card and boxes.",
+    swatches: ["#f9fcfe", "#8fb8d6", "#7fb1d4", "#2e6487"],
   },
 ];
 

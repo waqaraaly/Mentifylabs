@@ -1,14 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ArrowUpRight, Lightbulb, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/login/actions";
-import {
-  getCurrentPractitioner,
-  isPubliclyVisible,
-} from "@/data/practitioners";
+import { getCurrentPractitioner } from "@/data/practitioners";
 import { getAppointmentsByPractitioner } from "@/data/appointments";
+import { AccountMenu } from "@/components/portal/AccountMenu";
 import { DashboardNav } from "@/components/portal/DashboardNav";
 import { HideOnSuggestions } from "@/components/portal/HideOnSuggestions";
 import { PortalAside } from "@/components/portal/PortalAside";
@@ -28,11 +24,6 @@ export default async function DashboardLayout({
     practitioner.slug,
     "pending",
   );
-  const initials = practitioner.fullName
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("");
 
   return (
     <div className="app-backdrop min-h-screen lg:flex">
@@ -56,50 +47,8 @@ export default async function DashboardLayout({
 
             <div className="lg:flex-1" />
 
-            {/* A quiet way to send ideas: it opens the suggestion form in a new tab. */}
-            <div className="px-6 pb-4">
-              <a
-                href="/dashboard/suggestions"
-                target="_blank"
-                rel="noopener"
-                className="inline-flex items-center gap-1.5 text-xs text-sidebar-fg transition hover:text-sidebar-strong"
-              >
-                <Lightbulb className="size-3.5" aria-hidden />
-                Help us improve the platform
-              </a>
-            </div>
-
-            <div className="flex items-center gap-3 border-t-2 border-sidebar-border px-6 py-6">
-              <div className="ring-sidebar-border flex size-9 shrink-0 items-center justify-center rounded-full bg-sidebar-active text-xs font-semibold text-sidebar-active-fg ring-1">
-                {initials}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-sidebar-strong">
-                  {practitioner.fullName}
-                </p>
-                {/* A link to the page clients see, once there is one. Until the profile is live there is nothing to link to. */}
-                {isPubliclyVisible(practitioner) && (
-                  <Link
-                    href={`/${practitioner.slug}`}
-                    target="_blank"
-                    className="inline-flex items-center gap-1 text-xs text-sidebar-fg transition hover:text-sidebar-strong"
-                  >
-                    Public profile
-                    <ArrowUpRight className="size-3" aria-hidden />
-                  </Link>
-                )}
-              </div>
-              <form action={signOutAction} className="ml-auto">
-                <button
-                  type="submit"
-                  title="Sign out"
-                  className="flex size-11 items-center justify-center rounded-lg text-sidebar-fg transition hover:bg-sidebar-active hover:text-sidebar-active-fg"
-                >
-                  <LogOut className="size-4" aria-hidden />
-                  <span className="sr-only">Sign out</span>
-                </button>
-              </form>
-            </div>
+            {/* The name at the foot opens a small menu upwards: the suggestion form, and signing out. */}
+            <AccountMenu name={practitioner.fullName} photoUrl={practitioner.photoUrl} signOutAction={signOutAction} />
           </PortalAside>
         </aside>
       </HideOnSuggestions>

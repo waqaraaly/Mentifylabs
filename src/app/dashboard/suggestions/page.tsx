@@ -2,7 +2,7 @@ import { Lightbulb } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SuggestionForm } from "@/components/portal/SuggestionForm";
 
-export const metadata = { title: "Help us improve" };
+export const metadata = { title: "Suggestions" };
 
 export default function SuggestionsPage() {
   return (

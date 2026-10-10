@@ -338,7 +338,7 @@ body {
   --pt-tagline: #3c5560;
   --pt-muted: #5f7883;
   /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #cfe6ec;
+  --pt-muted-light: #e1f0f3;
   --pt-accent: #1e7a8c;
   --pt-accent-hover: #186a7a;
   /* Icon glyphs inside the Reach Out card. */
@@ -346,12 +346,12 @@ body {
   --pt-accent-foreground: #ffffff;
   --pt-tint2: #e2f1f4;
   --pt-border: #dcebef;
-  /* Reach Out card: a filled panel in this theme's deep accent, white text. */
-  --pt-dark-card: #14586a;
+  /* Reach Out card: the same teal as the Areas of expertise boxes, white text. */
+  --pt-dark-card: #1e7a8c;
   --pt-dark-divider: rgba(255, 255, 255, 0.16);
   --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #14586a;
-  --pt-dark-card-shadow: rgba(20, 88, 106, 0.4);
+  --pt-dark-card-border: #1e7a8c;
+  --pt-dark-card-shadow: rgba(30, 122, 140, 0.4);
   --pt-icon-fill: rgba(255, 255, 255, 0.08);
   --pt-icon-border: rgba(255, 255, 255, 0.38);
   --pt-tile-border: #1e7a8c;
@@ -428,49 +428,57 @@ body {
 /* Olive Grove — natural and steady. A soft tinted surface with one deep, low-saturation accent (22%), light throughout.
    The Reach Out card is filled with the accent itself, white text. */
 [data-pt-theme="olive-grove"] {
-  --pt-outer: #dee3d3;
-  --pt-bg: #f8f8f6;
-  --pt-text: #21231a;
-  --pt-tagline: #4a4f40;
-  --pt-muted: #6c7160;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #e6eadc;
-  --pt-accent: #56603e;
-  --pt-accent-hover: #454e32;
+  /* Greige and olive: a tonal look from one warm family. The frame is greige and the portrait ring is olive. */
+  --pt-outer: #d6cfc2;
+  --pt-ring: #55603a;
+  --pt-bg: #f8f5ef;
+  /* The highlighter behind headings: a pale olive-sand. */
+  --pt-marker: rgba(214, 207, 176, 0.95);
+  --pt-text: #23261a;
+  --pt-tagline: #4a4d3c;
+  --pt-muted: #6b6a58;
+  /* Label text inside the Reach Out card. */
+  --pt-muted-light: #e9ead9;
+  --pt-accent: #55603a;
+  --pt-accent-hover: #454e30;
   /* Icon glyphs inside the Reach Out card. */
   --pt-accent-light: #ffffff;
   --pt-accent-foreground: #ffffff;
-  --pt-tint2: #ecede8;
-  --pt-border: #dfe1db;
-  /* Reach Out card: a filled panel in this theme's accent, white text. */
-  --pt-dark-card: #56603e;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
+  --pt-tint2: #ece8de;
+  --pt-border: #e3ded1;
+  /* The Professional Journey line. */
+  --pt-timeline: #a7a888;
+  /* Reach Out card: a filled olive panel with white text and translucent icon circles. */
+  --pt-dark-card: #55603a;
+  --pt-dark-divider: rgba(255, 255, 255, 0.2);
   --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #56603e;
-  --pt-dark-card-shadow: rgba(86, 96, 62, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #56603e;
-  --pt-modal-sidebar: #56603e;
+  --pt-dark-card-border: #55603a;
+  --pt-dark-card-shadow: rgba(85, 96, 58, 0.4);
+  --pt-icon-fill: rgba(255, 255, 255, 0.16);
+  --pt-icon-border: rgba(255, 255, 255, 0.4);
+  --pt-tile-border: #55603a;
+  --pt-modal-sidebar: #55603a;
   --pt-toggle-track: transparent;
-  --pt-toggle-border: #21231a;
-  --pt-input-bg: #f1f2ee;
-  --pt-input-border: #dbddd4;
+  --pt-toggle-border: #23261a;
+  --pt-input-bg: #f1ede4;
+  --pt-input-border: #e3ded1;
   --pt-tile-text-size: 19px;
   --pt-tile-text-size-sm: 19px;
   --pt-tile-text-weight: 500;
 
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #56603e;
-  --pt-tile-1-hover: #454e32;
-  --pt-tile-2: #56603e;
-  --pt-tile-2-hover: #454e32;
-  --pt-tile-3: #56603e;
-  --pt-tile-3-hover: #454e32;
-  --pt-tile-4: #56603e;
-  --pt-tile-4-hover: #454e32;
-  --pt-tile-5: #56603e;
-  --pt-tile-5-hover: #454e32;
+  /* Areas of expertise are warm greige with deep olive text. */
+  --pt-tile-fg: #3f4829;
+  --pt-tile-ring: transparent;
+  --pt-tile-1: #ebe6da;
+  --pt-tile-1-hover: #e1dccd;
+  --pt-tile-2: #ebe6da;
+  --pt-tile-2-hover: #e1dccd;
+  --pt-tile-3: #ebe6da;
+  --pt-tile-3-hover: #e1dccd;
+  --pt-tile-4: #ebe6da;
+  --pt-tile-4-hover: #e1dccd;
+  --pt-tile-5: #ebe6da;
+  --pt-tile-5-hover: #e1dccd;
 }
 
 [data-pt-theme="clinic-blue"] {
@@ -520,12 +528,14 @@ body {
 }
 
 [data-pt-theme="eucalyptus"] {
-  --pt-outer: #d8eae1;
+  --pt-outer: #7a9471;
   --pt-bg: #f8faf9;
+  /* The highlighter behind headings: the soft sage, since the frame colour (its usual source) is now a darker sage. */
+  --pt-marker: rgba(221, 232, 211, 0.95);
   --pt-text: #1f342d;
   --pt-tagline: #3e544c;
   --pt-muted: #586f65;
-  /* Label text inside the (dark) Reach Out card. */
+  /* Label text inside the Reach Out card. */
   --pt-muted-light: #dcece4;
   --pt-accent: #37755f;
   --pt-accent-hover: #2f6552;
@@ -534,13 +544,13 @@ body {
   --pt-accent-foreground: #ffffff;
   --pt-tint2: #eaf3ee;
   --pt-border: #e6f1ec;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
+  /* Reach Out card: the deep green, with white text. The frame and portrait ring are the sage green (#7a9471). */
   --pt-dark-card: #27513f;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
+  --pt-dark-divider: rgba(255, 255, 255, 0.2);
   --pt-dark-card-foreground: #ffffff;
   --pt-dark-card-border: #27513f;
   --pt-dark-card-shadow: rgba(39, 81, 63, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
+  --pt-icon-fill: rgba(255, 255, 255, 0.14);
   --pt-icon-border: rgba(255, 255, 255, 0.38);
   --pt-tile-border: #37755f;
   --pt-modal-sidebar: #37755f;
@@ -552,24 +562,26 @@ body {
   --pt-tile-text-size-sm: 19px;
   --pt-tile-text-weight: 500;
 
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #37755f;
-  --pt-tile-1-hover: #2f6552;
-  --pt-tile-2: #37755f;
-  --pt-tile-2-hover: #2f6552;
-  --pt-tile-3: #37755f;
-  --pt-tile-3-hover: #2f6552;
-  --pt-tile-4: #37755f;
-  --pt-tile-4-hover: #2f6552;
-  --pt-tile-5: #37755f;
-  --pt-tile-5-hover: #2f6552;
+  /* Areas of expertise: soft sage with deep green text. */
+  --pt-tile-fg: #27513f;
+  --pt-tile-ring: transparent;
+  --pt-tile-1: #dde8d3;
+  --pt-tile-1-hover: #cddcc2;
+  --pt-tile-2: #dde8d3;
+  --pt-tile-2-hover: #cddcc2;
+  --pt-tile-3: #dde8d3;
+  --pt-tile-3-hover: #cddcc2;
+  --pt-tile-4: #dde8d3;
+  --pt-tile-4-hover: #cddcc2;
+  --pt-tile-5: #dde8d3;
+  --pt-tile-5-hover: #cddcc2;
 }
 
 [data-pt-theme="moss-honey"] {
-  /* The frame around the page: moss green, the same as the Book a Session button. */
-  --pt-outer: #66794f;
+  /* The frame around the page: a lighter moss than the Book a Session button. */
+  --pt-outer: #7f9166;
   /* The ring around the portrait. Themes without one use the frame colour. */
-  --pt-ring: #66794f;
+  --pt-ring: #7f9166;
   --pt-bg: #f6f4ea;
   /* The highlighter behind headings: honey, so the theme's second colour appears on the page. Other themes use a tint of their own accent. */
   --pt-marker: rgba(240, 192, 90, 0.75);
@@ -621,142 +633,216 @@ body {
   --pt-tile-5-hover: #e0dcc7;
 }
 
-[data-pt-theme="cobalt"] {
-  --pt-outer: #d6e9f6;
-  --pt-bg: #fafcfe;
-  --pt-text: #10263a;
-  --pt-tagline: #344b5e;
-  --pt-muted: #52697c;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #daebf7;
-  --pt-accent: #0372BC;
-  --pt-accent-hover: #0362a2;
+[data-pt-theme="teal-tints"] {
+  /* Pale teal tints: a pale teal frame and portrait ring around a white page, with deeper teal boxes and card. */
+  --pt-outer: #e0f0f2;
+  --pt-ring: #e0f0f2;
+  --pt-bg: #ffffff;
+  /* The highlighter behind headings: a pale teal. */
+  --pt-marker: rgba(190, 226, 231, 0.95);
+  --pt-text: #0f2a2f;
+  --pt-tagline: #3d5a60;
+  --pt-muted: #5a7479;
+  /* Label text inside the Reach Out card. */
+  --pt-muted-light: #e1eff2;
+  --pt-accent: #3b7c8a;
+  --pt-accent-hover: #316a76;
   /* Icon glyphs inside the Reach Out card. */
   --pt-accent-light: #ffffff;
   --pt-accent-foreground: #ffffff;
-  --pt-tint2: #e8f3fa;
-  --pt-border: #e4f1f9;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #0a4f82;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
+  --pt-tint2: #eaf4f6;
+  --pt-border: #dcebee;
+  /* The Professional Journey line. */
+  --pt-timeline: #7fb7c0;
+  /* Reach Out card: the deeper teal with white text and translucent icon circles. */
+  --pt-dark-card: #3b7c8a;
+  --pt-dark-divider: rgba(255, 255, 255, 0.22);
   --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #0a4f82;
-  --pt-dark-card-shadow: rgba(10, 79, 130, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #0372BC;
-  --pt-modal-sidebar: #0372BC;
+  --pt-dark-card-border: #3b7c8a;
+  --pt-dark-card-shadow: rgba(59, 124, 138, 0.4);
+  --pt-icon-fill: rgba(255, 255, 255, 0.18);
+  --pt-icon-border: rgba(255, 255, 255, 0.4);
+  --pt-tile-border: #3b7c8a;
+  --pt-modal-sidebar: #3b7c8a;
   --pt-toggle-track: transparent;
-  --pt-toggle-border: #10263a;
-  --pt-input-bg: #eff7fc;
-  --pt-input-border: #deedf8;
+  --pt-toggle-border: #0f2a2f;
+  --pt-input-bg: #f0f8f9;
+  --pt-input-border: #d5e7ea;
   --pt-tile-text-size: 19px;
   --pt-tile-text-size-sm: 19px;
   --pt-tile-text-weight: 500;
 
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #0372BC;
-  --pt-tile-1-hover: #0362a2;
-  --pt-tile-2: #0372BC;
-  --pt-tile-2-hover: #0362a2;
-  --pt-tile-3: #0372BC;
-  --pt-tile-3-hover: #0362a2;
-  --pt-tile-4: #0372BC;
-  --pt-tile-4-hover: #0362a2;
-  --pt-tile-5: #0372BC;
-  --pt-tile-5-hover: #0362a2;
+  /* Areas of expertise are the deeper teal with white text. */
+  --pt-tile-fg: #ffffff;
+  --pt-tile-ring: transparent;
+  --pt-tile-1: #3b7c8a;
+  --pt-tile-1-hover: #316a76;
+  --pt-tile-2: #3b7c8a;
+  --pt-tile-2-hover: #316a76;
+  --pt-tile-3: #3b7c8a;
+  --pt-tile-3-hover: #316a76;
+  --pt-tile-4: #3b7c8a;
+  --pt-tile-4-hover: #316a76;
+  --pt-tile-5: #3b7c8a;
+  --pt-tile-5-hover: #316a76;
+}
+
+[data-pt-theme="sage-clay"] {
+  /* Sage and clay: a pale sage frame and sage button, with clay-tint boxes and a sage contact card. */
+  --pt-outer: #eef0e8;
+  --pt-ring: #eef0e8;
+  --pt-bg: #f7f5f0;
+  --pt-marker: rgba(211, 222, 201, 0.95);
+  --pt-text: #333228;
+  --pt-tagline: #4f4d3b;
+  --pt-muted: #79775f;
+  /* Label text inside the Reach Out card. */
+  --pt-muted-light: #243020;
+  --pt-accent: #7a9471;
+  --pt-accent-hover: #6a8462;
+  /* Icon glyphs inside the Reach Out card. */
+  --pt-accent-light: #1f2a1b;
+  --pt-accent-foreground: #1f2a1b;
+  --pt-tint2: #f0eee6;
+  --pt-border: #e6e4d8;
+  --pt-timeline: #a9b8a2;
+  /* Reach Out card. */
+  --pt-dark-card: #7a9471;
+  --pt-dark-divider: rgba(31, 42, 27, 0.25);
+  --pt-dark-card-foreground: #1f2a1b;
+  --pt-dark-card-border: #7a9471;
+  --pt-dark-card-shadow: rgba(122, 148, 113, 0.4);
+  --pt-icon-fill: rgba(31, 42, 27, 0.14);
+  --pt-icon-border: rgba(31, 42, 27, 0.35);
+  --pt-tile-border: #7a9471;
+  --pt-modal-sidebar: #7a9471;
+  --pt-modal-sidebar-fg: #1f2a1b;
+  --pt-toggle-track: transparent;
+  --pt-toggle-border: #333228;
+  --pt-input-bg: #f2f0e8;
+  --pt-input-border: #e6e4d8;
+  --pt-tile-text-size: 19px;
+  --pt-tile-text-size-sm: 19px;
+  --pt-tile-text-weight: 500;
+
+  /* Areas of expertise. */
+  --pt-tile-fg: #8c5a2a;
+  --pt-tile-ring: transparent;
+  --pt-tile-1: #f2e7da;
+  --pt-tile-1-hover: #ead9c6;
+  --pt-tile-2: #f2e7da;
+  --pt-tile-2-hover: #ead9c6;
+  --pt-tile-3: #f2e7da;
+  --pt-tile-3-hover: #ead9c6;
+  --pt-tile-4: #f2e7da;
+  --pt-tile-4-hover: #ead9c6;
+  --pt-tile-5: #f2e7da;
+  --pt-tile-5-hover: #ead9c6;
+}
+
+[data-pt-theme="soft-sky"] {
+  /* Soft sky: a #8fb8d6 frame and portrait ring, with #7fb1d4 on the button, and #2e6487 on the contact card and boxes. */
+  --pt-outer: #8fb8d6;
+  --pt-ring: #8fb8d6;
+  --pt-bg: #f9fcfe;
+  --pt-marker: rgba(143, 184, 214, 0.5);
+  --pt-text: #1d3345;
+  --pt-tagline: #3b5368;
+  --pt-muted: #5f7788;
+  /* Label text inside the Reach Out card. */
+  --pt-muted-light: #dbe9f4;
+  --pt-accent: #7fb1d4;
+  --pt-accent-hover: #6ba2c8;
+  /* Icon glyphs inside the Reach Out card. */
+  --pt-accent-light: #ffffff;
+  --pt-accent-foreground: #1d3345;
+  --pt-tint2: #eaf3fa;
+  --pt-border: #deebf4;
+  --pt-timeline: #8fb8d6;
+  /* Reach Out card: deep blue with white text. */
+  --pt-dark-card: #2e6487;
+  --pt-dark-divider: rgba(255, 255, 255, 0.22);
+  --pt-dark-card-foreground: #ffffff;
+  --pt-dark-card-border: #2e6487;
+  --pt-dark-card-shadow: rgba(46, 100, 135, 0.4);
+  --pt-icon-fill: rgba(255, 255, 255, 0.16);
+  --pt-icon-border: rgba(255, 255, 255, 0.4);
+  --pt-tile-border: #7fb1d4;
+  --pt-modal-sidebar: #2e6487;
+  --pt-modal-sidebar-fg: #ffffff;
+  --pt-toggle-track: transparent;
+  --pt-toggle-border: #1d3345;
+  --pt-input-bg: #eef5fa;
+  --pt-input-border: #deebf4;
+  --pt-tile-text-size: 19px;
+  --pt-tile-text-size-sm: 19px;
+  --pt-tile-text-weight: 500;
+
+  /* Areas of expertise: the same deep blue as the contact card, with white text. */
+  --pt-tile-fg: #ffffff;
+  --pt-tile-ring: transparent;
+  --pt-tile-1: #2e6487;
+  --pt-tile-1-hover: #265577;
+  --pt-tile-2: #2e6487;
+  --pt-tile-2-hover: #265577;
+  --pt-tile-3: #2e6487;
+  --pt-tile-3-hover: #265577;
+  --pt-tile-4: #2e6487;
+  --pt-tile-4-hover: #265577;
+  --pt-tile-5: #2e6487;
+  --pt-tile-5-hover: #265577;
 }
 
 [data-pt-theme="blue-sand"] {
-  --pt-outer: #efe7db;
-  --pt-bg: #fbfaf8;
-  --pt-text: #151619;
-  --pt-tagline: #3e3f44;
-  --pt-muted: #5f6168;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #f1e9df;
-  --pt-accent: #2A72DE;
-  --pt-accent-hover: #2462bf;
+  --pt-outer: #3f6aa8;
+  /* The portrait ring is the same denim as the frame. */
+  --pt-ring: #3f6aa8;
+  --pt-bg: #faf6ed;
+  /* The highlighter behind headings: sand, since the frame colour (its usual source) is now the denim blue. */
+  --pt-marker: rgba(230, 216, 184, 0.9);
+  --pt-text: #1b2230;
+  --pt-tagline: #3d4452;
+  --pt-muted: #5d6270;
+  /* Label text inside the Reach Out card. */
+  --pt-muted-light: #5d6270;
+  --pt-accent: #3f6aa8;
+  --pt-accent-hover: #35598f;
   /* Icon glyphs inside the Reach Out card. */
   --pt-accent-light: #ffffff;
   --pt-accent-foreground: #ffffff;
-  --pt-tint2: #f6f2eb;
-  --pt-border: #f5efe8;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #2F4A73;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #2F4A73;
-  --pt-dark-card-shadow: rgba(47, 74, 115, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #2A72DE;
-  --pt-modal-sidebar: #2A72DE;
+  --pt-tint2: #f3ecdc;
+  --pt-border: #ece4d2;
+  /* Denim and oat: the Reach Out card is oat with dark text and solid denim icon circles. */
+  --pt-dark-card: #efe7d6;
+  --pt-dark-divider: rgba(27, 34, 48, 0.14);
+  --pt-dark-card-foreground: #1b2230;
+  --pt-dark-card-border: #efe7d6;
+  --pt-dark-card-shadow: rgba(27, 34, 48, 0.22);
+  --pt-icon-fill: #3f6aa8;
+  --pt-icon-border: #3f6aa8;
+  --pt-tile-border: #3f6aa8;
+  --pt-modal-sidebar: #3f6aa8;
   --pt-toggle-track: transparent;
-  --pt-toggle-border: #151619;
-  --pt-input-bg: #f9f6f1;
-  --pt-input-border: #f2ece2;
+  --pt-toggle-border: #1b2230;
+  --pt-input-bg: #f6f0e2;
+  --pt-input-border: #ebe3d0;
   --pt-tile-text-size: 19px;
   --pt-tile-text-size-sm: 19px;
   --pt-tile-text-weight: 500;
 
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #2A72DE;
-  --pt-tile-1-hover: #2462bf;
-  --pt-tile-2: #2A72DE;
-  --pt-tile-2-hover: #2462bf;
-  --pt-tile-3: #2A72DE;
-  --pt-tile-3-hover: #2462bf;
-  --pt-tile-4: #2A72DE;
-  --pt-tile-4-hover: #2462bf;
-  --pt-tile-5: #2A72DE;
-  --pt-tile-5-hover: #2462bf;
-}
-
-[data-pt-theme="night-sky"] {
-  --pt-outer: #dfe6fa;
-  --pt-bg: #fafbfe;
-  --pt-text: #141a3d;
-  --pt-tagline: #383f64;
-  --pt-muted: #565d83;
-  /* Label text inside the (dark) Reach Out card. */
-  --pt-muted-light: #e2e8fa;
-  --pt-accent: #5672c9;
-  --pt-accent-hover: #4a62ad;
-  /* Icon glyphs inside the Reach Out card. */
-  --pt-accent-light: #ffffff;
-  --pt-accent-foreground: #ffffff;
-  --pt-tint2: #edf1fc;
-  --pt-border: #eaeffc;
-  /* Reach Out card: a filled panel in this theme's deep color, white text. */
-  --pt-dark-card: #1B2250;
-  --pt-dark-divider: rgba(255, 255, 255, 0.16);
-  --pt-dark-card-foreground: #ffffff;
-  --pt-dark-card-border: #1B2250;
-  --pt-dark-card-shadow: rgba(27, 34, 80, 0.4);
-  --pt-icon-fill: rgba(255, 255, 255, 0.08);
-  --pt-icon-border: rgba(255, 255, 255, 0.38);
-  --pt-tile-border: #5672c9;
-  --pt-modal-sidebar: #5672c9;
-  --pt-toggle-track: transparent;
-  --pt-toggle-border: #141a3d;
-  --pt-input-bg: #f3f6fd;
-  --pt-input-border: #e5ebfb;
-  --pt-tile-text-size: 19px;
-  --pt-tile-text-size-sm: 19px;
-  --pt-tile-text-weight: 500;
-
-  /* All tiles match --pt-accent, like the Book a Session button. */
-  --pt-tile-1: #5672c9;
-  --pt-tile-1-hover: #4a62ad;
-  --pt-tile-2: #5672c9;
-  --pt-tile-2-hover: #4a62ad;
-  --pt-tile-3: #5672c9;
-  --pt-tile-3-hover: #4a62ad;
-  --pt-tile-4: #5672c9;
-  --pt-tile-4-hover: #4a62ad;
-  --pt-tile-5: #5672c9;
-  --pt-tile-5-hover: #4a62ad;
+  /* Areas of expertise are oat with denim text. */
+  --pt-tile-fg: #2f4f82;
+  --pt-tile-ring: transparent;
+  --pt-tile-1: #efe7d6;
+  --pt-tile-1-hover: #e6dcc4;
+  --pt-tile-2: #efe7d6;
+  --pt-tile-2-hover: #e6dcc4;
+  --pt-tile-3: #efe7d6;
+  --pt-tile-3-hover: #e6dcc4;
+  --pt-tile-4: #efe7d6;
+  --pt-tile-4-hover: #e6dcc4;
+  --pt-tile-5: #efe7d6;
+  --pt-tile-5-hover: #e6dcc4;
 }
 
 /* The loader script sizes its canvas in device pixels and leaves display size

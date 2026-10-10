@@ -272,23 +272,27 @@ export function BookingModal({
       <div className="flex max-h-[90dvh] flex-col md:flex-row">
         {/* Sidebar — name, step tracker, and a live summary that fills in
             as the wizard progresses. */}
-        <div className="shrink-0 bg-(--pt-modal-sidebar) px-6 py-5 text-(--pt-accent-foreground) md:w-[360px] md:p-12">
-          <div className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.2em] text-(--pt-accent-foreground)/60 uppercase">
+        <div
+          className="shrink-0 bg-(--pt-modal-sidebar) px-6 py-5 text-(--sb-fg) md:w-[360px] md:p-12"
+          // Text on the side panel follows the theme's own colour when it sets one, so a pale panel can have dark text.
+          style={{ "--sb-fg": "var(--pt-modal-sidebar-fg, var(--pt-accent-foreground))" } as React.CSSProperties}
+        >
+          <div className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.2em] text-(--sb-fg)/60 uppercase">
             <Sparkles className="size-3.5" aria-hidden />
             Booking
           </div>
           <h2 className="mt-2 font-serif text-2xl leading-[1.2] font-semibold md:mt-4 md:text-[32px]">
             Session with{" "}
-            <span className="text-(--pt-accent-foreground) italic">
+            <span className="text-(--sb-fg) italic">
               {practitioner.fullName}
             </span>
           </h2>
           {/* On a phone the side panel shrinks to this one line, so the choices below get the room. */}
-          <p className="mt-2 text-sm text-(--pt-accent-foreground)/70 md:hidden">
+          <p className="mt-2 text-sm text-(--sb-fg)/70 md:hidden">
             Step {step} of {STEPS.length} ·{" "}
             {STEPS.find((s) => s.id === step)?.label}
           </p>
-          <p className="mt-3 hidden text-base text-(--pt-accent-foreground)/70 md:block">
+          <p className="mt-3 hidden text-base text-(--sb-fg)/70 md:block">
             A few quick details and you&apos;re set.
           </p>
 
@@ -304,7 +308,7 @@ export function BookingModal({
                         ? "bg-white text-(--pt-text)"
                         : isDone
                           ? "bg-white/90 text-(--pt-text)"
-                          : "border border-(--pt-accent-foreground)/30 text-(--pt-accent-foreground)/50"
+                          : "border border-(--sb-fg)/30 text-(--sb-fg)/50"
                     }`}
                   >
                     {isDone ? <Check className="size-4" aria-hidden /> : s.id}
@@ -312,8 +316,8 @@ export function BookingModal({
                   <span
                     className={`text-base font-medium ${
                       isActive || isDone
-                        ? "text-(--pt-accent-foreground)"
-                        : "text-(--pt-accent-foreground)/50"
+                        ? "text-(--sb-fg)"
+                        : "text-(--sb-fg)/50"
                     }`}
                   >
                     {s.label}
@@ -323,9 +327,9 @@ export function BookingModal({
             })}
           </ol>
 
-          <div className="mt-12 hidden space-y-3.5 border-t border-(--pt-accent-foreground)/15 pt-7 text-sm md:block">
+          <div className="mt-12 hidden space-y-3.5 border-t border-(--sb-fg)/15 pt-7 text-sm md:block">
             <div className="flex items-center justify-between">
-              <span className="text-xs tracking-[0.1em] text-(--pt-accent-foreground)/50 uppercase">
+              <span className="text-xs tracking-[0.1em] text-(--sb-fg)/50 uppercase">
                 Session mode
               </span>
               <span className="text-base font-medium">
@@ -337,7 +341,7 @@ export function BookingModal({
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs tracking-[0.1em] text-(--pt-accent-foreground)/50 uppercase">
+              <span className="text-xs tracking-[0.1em] text-(--sb-fg)/50 uppercase">
                 When
               </span>
               <span className="text-base font-medium">
@@ -347,7 +351,7 @@ export function BookingModal({
               </span>
             </div>
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs tracking-[0.1em] text-(--pt-accent-foreground)/50 uppercase">
+              <span className="text-xs tracking-[0.1em] text-(--sb-fg)/50 uppercase">
                 Fee
               </span>
               <span className="font-serif text-xl font-semibold">
