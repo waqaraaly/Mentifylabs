@@ -1,9 +1,9 @@
 import Link from "next/link";
+import { FeaturesMenu } from "@/components/site/FeaturesMenu";
 import { siteConfig } from "@/lib/site";
 
 const LINKS = [
-  { href: "/#features", label: "Features" },
-  { href: "/#share", label: "Sharing" },
+  { href: "/#your-link", label: "Sharing" },
   { href: "/#how-it-works", label: "How it works" },
   { href: "/#faq", label: "Questions" },
 ];
@@ -19,6 +19,7 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+          <FeaturesMenu />
           {LINKS.map((link) => (
             <Link key={link.href} href={link.href} className="rounded-full px-4 py-2 text-sm font-medium text-(--quiet) transition hover:bg-black/5 hover:text-(--ink)">
               {link.label}

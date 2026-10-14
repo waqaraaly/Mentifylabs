@@ -30,6 +30,7 @@ export const RESERVED_SLUGS = [
   "api",
   "about",
   "contact",
+  "features",
   "sitemap.xml",
   "robots.txt",
   "favicon.ico",

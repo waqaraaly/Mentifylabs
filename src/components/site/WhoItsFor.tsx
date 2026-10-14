@@ -1,108 +1,143 @@
-import Link from "next/link";
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RotatingWord } from "@/components/site/RotatingWord";
 
-type Sample = { name: string; initials: string; title: string; areas: string[]; open: string; bg: string; tint: string; accent: string };
-
-// Sample profiles, shown for illustration. The palettes follow the light colour themes a practitioner can choose.
-const SAMPLES: Sample[] = [
-  { name: "Dr. Ayesha Khan", initials: "AK", title: "Clinical Psychologist", areas: ["Anxiety", "Burnout"], open: "Tue 10:00", bg: "#f6f4ea", tint: "#e3e9d3", accent: "#66794f" },
-  { name: "Dr. Daniel Okafor", initials: "DO", title: "Psychiatrist", areas: ["Depression", "ADHD"], open: "Wed 15:30", bg: "#f3f7fb", tint: "#dbe8f3", accent: "#2f4c6b" },
-  { name: "Maya Lindqvist", initials: "ML", title: "Counsellor", areas: ["Grief", "Relationships"], open: "Thu 09:00", bg: "#fff8e1", tint: "#ffe9a8", accent: "#8a5c00" },
-  { name: "Dr. Priya Raman", initials: "PR", title: "Child Psychologist", areas: ["Anxiety", "ADHD"], open: "Mon 16:00", bg: "#f1f9fb", tint: "#cfe8ee", accent: "#1e7a8c" },
-  { name: "Tomás Herrera", initials: "TH", title: "Psychotherapist", areas: ["Trauma", "OCD"], open: "Fri 11:00", bg: "#faf3ec", tint: "#f0dccb", accent: "#8a5a3c" },
-  { name: "Hana Suzuki", initials: "HS", title: "Family Therapist", areas: ["Relationships", "Burnout"], open: "Tue 18:00", bg: "#f3f8f5", tint: "#dde8d3", accent: "#37755f" },
+// The roles the headline cycles through, each with a sample personal link. The names are examples.
+const ROLES = [
+  { word: "psychiatrist", title: "Psychiatrists", handle: "imran-qureshi" },
+  { word: "psychologist", title: "Psychologists", handle: "sara-malik" },
+  { word: "therapist", title: "Therapists", handle: "ayesha-khan" },
+  { word: "counsellor", title: "Counsellors", handle: "bilal-ahmed" },
+  { word: "psychotherapist", title: "Psychotherapists", handle: "hina-farooq" },
 ];
 
-const ROLES = ["psychiatrist", "psychologist", "therapist", "counsellor", "psychotherapist"];
+const INTERVAL = 3200;
 
-const ROW_ONE = SAMPLES;
-const ROW_TWO = [SAMPLES[3], SAMPLES[4], SAMPLES[5], SAMPLES[0], SAMPLES[1], SAMPLES[2]];
+/**
+ * The name part of the big link, typed like the personal-link picture in "In action": when the role changes it erases the old
+ * name and types the new one. With reduced motion the new name simply replaces the old.
+ */
+function TypedHandle({ target }: { target: string }) {
+  const [text, setText] = useState(target);
+  const shown = useRef(target);
 
-function ProfileCard({ s }: { s: Sample }) {
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const now = setTimeout(() => {
+        shown.current = target;
+        setText(target);
+      }, 0);
+      return () => clearTimeout(now);
+    }
+    let erasing = true;
+    const timer = setInterval(() => {
+      const cur = shown.current;
+      if (erasing) {
+        if (target.startsWith(cur)) erasing = false;
+        else {
+          shown.current = cur.slice(0, -1);
+          setText(shown.current);
+          return;
+        }
+      }
+      if (cur.length < target.length) {
+        shown.current = target.slice(0, cur.length + 1);
+        setText(shown.current);
+      } else {
+        clearInterval(timer);
+      }
+    }, 34);
+    return () => clearInterval(timer);
+  }, [target]);
+
   return (
-    <div className="w-[270px] shrink-0 rounded-3xl p-5 shadow-[0_20px_36px_-26px_rgba(31,38,23,0.5)] ring-1 ring-black/[0.07]" style={{ background: s.bg }}>
-      <div className="flex items-center gap-3">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold" style={{ background: s.tint, color: s.accent }}>
-          {s.initials}
-        </span>
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 truncate text-[15px] font-semibold tracking-[-0.01em]">
-            {s.name}
-            <svg aria-hidden viewBox="0 0 24 24" className="size-4 shrink-0" style={{ color: s.accent }}>
-              <circle cx="12" cy="12" r="10" fill="currentColor" />
-              <path fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" d="m7.5 12.5 3 3 6-6.5" />
-            </svg>
-          </p>
-          <p className="truncate text-[13px] text-(--quiet)">{s.title}</p>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {s.areas.map((area) => (
-          <span key={area} className="rounded-full px-2.5 py-1 text-xs" style={{ background: s.tint }}>
-            {area}
-          </span>
-        ))}
-      </div>
-      <div className="mt-4 flex items-center justify-between border-t border-black/[0.07] pt-3.5 text-[13px]">
-        <span className="text-(--quiet)">Next open</span>
-        <span className="flex items-center gap-1.5 font-medium tabular-nums">
-          <span aria-hidden className="size-2 rounded-full bg-(--honey)" />
-          {s.open}
-        </span>
-      </div>
-    </div>
+    <b aria-hidden className="font-semibold text-(--ink)">
+      {text}
+    </b>
   );
 }
 
-function Row({ items, reverse }: { items: Sample[]; reverse?: boolean }) {
+/**
+ * Introduces who the platform is for. The headline names one role at a time, and beneath it a sample personal link for
+ * that role appears in large type (mentifylabs.com/hina-farooq), typed with a cursor and changing with the role. Dots let a visitor step through
+ * the roles; the cycle carries on from there.
+ */
+export function WhoItsFor() {
+  const [current, setCurrent] = useState(0);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const start = useCallback(() => {
+    if (timer.current) clearInterval(timer.current);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    timer.current = setInterval(() => setCurrent((i) => (i + 1) % ROLES.length), INTERVAL);
+  }, []);
+
+  useEffect(() => {
+    start();
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+    };
+  }, [start]);
+
+  const role = ROLES[current];
+
   return (
-    <div className={`marquee ${reverse ? "marquee-reverse" : ""}`}>
-      <div className="marquee-track">
-        {items.map((s) => (
-          <ProfileCard key={s.name} s={s} />
-        ))}
-        {/* A second copy makes the loop seamless. Hidden from screen readers so each profile is read once. */}
-        <div aria-hidden className="contents">
-          {items.map((s) => (
-            <ProfileCard key={`copy-${s.name}`} s={s} />
+    <section id="who" className="scroll-mt-20 py-20 lg:py-28">
+      <div className="mx-auto w-full max-w-7xl px-6 lg:px-10">
+        <div className="text-center">
+          <p className="text-sm font-medium text-(--leaf-deep)">Who it is for</p>
+          <h2 className="mx-auto mt-3 max-w-4xl text-[clamp(2rem,4.6vw,3.7rem)] leading-[1.06] font-semibold tracking-[-0.04em] text-balance text-(--ink)">
+            <span className="sr-only">One link for every psychiatrist, psychologist, therapist, counsellor and psychotherapist.</span>
+            <span aria-hidden>
+              One link for every
+              <br />
+              <RotatingWord words={ROLES.map((r) => r.word)} index={current} />
+            </span>
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-(--quiet)">
+            Everyone who works in mental health gets a personal link of their own, with a page behind it that shows who they are and when they are free.
+          </p>
+        </div>
+
+        {/* the current role's sample link in the same rounded card as the "In action" personal link, large and typed */}
+        <div aria-hidden className="mx-auto mt-14 grid min-h-[170px] max-w-6xl place-items-center text-center">
+          <div className="flex w-full max-w-[17.6em] items-center gap-[0.55em] rounded-full bg-white py-[0.55em] pr-[0.5em] pl-[0.95em] text-[clamp(1.1rem,3.6vw,2.6rem)] ring-1 ring-(--hair) shadow-[0_24px_48px_-32px_rgba(31,38,23,0.35)]">
+            <span className="size-[0.42em] shrink-0 rounded-full bg-(--glow)" />
+            <p className="min-w-0 flex-1 truncate text-left tracking-[-0.01em] text-(--quiet)">
+              mentifylabs.com/
+              <TypedHandle target={role.handle} />
+              <span className="ml-[0.06em] inline-block h-[1.05em] w-[0.06em] bg-(--honey) align-[-0.15em] motion-safe:animate-pulse" />
+            </p>
+            <span className="shrink-0 rounded-full bg-(--ink) px-[0.8em] py-[0.4em] text-[0.4em] font-medium text-white">Copy</span>
+          </div>
+        </div>
+
+        <div className="mt-7 flex justify-center gap-2" role="group" aria-label="Choose a role">
+          {ROLES.map((r, i) => (
+            <button
+              key={r.word}
+              type="button"
+              aria-label={r.title}
+              aria-pressed={i === current}
+              onClick={() => {
+                setCurrent(i);
+                start();
+              }}
+              className="h-[9px] rounded-full transition-[width,background-color] duration-300"
+              style={{ width: i === current ? 28 : 9, background: i === current ? "var(--ink)" : "#dcd8cd" }}
+            />
           ))}
         </div>
-      </div>
-    </div>
-  );
-}
 
-/** Introduces who the platform is for, with a drifting wall of sample profiles. */
-export function WhoItsFor() {
-  return (
-    <section id="who" className="scroll-mt-20 overflow-hidden py-20 lg:py-28">
-      <div className="mx-auto w-full max-w-7xl px-6 text-center lg:px-10">
-        <p className="text-sm font-medium text-(--leaf-deep)">Who it is for</p>
-        <h2 className="mx-auto mt-3 max-w-4xl text-[clamp(2rem,4.6vw,3.7rem)] leading-[1.06] font-semibold tracking-[-0.04em] text-balance text-(--ink)">
-          <span className="sr-only">One link for every psychiatrist, psychologist, therapist, counsellor and psychotherapist.</span>
-          <span aria-hidden>
-            One link for every
-            <br />
-            <RotatingWord words={ROLES} />
-          </span>
-        </h2>
-        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-(--quiet)">
-          A MentifyLabs page lets anyone who works in mental health show who they are, what they help with and when they are free.
-        </p>
-      </div>
-
-      <div className="mt-14 grid gap-4">
-        <Row items={ROW_ONE} />
-        <Row items={ROW_TWO} reverse />
-      </div>
-
-      <div className="mx-auto mt-12 flex w-full max-w-7xl flex-col items-center gap-5 px-6 text-center lg:px-10">
-        <p className="max-w-xl text-[15px] leading-relaxed text-(--quiet)">
-          These are sample profiles, shown for illustration. Every real profile is reviewed by a person before it goes live.
-        </p>
-        <Link href="/signup" className="rounded-full bg-(--ink) px-7 py-3.5 text-[15px] font-medium text-white transition hover:bg-(--moss)">
-          Create your page
-        </Link>
+        {/* the same information for screen readers, as a plain list */}
+        <ul className="sr-only">
+          {ROLES.map((r) => (
+            <li key={r.word}>
+              {r.title}: for example mentifylabs.com/{r.handle}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

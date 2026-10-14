@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { FEATURE_PAGES } from "@/lib/featurePages";
 import { siteConfig } from "@/lib/site";
 
 const LINKS = [
-  { href: "/#features", label: "Features" },
-  { href: "/#share", label: "Sharing" },
+  { href: "/#in-action", label: "Features" },
+  { href: "/#your-link", label: "Sharing" },
   { href: "/#how-it-works", label: "How it works" },
   { href: "/#faq", label: "Questions" },
   { href: "/login", label: "Log in" },
@@ -12,7 +13,7 @@ const LINKS = [
   { href: "/terms", label: "Terms" },
 ];
 
-/** A soft sage panel: the logo, every link in one row, and the small print. */
+/** A soft sage panel: the logo, the main links, the feature pages and the small print. */
 export function SiteFooter() {
   return (
     <footer className="mx-auto w-full max-w-7xl px-6 pb-6 lg:px-10 lg:pb-10">
@@ -27,6 +28,15 @@ export function SiteFooter() {
           {LINKS.map((link) => (
             <Link key={link.href} href={link.href} className="transition hover:text-(--leaf-deep)">
               {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* every feature page, so they can be reached on phones too, where the top bar has no menu */}
+        <nav aria-label="Features" className="flex max-w-3xl flex-wrap justify-center gap-x-5 gap-y-1.5 text-[14px] text-(--quiet)">
+          {FEATURE_PAGES.map((f) => (
+            <Link key={f.slug} href={`/features/${f.slug}`} className="transition hover:text-(--leaf-deep)">
+              {f.name}
             </Link>
           ))}
         </nav>
