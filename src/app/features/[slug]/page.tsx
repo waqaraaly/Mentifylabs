@@ -17,8 +17,6 @@ export function generateStaticParams() {
   return FEATURE_PAGES.map((f) => ({ slug: f.slug }));
 }
 
-export const dynamicParams = false;
-
 export async function generateMetadata({ params }: PageProps<"/features/[slug]">): Promise<Metadata> {
   const feature = featureBySlug((await params).slug);
   if (!feature) return {};
