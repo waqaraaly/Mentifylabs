@@ -25,66 +25,76 @@ export function Sparkline({
   );
 }
 
-export function GrowthChart({ data }: { data: { m: string; new: number; active: number }[] }) {
-  const W = 640, H = 200, pad = { l: 28, r: 12, t: 8, b: 22 };
-  const maxA = Math.max(...data.map((d) => d.active));
-  const maxN = Math.max(...data.map((d) => d.new));
-  const max = Math.max(maxA, maxN * 4, 1);
-  const stepX = (W - pad.l - pad.r) / Math.max(1, data.length - 1);
+/** Rounds the top of a chart axis up to a tidy number, so the gridlines fall on 0, 5, 10, 15 rather than 0, 6, 12, 18. */
+function niceMax(value: number, intervals: number): number {
+  const rough = Math.max(value, 1) / intervals;
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const step = [1, 2, 5, 10].map((m) => m * magnitude).find((s) => s >= rough)!;
+  return step * intervals;
+}
+
+/**
+ * How the number of practitioners grew, one point per month. A single line: no second series, no legend.
+ * The count is written over every point so nobody has to read it off the axis.
+ */
+export function GrowthChart({ data }: { data: { m: string; joined: number; total: number }[] }) {
+  const W = 960, H = 340, pad = { l: 44, r: 24, t: 28, b: 36 };
+  const intervals = 4;
+  const max = niceMax(Math.max(...data.map((d) => d.total)), intervals);
+  const innerW = W - pad.l - pad.r;
+  const x = (i: number) => pad.l + (data.length === 1 ? innerW / 2 : (i / (data.length - 1)) * innerW);
   const y = (v: number) => pad.t + (H - pad.t - pad.b) * (1 - v / max);
 
-  const activeLine = data.map((d, i) => (i === 0 ? "M" : "L") + (pad.l + i * stepX) + "," + y(d.active)).join(" ");
-
-  const ticks = 4;
-  const tickVals = Array.from({ length: ticks + 1 }, (_, i) => Math.round((max / ticks) * i));
+  const line = data.map((d, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(d.total)}`).join(" ");
+  const area = `${line} L${x(data.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
+  const ticks = Array.from({ length: intervals + 1 }, (_, i) => (max / intervals) * i);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 200 }}>
-      {tickVals.map((v, i) => (
-        <g key={i}>
-          <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="var(--ml-border)" strokeDasharray={i === 0 ? "0" : "2 3"} />
-          <text x={pad.l - 6} y={y(v) + 3} fontSize="10" fill="var(--ml-ink-subtle)" textAnchor="end" fontFamily="var(--ml-mono)">{v}</text>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} role="img" aria-label="Practitioners by month">
+      {ticks.map((v) => (
+        <g key={v}>
+          <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke={v === 0 ? "var(--ml-border-strong)" : "var(--ml-border)"} />
+          <text x={pad.l - 10} y={y(v) + 4} fontSize="12" fill="var(--ml-ink-subtle)" textAnchor="end" fontFamily="var(--ml-mono)">{v}</text>
         </g>
       ))}
-      {data.map((d, i) => {
-        const x = pad.l + i * stepX - 10;
-        const h = (H - pad.t - pad.b) * (d.new / max);
-        return <rect key={i} x={x} y={H - pad.b - h} width="20" height={h} fill="var(--ml-accent)" opacity="0.85" rx="2" />;
-      })}
-      <path d={activeLine} fill="none" stroke="var(--ml-ink-faint)" strokeWidth="1.5" strokeDasharray="4 3" />
+      <path d={area} fill="var(--ml-accent)" opacity="0.08" />
+      <path d={line} fill="none" stroke="var(--ml-accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
       {data.map((d, i) => (
-        <circle key={i} cx={pad.l + i * stepX} cy={y(d.active)} r="3" fill="var(--ml-bg)" stroke="var(--ml-ink-faint)" strokeWidth="1.5" />
-      ))}
-      {data.map((d, i) => (
-        <text key={i} x={pad.l + i * stepX} y={H - 6} fontSize="10.5" fill="var(--ml-ink-subtle)" textAnchor="middle" fontFamily="var(--ml-font)">{d.m}</text>
+        <g key={i}>
+          <title>{`${d.m}: ${d.total} practitioners${d.joined ? `, ${d.joined} joined` : ""}`}</title>
+          <circle cx={x(i)} cy={y(d.total)} r="4.5" fill="var(--ml-surface)" stroke="var(--ml-accent)" strokeWidth="2.5" />
+          <text x={x(i)} y={y(d.total) - 12} fontSize="12.5" fontWeight="600" fill="var(--ml-ink)" textAnchor="middle" fontFamily="var(--ml-font)">{d.total}</text>
+          <text x={x(i)} y={H - 10} fontSize="12.5" fill="var(--ml-ink-muted)" textAnchor="middle" fontFamily="var(--ml-font)">{d.m}</text>
+        </g>
       ))}
     </svg>
   );
 }
 
-export function DonutChart({ data, size = 130 }: { data: { value: number; color: string }[]; size?: number }) {
-  const total = Math.max(1, data.reduce((s, d) => s + d.value, 0));
-  const r = size / 2 - 12;
-  const cx = size / 2, cy = size / 2;
-  const cumulative = data.reduce<number[]>((sums, d, i) => {
-    sums.push((sums[i - 1] ?? 0) + d.value);
-    return sums;
-  }, []);
-  const arcs = data.map((d, i) => {
-    const startValue = i === 0 ? 0 : cumulative[i - 1];
-    const a0 = (startValue / total) * Math.PI * 2 - Math.PI / 2;
-    const a1 = (cumulative[i] / total) * Math.PI * 2 - Math.PI / 2;
-    const large = a1 - a0 > Math.PI ? 1 : 0;
-    const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
-    const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
-    return <path key={i} d={`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`} fill={d.color} />;
-  });
+/** A solid pie: one slice per entry, starting at twelve o'clock. Zero-sized slices are skipped. */
+export function PieChart({ data, size = 170, label }: { data: { value: number; color: string }[]; size?: number; label: string }) {
+  const slices = data.filter((d) => d.value > 0);
+  const total = slices.reduce((sum, d) => sum + d.value, 0);
+  const r = size / 2 - 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  let angle = -Math.PI / 2;
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} style={{ width: size, height: size }}>
-      {arcs}
-      <circle cx={cx} cy={cy} r={r * 0.62} fill="var(--ml-surface)" />
-      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="20" fontWeight="600" fill="var(--ml-ink)" fontFamily="var(--ml-mono)" style={{ letterSpacing: "-0.02em" }}>{total}</text>
-      <text x={cx} y={cy + 13} textAnchor="middle" fontSize="9.5" fill="var(--ml-ink-subtle)" fontFamily="var(--ml-font)" style={{ letterSpacing: "0.04em" }}>TOTAL</text>
+    <svg viewBox={`0 0 ${size} ${size}`} style={{ width: size, height: size, flexShrink: 0 }} role="img" aria-label={label}>
+      {total === 0 ? (
+        <circle cx={cx} cy={cy} r={r} fill="var(--ml-surface-3)" />
+      ) : slices.length === 1 ? (
+        <circle cx={cx} cy={cy} r={r} fill={slices[0].color} />
+      ) : (
+        slices.map((d, i) => {
+          const start = angle;
+          angle += (d.value / total) * Math.PI * 2;
+          const large = angle - start > Math.PI ? 1 : 0;
+          const x0 = cx + r * Math.cos(start), y0 = cy + r * Math.sin(start);
+          const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
+          return <path key={i} d={`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`} fill={d.color} stroke="var(--ml-surface)" strokeWidth="2" />;
+        })
+      )}
     </svg>
   );
 }

@@ -55,7 +55,7 @@ export default function TermsOfServicePage() {
         <Section title="3. Bookings">
           <p>
             A booking request made through the Platform is an agreement between the Client and
-            the Practitioner directly. We facilitate the introduction and scheduling — we are not
+            the Practitioner directly. We facilitate the introduction and scheduling. We are not
             a party to, and don&rsquo;t guarantee, the appointment itself, its outcome, or any
             refund or cancellation arrangement, which is between Client and Practitioner unless a
             Practitioner&rsquo;s own stated policy says otherwise.

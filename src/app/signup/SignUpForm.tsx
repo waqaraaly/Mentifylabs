@@ -4,21 +4,26 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { ArrowRight, Lock, Mail, User } from "lucide-react";
 import { AuthError, AuthField, AuthInput, authButtonClass } from "@/components/auth/AuthShell";
+import { useDeviceTimeZone } from "@/lib/useDeviceTimeZone";
 import { signUpAction, type SignUpState } from "./actions";
 
-export function SignUpForm() {
+export function SignUpForm({ startingName = "" }: { startingName?: string }) {
   const [state, formAction, pending] = useActionState<SignUpState, FormData>(signUpAction, {});
+  // Pre-fills the practitioner's time zone from this device. They can change it in Settings; the server checks it is a real zone.
+  const timezone = useDeviceTimeZone() ?? "";
 
   return (
     <form action={formAction} className="space-y-5">
+      <input type="hidden" name="timezone" value={timezone} />
       <AuthField id="fullName" label="Full name">
         <AuthInput
           icon={User}
           id="fullName"
           name="fullName"
+          placeholder="Full name"
           autoComplete="name"
           required
-          defaultValue={state.values?.fullName}
+          defaultValue={state.values?.fullName ?? startingName}
         />
       </AuthField>
 
@@ -27,6 +32,7 @@ export function SignUpForm() {
           icon={Mail}
           id="email"
           name="email"
+          placeholder="Email address"
           type="email"
           autoComplete="email"
           required
@@ -39,6 +45,7 @@ export function SignUpForm() {
           icon={Lock}
           id="password"
           name="password"
+          placeholder="Password"
           type="password"
           autoComplete="new-password"
           minLength={8}
@@ -55,7 +62,6 @@ export function SignUpForm() {
         )}
       </button>
       <p className="text-xs leading-relaxed text-muted">
-        Your profile stays private until the MentifyLabs team approves your account and publishes it.
         By creating an account, you agree to our{" "}
         <Link href="/terms" className="underline hover:text-foreground">Terms</Link> and{" "}
         <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.

@@ -28,10 +28,6 @@ export default async function CheckEmailPage({ searchParams }: { searchParams: P
         ) : (
           <p>We&apos;ve sent you a confirmation link. Open it from your inbox to continue.</p>
         )}
-        <p>
-          The link works once and expires in 7 days. If it isn&apos;t in your inbox, check your spam folder, or press
-          &ldquo;Send it again&rdquo;.
-        </p>
       </div>
     </AuthShell>
   );

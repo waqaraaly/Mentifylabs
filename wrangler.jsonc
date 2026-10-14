@@ -40,17 +40,16 @@
 			// Profile photos (public, served at /media/...) and verification documents (private, /documents/<id>).
 			"binding": "UPLOADS",
 			"bucket_name": "mentifylabs-uploads"
-		}
-	],
-	"kv_namespaces": [
+		},
 		{
 			// OpenNext incremental cache: the rendered HTML of pre-rendered pages (public profiles).
-			"binding": "NEXT_INC_CACHE_KV",
-			"id": "105305efb09244c1b5f51f134cba3fc1"
+			// R2 rather than KV: the free plan allows about a million R2 writes a month, where KV stops at 1,000 a day.
+			"binding": "NEXT_INC_CACHE_R2_BUCKET",
+			"bucket_name": "mentifylabs-cache"
 		}
 	],
 
-	// A fully separate set of resources — its own D1, R2 and KV, never production's.
+	// A fully separate set of resources — its own D1 and R2, never production's.
 	// No explicit "name" here, so Wrangler deploys it as "mentifylabs-staging"
 	// (the "{name}-{environment}" default) — matching the WORKER_SELF_REFERENCE below.
 	"env": {
@@ -84,12 +83,10 @@
 				{
 					"binding": "UPLOADS",
 					"bucket_name": "mentifylabs-staging-uploads"
-				}
-			],
-			"kv_namespaces": [
+				},
 				{
-					"binding": "NEXT_INC_CACHE_KV",
-					"id": "43c9686536fd418780ebe42190672c59"
+					"binding": "NEXT_INC_CACHE_R2_BUCKET",
+					"bucket_name": "mentifylabs-staging-cache"
 				}
 			]
 		}

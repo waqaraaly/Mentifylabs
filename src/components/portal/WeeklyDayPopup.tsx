@@ -9,7 +9,6 @@ import {
   addWeeklyRuleAction,
   updateWeeklyRuleAction,
   removeWeeklyRuleAction,
-  copyWeeklyRuleAction,
 } from "@/app/dashboard/slots/actions";
 import { SidePanel } from "./SidePanel";
 import { SessionTypePicker } from "./SessionTypePicker";
@@ -73,23 +72,6 @@ export function WeeklyDayPopup({
     onClose();
   }
 
-  async function handleCopy() {
-    if (!rule || copyTargets.size === 0) return;
-    setPending(true);
-    setError(null);
-    const formData = new FormData();
-    formData.set("id", rule.id);
-    formData.set("slug", practitionerSlug);
-    for (const d of copyTargets) formData.append("targets", String(d));
-    const result = await copyWeeklyRuleAction(formData);
-    setPending(false);
-    if (result?.error) {
-      setError(result.error);
-      return;
-    }
-    onClose();
-  }
-
   return (
     <SidePanel
       title={rule ? "Edit weekly slot" : "Add weekly slot"}
@@ -104,6 +86,8 @@ export function WeeklyDayPopup({
             <input type="hidden" name="weekday" value={weekday} />
             <input type="hidden" name="sessionType" value={sessionType} />
             {rule && <input type="hidden" name="id" value={rule.id} />}
+            {/* The days ticked under "Copy this slot to" are saved together with this slot, with the hours shown here. */}
+            {[...copyTargets].map((d) => <input key={d} type="hidden" name="targets" value={d} />)}
 
             <div className="grid grid-cols-2 gap-4">
               <label className="block space-y-1.5">
@@ -141,32 +125,22 @@ export function WeeklyDayPopup({
           </form>
         </section>
 
-        {rule && (
-          <section className="space-y-3">
-            <h3 className={labelClass}>Copy this slot to</h3>
-            <div className="flex flex-wrap gap-2">
-              {WEEKDAY_ORDER.filter((d) => d !== weekday).map((d) => {
-                const checked = copyTargets.has(d);
-                return (
-                  <label key={d} className="cursor-pointer">
-                    <input type="checkbox" checked={checked} onChange={() => toggleTarget(d)} className="peer sr-only" />
-                    <span className="inline-flex items-center rounded-full bg-surface px-3.5 py-1.5 text-sm font-medium text-muted ring-1 ring-border transition peer-checked:bg-primary/[0.1] peer-checked:text-primary peer-checked:ring-primary hover:bg-foreground/[0.08]">
-                      {WEEKDAYS_FULL[d].slice(0, 3)}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-            <button
-              type="button"
-              onClick={handleCopy}
-              disabled={pending || copyTargets.size === 0}
-              className="text-sm font-semibold text-primary hover:underline disabled:opacity-50 disabled:no-underline"
-            >
-              Copy to {copyTargets.size || ""} {copyTargets.size === 1 ? "day" : "days"}
-            </button>
-          </section>
-        )}
+        <section className="space-y-3">
+          <h3 className={labelClass}>Copy this slot to</h3>
+          <div className="flex flex-wrap gap-2">
+            {WEEKDAY_ORDER.filter((d) => d !== weekday).map((d) => {
+              const checked = copyTargets.has(d);
+              return (
+                <label key={d} className="cursor-pointer">
+                  <input type="checkbox" checked={checked} onChange={() => toggleTarget(d)} className="peer sr-only" />
+                  <span className="inline-flex items-center rounded-full bg-surface px-3.5 py-1.5 text-sm font-medium text-muted ring-1 ring-border transition peer-checked:bg-primary/[0.1] peer-checked:text-primary peer-checked:ring-primary hover:bg-foreground/[0.08]">
+                    {WEEKDAYS_FULL[d].slice(0, 3)}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-7 py-4">

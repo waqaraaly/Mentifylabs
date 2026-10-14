@@ -32,7 +32,7 @@ function AddPractitionerModalForm({ onClose }: { onClose: () => void }) {
         skipVerification,
       });
       if (!result.ok) { addToast(result.message, "danger"); return; }
-      const next = skipVerification ? "verified, they can publish right away" : "they need to submit credentials before they can publish";
+      const next = skipVerification ? "verified, they choose their profile link and then publish" : "they choose their profile link and submit credentials before they can publish";
       if (!result.invite.ok) {
         addToast(`${name} created, but no invite was sent: ${result.invite.message} Fix the email, then use "Send invite" on their page.`, "danger");
       } else {

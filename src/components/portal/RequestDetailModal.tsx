@@ -29,13 +29,19 @@ export function RequestDetailModal({
   const isOnline = appointment.sessionType === "online";
   const [view, setView] = useState<"details" | "reschedule">(initialView);
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const submitReschedule = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      await rescheduleAppointmentAction(formData);
+      const result = await rescheduleAppointmentAction(formData);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
       setView("details");
       router.refresh();
     });
@@ -178,6 +184,12 @@ export function RequestDetailModal({
               <input type="hidden" name="slug" value={practitionerSlug} />
 
               <RescheduleFields openSlots={openSlots} />
+
+              {error && (
+            <p role="alert" className="mt-5 text-sm font-medium text-alert">
+              {error}
+            </p>
+          )}
 
               <div className="mt-7 flex items-center justify-end gap-3 border-t border-black/[0.06] py-6">
                 <button

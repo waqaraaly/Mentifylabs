@@ -59,7 +59,7 @@ export function ProfilePhotoUploader({
     try {
       jpeg = await toSquareJpeg(file);
     } catch {
-      setError("Couldn't read that image — try a different file.");
+      setError("Couldn't read that image. Try a different file.");
       return;
     }
     const previous = preview;
@@ -131,7 +131,7 @@ export function ProfilePhotoUploader({
               </button>
             )}
           </div>
-          <p className="mt-2 text-xs text-muted">JPG, PNG or WebP. It&apos;s cropped to a square automatically.</p>
+          <p className="mt-2 text-xs text-muted">JPG, PNG or WebP.</p>
         </div>
       </div>
 

@@ -40,6 +40,18 @@ export async function getOpenSlotsByPractitioner(slug: string): Promise<Slot[]> 
   return rows.map(toSlot);
 }
 
+/** An open slot on this date that overlaps [startTime, endTime), if any: a client could still book it. */
+export async function openSlotOverlapping(practitionerSlug: string, date: string, startTime: string, endTime: string): Promise<Slot | null> {
+  const row = await first<SlotRow>(
+    "SELECT * FROM slots WHERE practitioner_slug = ? AND date = ? AND status = 'open' AND start_time < ? AND end_time > ? ORDER BY start_time LIMIT 1",
+    practitionerSlug,
+    date,
+    endTime,
+    startTime,
+  );
+  return row ? toSlot(row) : null;
+}
+
 export async function getSlotById(id: string): Promise<Slot | null> {
   const row = await first<SlotRow>("SELECT * FROM slots WHERE id = ?", id);
   return row ? toSlot(row) : null;

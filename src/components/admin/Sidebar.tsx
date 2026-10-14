@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { initialsOf } from "@/lib/admin";
 import {
   BarChart3,
   Calendar,
-  Clock,
+  ShieldCheck,
   LayoutDashboard,
   LineChart,
+  Lightbulb,
   LogOut,
   Menu,
   Settings,
@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { signOutAction } from "@/app/login/actions";
 
-type CountKey = "practitioners" | "pending" | "bookingsToday";
+type CountKey = "practitioners" | "pending" | "appointmentsToday" | "suggestions";
 
 interface NavItem {
   href: string;
@@ -37,15 +37,16 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Overview",
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/pending", label: "Pending approval", icon: Clock, countKey: "pending", attention: true },
+      { href: "/admin/pending", label: "Credential review", icon: ShieldCheck, countKey: "pending", attention: true },
     ],
   },
   {
     label: "Manage",
     items: [
       { href: "/admin/practitioners", label: "Practitioners", icon: Users, countKey: "practitioners" },
-      { href: "/admin/bookings", label: "Appointments", icon: Calendar, countKey: "bookingsToday" },
-      { href: "/admin/users", label: "Manage Users", icon: UserCog },
+      { href: "/admin/appointments", label: "Appointments", icon: Calendar, countKey: "appointmentsToday" },
+      { href: "/admin/suggestions", label: "Suggestions", icon: Lightbulb, countKey: "suggestions", attention: true },
+      { href: "/admin/super-admins", label: "Super Admins", icon: UserCog },
     ],
   },
   {
@@ -65,7 +66,9 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
 export interface SidebarCounts {
   practitioners: number;
   pending: number;
-  bookingsToday: number;
+  appointmentsToday: number;
+  /** Suggestions nobody has reviewed yet. */
+  suggestions: number;
 }
 
 export function Sidebar({ counts, admin }: { counts: SidebarCounts; admin: { name: string; email: string } }) {
@@ -137,9 +140,6 @@ export function Sidebar({ counts, admin }: { counts: SidebarCounts; admin: { nam
 
           <div className="sidebar-footer">
             <div className="sidebar-profile">
-              <div className="avatar avatar-md" style={{ background: "var(--ml-sidebar-active)", color: "var(--ml-sidebar-active-fg)", boxShadow: "0 0 0 1px var(--ml-sidebar-border)", border: "none", fontWeight: 600 }}>
-                {initialsOf(admin.name)}
-              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="sidebar-profile-name truncate">{admin.name}</div>
                 <div className="sidebar-profile-email truncate">Super Admin</div>

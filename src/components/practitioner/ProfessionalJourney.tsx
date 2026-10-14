@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Practitioner } from "@/types/practitioner";
-import { WavyUnderline } from "@/components/ui/WavyUnderline";
+import { HighlightMark } from "@/components/ui/HighlightMark";
 import { ArrowScroller } from "@/components/ui/ArrowScroller";
 
 type Entry = { title: string; subtitle: string; years: string; startYear: number };
@@ -38,7 +38,7 @@ function columnLeftEdges(n: number): number[] {
 
 function EntryText({ entry }: { entry: Entry }) {
   return (
-    <div>
+    <div className="[overflow-wrap:anywhere]">
       {entry.years && <p className="text-base tracking-[0.02em] text-(--pt-accent) sm:text-lg">{entry.years}</p>}
       <p className="mt-2 text-lg leading-snug text-(--pt-text) sm:text-xl">{entry.title}</p>
       {entry.subtitle && <p className="mt-1.5 text-base text-(--pt-muted) sm:text-lg">{entry.subtitle}</p>}
@@ -79,7 +79,7 @@ function StraightTimeline({ entries }: { entries: Entry[] }) {
       <div className="px-2" style={{ minWidth }}>
         <div className="relative h-5">
           <div
-            className="absolute top-1/2 h-px -translate-y-1/2 bg-(--pt-border)"
+            className="absolute top-1/2 h-px -translate-y-1/2 bg-(--pt-timeline,var(--pt-border))"
             style={{ left: `${columnXs[0]}%`, right: `${100 - columnXs[lastIndex]}%` }}
             aria-hidden
           />
@@ -127,9 +127,9 @@ export function ProfessionalJourney({ practitioner }: { practitioner: Practition
 
   return (
     <section className="mt-24 sm:mt-32">
-      <h2 className="relative inline-block text-[28px] font-medium text-(--pt-text) sm:text-[38px]">
+      <h2 className="relative isolate inline-block text-[28px] font-medium text-(--pt-text) sm:text-[38px]">
         Professional Journey
-        <WavyUnderline className="absolute inset-x-0 -bottom-3.5 h-3 w-full" />
+        <HighlightMark />
       </h2>
 
       <div className="relative mx-auto mt-11 flex w-fit rounded-xl border border-(--pt-toggle-border) bg-(--pt-toggle-track) p-[5px]">

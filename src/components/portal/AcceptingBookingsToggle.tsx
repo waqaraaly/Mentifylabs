@@ -1,25 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CalendarOff, X } from "lucide-react";
 import { setAcceptingBookingsAction } from "@/app/dashboard/profile/actions";
 
 /**
  * State for the "accepting new bookings" switch. Saves immediately; if saving fails the switch snaps back,
- * so what's shown always matches what clients see. Shared by the switch and the paused notice.
+ * so what's shown always matches what clients see. Shared by the switch and its error message.
  */
 export function useAcceptingBookings(initial: boolean) {
   const [accepting, setAccepting] = useState(initial);
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState(false);
-  const [noticeClosed, setNoticeClosed] = useState(false);
 
   function toggle() {
     const next = !accepting;
     setAccepting(next);
     setFailed(false);
-    // Pausing again later should bring the notice back.
-    setNoticeClosed(false);
     startTransition(async () => {
       try {
         await setAcceptingBookingsAction(next);
@@ -30,7 +26,7 @@ export function useAcceptingBookings(initial: boolean) {
     });
   }
 
-  return { accepting, pending, failed, toggle, noticeClosed, closeNotice: () => setNoticeClosed(true) };
+  return { accepting, pending, failed, toggle };
 }
 
 type BookingsState = ReturnType<typeof useAcceptingBookings>;
@@ -72,39 +68,13 @@ export function AcceptingBookingsSwitch({ accepting, pending, toggle }: Bookings
 }
 
 /** Shown only while bookings are paused (or a save failed), so the state is never easy to forget. */
-export function BookingsNotice({ accepting, failed, toggle, pending, noticeClosed, closeNotice }: BookingsState) {
-  if (failed) {
-    return (
-      <p role="alert" className="rounded-xl bg-alert/[0.07] px-5 py-3 text-sm font-medium text-alert ring-1 ring-alert/20">
-        Couldn&apos;t save that change. Please try again.
-      </p>
-    );
-  }
-  if (accepting || noticeClosed) return null;
+
+/** Shown only when saving the switch failed. The switch itself already says when bookings are paused. */
+export function BookingsError({ failed }: BookingsState) {
+  if (!failed) return null;
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-accent py-3 pr-3 pl-5 text-sm ring-1 ring-accent-strong/20">
-      <CalendarOff className="size-4 shrink-0 text-accent-strong" aria-hidden />
-      <p className="min-w-0 flex-1 basis-72 text-foreground/85">
-        <span className="font-semibold text-foreground">New bookings are paused.</span> Your profile is still visible, but
-        clients can&apos;t book you. Sessions already booked aren&apos;t affected.
-      </p>
-      <button
-        type="button"
-        onClick={toggle}
-        disabled={pending}
-        className="shrink-0 text-sm font-semibold text-accent-strong underline underline-offset-2 hover:opacity-80 disabled:opacity-60"
-      >
-        Turn bookings back on
-      </button>
-      <button
-        type="button"
-        onClick={closeNotice}
-        aria-label="Dismiss this notice"
-        title="Dismiss"
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-accent-strong opacity-70 transition hover:bg-black/[0.06] hover:opacity-100"
-      >
-        <X className="size-4" aria-hidden />
-      </button>
-    </div>
+    <p role="alert" className="rounded-xl bg-alert/[0.07] px-5 py-3 text-sm font-medium text-alert ring-1 ring-alert/20">
+      Couldn&apos;t save that change. Please try again.
+    </p>
   );
 }

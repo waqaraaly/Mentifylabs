@@ -18,11 +18,13 @@ export async function updateAccountAction(formData: FormData) {
   const lastName = formData.get("lastName")?.toString().trim() || "";
   const email = formData.get("email")?.toString().trim() || "";
   const phone = formData.get("phone")?.toString().trim() || "";
+  const currentPassword = formData.get("currentPassword")?.toString() ?? "";
 
   const result = await updateAccountDetails({
     name: [firstName, lastName].filter(Boolean).join(" "),
     email,
     phone,
+    currentPassword,
   });
   if (!result.ok) redirect(`/dashboard/settings?error=${encodeURIComponent(result.message)}`);
 

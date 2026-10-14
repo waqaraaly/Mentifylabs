@@ -1,7 +1,8 @@
 import type { SlotSessionType } from "@/lib/sessionType";
 import type { WeeklyRule, TimeOff, DayOverride } from "@/types/availability";
 import { addSlots, setSlotsStatus } from "./slots";
-import { addDays, todayIsoDate } from "@/lib/format";
+import { addDays } from "@/lib/format";
+import { todayIn, zoneOrDefault } from "@/lib/time";
 import { all, first, run } from "@/lib/db";
 
 const WEEKS_AHEAD = 8;
@@ -184,7 +185,9 @@ export async function generateUpcomingSlots(slug: string): Promise<void> {
   const rules = await getWeeklyRules(slug);
   if (rules.length === 0) return;
 
-  const today = todayIsoDate();
+  // "Today" is today for this practitioner, on their own clock, not the server's.
+  const zone = zoneOrDefault((await first<{ timezone: string }>("SELECT timezone FROM practitioners WHERE slug = ?", slug))?.timezone);
+  const today = todayIn(zone);
   const lastDay = addDays(today, WEEKS_AHEAD * 7 - 1);
   const [offs, overrides, existing] = await Promise.all([
     getTimeOff(slug),

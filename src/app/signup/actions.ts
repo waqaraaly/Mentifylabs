@@ -14,7 +14,11 @@ export async function signUpAction(_prev: SignUpState, formData: FormData): Prom
     fullName: formData.get("fullName")?.toString() ?? "",
     email: formData.get("email")?.toString() ?? "",
   };
-  const result = await signUpPractitioner({ ...values, password: formData.get("password")?.toString() ?? "" });
+  const result = await signUpPractitioner({
+    ...values,
+    password: formData.get("password")?.toString() ?? "",
+    timezone: formData.get("timezone")?.toString(),
+  });
   if (!result.ok) return { error: result.message, values };
 
   revalidateAdminViews();

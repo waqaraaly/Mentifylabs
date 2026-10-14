@@ -34,8 +34,10 @@ export interface ContactMethod {
 }
 
 export interface Practitioner {
-  /** Used in the public URL, e.g. "dr-ali" -> /dr-ali */
+  /** Used in the public URL, e.g. "dr-ali" -> /dr-ali. A hidden placeholder until the practitioner chooses one (see slugChosenAt). */
   slug: string;
+  /** When the practitioner chose their profile link. Empty until they do; the profile can't be published before then. */
+  slugChosenAt?: string;
   fullName: string;
   professionalTitle: string;
   email: string;
@@ -44,8 +46,6 @@ export interface Practitioner {
   /** One-line summary shown under the name on the public profile hero. */
   shortBio?: string;
   bio: string;
-  /** A short personal note shown in a highlighted section at the end of the public profile. */
-  noteForClients?: string;
   specializations: string[];
   /** The kinds of sessions/services offered, e.g. "Individual Therapy", "Couples Counselling". */
   services: string[];
@@ -53,17 +53,18 @@ export interface Practitioner {
   education: string[];
   /** "Role, Organization, Years" — same free-form shape as `education`. */
   workExperience?: string[];
-  certifications: string[];
   languages: string[];
   sessionType: SessionType;
   /** One general fee range, independent of session mode (0 = not set). */
   feeRange: { currency: string; min: number; max: number };
   /** Where in-person sessions are held (clinic, hospital or city). Only set for on-site / both. */
   location?: string;
+  /** The clock this practitioner works on, as a zone name like "Asia/Karachi". Their slots and sessions are times on it. */
+  timezone: string;
   socialLinks: SocialLink[];
   websiteUrl?: string;
   contactMethods: ContactMethod[];
-  /** The public profile page's color palette. Defaults to "sage" when unset. */
+  /** The public profile page's color palette. Defaults to "moss-honey" when unset. */
   colorTheme?: ColorThemeId;
 
   // Super Admin account lifecycle
@@ -83,12 +84,16 @@ export interface Practitioner {
   verificationNote?: string;
   /** Set once they dismiss the first-login setup popup; shown only until then. */
   verificationPromptSeenAt?: string;
+  /** Set the first time they save their public profile; the dashboard asks them to complete it until then. */
+  profileSavedAt?: string;
 
   /** Set once they finish (or skip) the guided first-login setup at /onboarding. Gates dashboard access. */
   onboardedAt?: string;
 
   /** True while the sign-in email has not been confirmed yet, so they cannot sign in. Only loaded for Super Admin lists. */
   emailUnconfirmed?: boolean;
+  /** When the sign-in email was confirmed (for admin-added practitioners, when they set their password). Only loaded for Super Admin lists. */
+  emailConfirmedAt?: string;
   /** Whether a sign-in account exists yet. Practitioners added by Super Admin get one when the invite is sent. Only loaded for Super Admin lists. */
   hasLogin?: boolean;
 

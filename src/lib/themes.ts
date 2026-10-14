@@ -1,7 +1,11 @@
-export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "juniper-brick" | "ocean-mist" | "fog-teal" | "olive-grove";
+export type ColorThemeId = "sage" | "ink-blue" | "golden-hour" | "ocean-mist" | "fog-teal" | "teal-tints" | "olive-grove" | "clinic-blue" | "eucalyptus" | "moss-honey" | "blue-sand" | "sage-clay" | "soft-sky";
+
+export type ColorThemeGroup = "Greens" | "Blues" | "Teals" | "Yellow";
 
 export interface ColorThemeOption {
   id: ColorThemeId;
+  /** Which family the picker files it under, so the options read as a few short rows. */
+  group: ColorThemeGroup;
   name: string;
   description: string;
   /** A handful of swatches for the picker preview, roughly in visual order. */
@@ -13,50 +17,102 @@ export interface ColorThemeOption {
 // picker's preview UI and for validating a submitted theme id.
 export const COLOR_THEMES: ColorThemeOption[] = [
   {
+    id: "moss-honey",
+    group: "Greens",
+    name: "Moss and honey",
+    description: "Oat cream page in a moss green frame, with moss green on buttons and the contact card. The default.",
+    swatches: ["#f6f4ea", "#7f9166", "#66794f", "#f6e8c8"],
+  },
+  {
     id: "sage",
-    name: "Sage Meadow",
-    description: "The original palette — warm cream surfaces with a sage-green accent.",
+    group: "Greens",
+    name: "Sage green",
+    description: "Warm cream with a sage-green accent.",
     swatches: ["#F7F5EE", "#BFE0B8", "#607568", "#EDE8DE"],
   },
   {
     id: "ink-blue",
-    name: "Harbor Blue",
-    description: "A crisp white surface with a deep ink-blue accent.",
+    group: "Blues",
+    name: "Navy blue",
+    description: "White with a deep navy accent.",
     swatches: ["#FFFFFF", "#CBDCE8", "#2F4C6B", "#E7E4DC"],
   },
   {
     id: "golden-hour",
-    name: "Golden Hour",
-    description: "A bright white surface with a warm golden-yellow accent.",
+    group: "Yellow",
+    name: "Yellow",
+    description: "White with a golden-yellow accent.",
     swatches: ["#FFFFFF", "#FFCC1C", "#FFD74D", "#DDEEF6"],
   },
   {
-    id: "juniper-brick",
-    name: "Juniper & Brick",
-    description: "A warm paper surface with deep juniper green and brick-red accents.",
-    swatches: ["#FAF8F3", "#E9DED3", "#2E4F44", "#B0432F"],
-  },
-  {
     id: "ocean-mist",
-    name: "Ocean Mist",
-    description: "A crisp white surface with a pale aqua frame and a deep ocean-teal accent.",
+    group: "Teals",
+    name: "Bright teal",
+    description: "White with a pale aqua frame and a teal accent.",
     swatches: ["#F8FCFD", "#CFE8EE", "#1E7A8C", "#E2F1F4"],
   },
   {
     id: "fog-teal",
-    name: "Fog Teal",
-    description: "A soft grey-white surface with a muted, deep teal accent. Clinical but gentle.",
+    group: "Teals",
+    name: "Soft teal",
+    description: "Grey-white with a muted deep teal accent.",
     swatches: ["#F6F8F8", "#D3E2E3", "#3E5E60", "#E8EDED"],
   },
   {
+    id: "teal-tints",
+    group: "Teals",
+    name: "Pale teal tints",
+    description: "White page in a pale teal frame, with deeper teal boxes and contact card.",
+    swatches: ["#ffffff", "#e0f0f2", "#3B7C8A", "#4A9DA8"],
+  },
+  {
     id: "olive-grove",
-    name: "Olive Grove",
-    description: "A soft warm-white surface with a muted, deep olive accent. Natural and steady.",
-    swatches: ["#F8F8F6", "#DEE3D3", "#56603E", "#ECEDE8"],
+    group: "Greens",
+    name: "Greige and olive",
+    description: "Warm greige frame and cream page with a deep olive accent.",
+    swatches: ["#f8f5ef", "#d6cfc2", "#55603a", "#ebe6da"],
+  },
+  {
+    id: "clinic-blue",
+    group: "Blues",
+    name: "Clinic blue",
+    description: "Cool white with a calm clinical blue.",
+    swatches: ["#f9fbfc", "#dcebf4", "#2c6a8f", "#ecf4f9"],
+  },
+  {
+    id: "eucalyptus",
+    group: "Greens",
+    name: "Eucalyptus",
+    description: "Pale grey-green in a sage green frame, with a deep green contact card and soft sage boxes.",
+    swatches: ["#f8faf9", "#7a9471", "#37755f", "#dde8d3"],
+  },
+  {
+    id: "blue-sand",
+    group: "Blues",
+    name: "Denim and oat",
+    description: "Warm oat page in a denim blue frame, with oat cards and a denim accent.",
+    swatches: ["#faf6ed", "#3f6aa8", "#3f6aa8", "#efe7d6"],
+  },
+  {
+    id: "sage-clay",
+    group: "Greens",
+    name: "Sage and clay",
+    description: "Pale sage frame and sage button, with clay-tint boxes and a sage contact card.",
+    swatches: ["#f7f5f0", "#eef0e8", "#7a9471", "#f2e7da"],
+  },
+  {
+    id: "soft-sky",
+    group: "Blues",
+    name: "Soft sky",
+    description: "A soft sky-blue frame, a sky-blue button, and a deep blue contact card and boxes.",
+    swatches: ["#f9fcfe", "#8fb8d6", "#7fb1d4", "#2e6487"],
   },
 ];
 
-export const DEFAULT_COLOR_THEME: ColorThemeId = "sage";
+/** The families in the order the picker shows them. */
+export const COLOR_THEME_GROUPS: ColorThemeGroup[] = ["Greens", "Blues", "Teals", "Yellow"];
+
+export const DEFAULT_COLOR_THEME: ColorThemeId = "moss-honey";
 
 export function isColorThemeId(value: string | undefined | null): value is ColorThemeId {
   return COLOR_THEMES.some((theme) => theme.id === value);

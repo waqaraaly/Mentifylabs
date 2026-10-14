@@ -11,8 +11,9 @@ import { DEFAULT_CURRENCY } from "@/lib/currencies";
 export async function createTestPractitioner(): Promise<string> {
   const slug = `test-${randomBytes(6).toString("hex")}`;
   await run(
-    "INSERT INTO practitioners (slug, full_name, email, fee_currency) VALUES (?, ?, ?, ?)",
+    "INSERT INTO practitioners (slug, slug_chosen_at, full_name, email, fee_currency) VALUES (?, ?, ?, ?, ?)",
     slug,
+    new Date().toISOString(),
     "Test Practitioner",
     `${slug}@example.com`,
     DEFAULT_CURRENCY,

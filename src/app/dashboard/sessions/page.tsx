@@ -7,6 +7,7 @@ import { SessionsAgenda } from "@/components/portal/SessionsAgenda";
 import { ScheduleSessionButton } from "@/components/portal/ScheduleSessionModal";
 import { AutoRefresh } from "@/components/portal/AutoRefresh";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { isPastIn } from "@/lib/time";
 
 export const metadata = { title: "Sessions" };
 
@@ -33,9 +34,11 @@ export default async function SessionsPage({ searchParams }: Props) {
   ]);
 
   const confirmed = all.filter((a) => a.status === "confirmed");
+  // A confirmed session whose end time has passed, on the practitioner's own clock, is overdue until it is marked done.
+  const overdue = confirmed.filter((a) => isPastIn(a.date, a.endTime, practitioner.timezone)).length;
   const counts = {
-    upcoming: confirmed.length,
-    overdue: 0, // the split between upcoming and overdue depends on the viewer's clock, so the page works it out in the browser
+    upcoming: confirmed.length - overdue,
+    overdue,
     completed: all.filter((a) => a.status === "completed").length,
     cancelled: all.filter((a) => a.status === "cancelled").length,
   };

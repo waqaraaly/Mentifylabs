@@ -1,4 +1,4 @@
-import { BadgeCheck, Clock, ShieldCheck, XCircle } from "lucide-react";
+import { BadgeCheck, Clock, ShieldCheck, TriangleAlert } from "lucide-react";
 import type { VerificationStatus } from "@/types/practitioner";
 
 const BADGES = {
@@ -12,10 +12,11 @@ const BADGES = {
     icon: Clock,
     style: "bg-accent text-accent-strong ring-1 ring-accent-strong/30",
   },
+  // Sent back with feedback: something to fix and resend, not a final no, so it is amber rather than red.
   rejected: {
-    label: "Not approved",
-    icon: XCircle,
-    style: "bg-alert text-alert-foreground",
+    label: "Changes needed",
+    icon: TriangleAlert,
+    style: "bg-accent text-accent-strong ring-1 ring-accent-strong/30",
   },
   unverified: {
     label: "Not verified",

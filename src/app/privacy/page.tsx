@@ -31,9 +31,9 @@ export default function PrivacyPolicyPage() {
         </p>
 
         <Section title="1. Information we collect">
-          <p><strong className="text-foreground">From Practitioners:</strong> full name, professional title, email, phone, profile photo, bio, qualifications, and — where you choose to submit it — a verification document (e.g. a license or certificate) used only to confirm your credentials.</p>
+          <p><strong className="text-foreground">From Practitioners:</strong> full name, professional title, email, phone, profile photo, bio, qualifications, and a verification document (e.g. a license or certificate) if you choose to submit one, used only to confirm your credentials.</p>
           <p><strong className="text-foreground">From Clients:</strong> the name, email, and phone number you give us when requesting or booking an appointment, and any notes you choose to include with a booking request.</p>
-          <p><strong className="text-foreground">Automatically:</strong> basic technical data (IP address, browser type, pages visited) used for security, fraud prevention, and keeping the service working — we do not use third-party advertising trackers.</p>
+          <p><strong className="text-foreground">Automatically:</strong> basic technical data (IP address, browser type, pages visited) used for security, fraud prevention, and keeping the service working. We do not use third-party advertising trackers.</p>
         </Section>
 
         <Section title="2. How we use it">
@@ -46,14 +46,14 @@ export default function PrivacyPolicyPage() {
         <Section title="3. What we don't collect">
           <p>
             We are a booking and profile platform, not a record-keeping system for therapy
-            sessions. We do not collect clinical notes, diagnoses, or session content — whatever a
+            sessions. We do not collect clinical notes, diagnoses, or session content. Whatever a
             Client and Practitioner discuss during a session stays between them.
           </p>
         </Section>
 
         <Section title="4. Who can see what">
           <p>A Practitioner&rsquo;s public profile (name, title, bio, specializations, contact details marked public) is visible to anyone who visits their page.</p>
-          <p>Booking requests, private contact details, and verification documents are visible only to the Practitioner they belong to and to our Super Admin team — never published publicly.</p>
+          <p>Booking requests, private contact details, and verification documents are visible only to the Practitioner they belong to and to our Super Admin team, and are never published publicly.</p>
         </Section>
 
         <Section title="5. Where data is stored">

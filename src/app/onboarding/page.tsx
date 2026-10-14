@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { getCurrentPractitioner } from "@/data/practitioners";
+import { getCurrentPractitioner, suggestHandle } from "@/data/practitioners";
 import { OnboardingWizard } from "./OnboardingWizard";
 
 export const metadata = { title: "Set up your account", robots: { index: false } };
@@ -14,15 +14,14 @@ export default async function OnboardingPage() {
   return (
     <OnboardingWizard
       slug={practitioner.slug}
-      firstName={practitioner.fullName.split(" ")[0]}
+      fullName={practitioner.fullName}
       // "Practitioner" is signup's placeholder default, not a real title — leave the field empty rather than prefill it.
       professionalTitle={practitioner.professionalTitle === "Practitioner" ? "" : practitioner.professionalTitle}
-      shortBio={practitioner.shortBio ?? ""}
-      specializations={practitioner.specializations}
       sessionType={practitioner.sessionType}
-      feeCurrency={practitioner.feeRange.currency}
-      feeMin={practitioner.feeRange.min}
-      feeMax={practitioner.feeRange.max}
+      location={practitioner.location ?? ""}
+      timezone={practitioner.timezone}
+      suggestedHandle={practitioner.slugChosenAt ? practitioner.slug : await suggestHandle(practitioner.fullName)}
+      handleChosen={Boolean(practitioner.slugChosenAt)}
     />
   );
 }

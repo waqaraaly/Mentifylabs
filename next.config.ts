@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
     return [
       { source: "/admin/verification", destination: "/admin/pending", permanent: false },
       { source: "/admin/verification/:slug", destination: "/admin/pending/:slug", permanent: false },
+      // Manage Users became Super Admins.
+      { source: "/admin/users", destination: "/admin/super-admins", permanent: false },
+      // Bookings was renamed Appointments.
+      { source: "/admin/bookings", destination: "/admin/appointments", permanent: false },
     ];
   },
   async headers() {
@@ -24,8 +28,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // Verification documents can be up to 10 MB (checked again in the upload action); the rest is multipart overhead.
-      bodySizeLimit: "11mb",
+      // A verification submission can carry several documents, up to 30 MB in total (checked again in the upload code);
+      // the rest is multipart overhead.
+      bodySizeLimit: "32mb",
     },
   },
 };

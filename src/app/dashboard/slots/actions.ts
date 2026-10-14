@@ -9,7 +9,6 @@ import {
   updateWeeklyRule,
   removeWeeklyRule,
   weeklyRuleOverlaps,
-  getWeeklyRules,
   addTimeOff,
   removeTimeOff,
   generateUpcomingSlots,
@@ -175,6 +174,24 @@ export async function setSlotStatusAction(formData: FormData) {
   revalidatePortalAndPublic(slug);
 }
 
+/**
+ * The other weekdays chosen on the form, and, if any of them already has overlapping hours, the message to show.
+ * Checked before anything is saved, so one clash saves nothing and the form can be corrected and sent again.
+ */
+async function chosenCopyDays(slug: string, weekday: number, startTime: string, endTime: string, formData: FormData) {
+  const days = [...new Set(formData.getAll("targets").map(Number))].filter(
+    (n) => Number.isInteger(n) && n >= 0 && n <= 6 && n !== weekday,
+  );
+  const clashes: string[] = [];
+  for (const day of days) {
+    if (await weeklyRuleOverlaps(slug, day, startTime, endTime)) clashes.push(WEEKDAYS_FULL[day]);
+  }
+  const error = clashes.length
+    ? `Overlaps with an existing slot on ${clashes.join(", ")}. Untick ${clashes.length === 1 ? "that day" : "those days"} to continue.`
+    : null;
+  return { days, error };
+}
+
 /** Adds one more recurring slot to a weekday — used by the day-manage popup. */
 export async function addWeeklyRuleAction(formData: FormData): Promise<{ error?: string }> {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
@@ -192,7 +209,10 @@ export async function addWeeklyRuleAction(formData: FormData): Promise<{ error?:
     return { error: "This overlaps with an existing slot on that day." };
   }
 
-  await addWeeklyRule(slug, weekday, { startTime, endTime, sessionType });
+  const copy = await chosenCopyDays(slug, weekday, startTime, endTime, formData);
+  if (copy.error) return { error: copy.error };
+
+  for (const day of [weekday, ...copy.days]) await addWeeklyRule(slug, day, { startTime, endTime, sessionType });
   await generateUpcomingSlots(slug);
   revalidatePortalAndPublic(slug);
   return {};
@@ -216,7 +236,11 @@ export async function updateWeeklyRuleAction(formData: FormData): Promise<{ erro
     return { error: "This overlaps with an existing slot on that day." };
   }
 
+  const copy = await chosenCopyDays(slug, weekday, startTime, endTime, formData);
+  if (copy.error) return { error: copy.error };
+
   await updateWeeklyRule(slug, id, { startTime, endTime, sessionType });
+  for (const day of copy.days) await addWeeklyRule(slug, day, { startTime, endTime, sessionType });
   await generateUpcomingSlots(slug);
   revalidatePortalAndPublic(slug);
   return {};
@@ -230,35 +254,6 @@ export async function removeWeeklyRuleAction(formData: FormData) {
 
   await removeWeeklyRule(slug, id);
   revalidatePortalAndPublic(slug);
-}
-
-/** Copies one recurring weekday slot onto other selected weekdays, as new slots — skipping any day it would overlap on. */
-export async function copyWeeklyRuleAction(formData: FormData): Promise<{ error?: string }> {
-  const id = formData.get("id")?.toString();
-  const slug = await requireOwnSlug(formData.get("slug")?.toString());
-  const targets = formData.getAll("targets").map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
-  if (!id || !slug || targets.length === 0) return { error: "Missing fields." };
-
-  const rules = await getWeeklyRules(slug);
-  const source = rules.find((r) => r.id === id);
-  if (!source) return { error: "Missing fields." };
-
-  const skipped: string[] = [];
-  for (const day of targets) {
-    if (await weeklyRuleOverlaps(slug, day, source.startTime, source.endTime)) {
-      skipped.push(WEEKDAYS_FULL[day]);
-      continue;
-    }
-    await addWeeklyRule(slug, day, {
-      startTime: source.startTime,
-      endTime: source.endTime,
-      sessionType: source.sessionType,
-    });
-  }
-
-  await generateUpcomingSlots(slug);
-  revalidatePortalAndPublic(slug);
-  return skipped.length > 0 ? { error: `Skipped ${skipped.join(", ")} — overlaps with an existing slot.` } : {};
 }
 
 export async function addTimeOffAction(formData: FormData) {
@@ -318,12 +313,12 @@ export async function markDateUnavailableAction(formData: FormData) {
 export async function getConflictsAction(
   slug: string,
   dates: string[],
-): Promise<{ date: string; startTime: string; clientName: string }[]> {
+): Promise<{ date: string; startTime: string; clientName: string; status: "pending" | "confirmed" }[]> {
   await requireOwnSlug(slug);
   const appointments = await getAppointmentsByPractitioner(slug);
   return appointments
     .filter((a) => dates.includes(a.date) && (a.status === "pending" || a.status === "confirmed"))
-    .map((a) => ({ date: a.date, startTime: a.startTime, clientName: a.clientName }))
+    .map((a) => ({ date: a.date, startTime: a.startTime, clientName: a.clientName, status: a.status as "pending" | "confirmed" }))
     .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`));
 }
 
@@ -332,6 +327,28 @@ export async function getUnavailableDatesAction(slug: string): Promise<string[]>
   await requireOwnSlug(slug);
   const overrides = await getDayOverrides(slug);
   return overrides.filter((o) => o.type === "unavailable").map((o) => o.date);
+}
+
+/**
+ * Blocks chosen open slots on one date, leaving the rest of the day as it is. Booked slots and slots from another
+ * date or practitioner are ignored. Like any one-off change to a date, it makes that date a custom date.
+ */
+export async function markSlotsUnavailableAction(slug: string, date: string, slotIds: string[]): Promise<{ blocked: number }> {
+  const own = await requireOwnSlug(slug);
+  if (!own || !isIsoDate(date)) return { blocked: 0 };
+
+  let blocked = 0;
+  for (const id of new Set(slotIds)) {
+    const slot = await getSlotById(id);
+    if (!slot || slot.practitionerSlug !== own || slot.date !== date || slot.status !== "open") continue;
+    await setSlotStatus(id, "unavailable");
+    blocked += 1;
+  }
+  if (blocked > 0) {
+    await markDateCustom(own, date);
+    revalidatePortalAndPublic(own);
+  }
+  return { blocked };
 }
 
 /** Marks several dates unavailable in one go. Booked sessions are left scheduled; only open slots are blocked. */

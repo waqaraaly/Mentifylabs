@@ -30,8 +30,6 @@ export default async function ProfilePreviewPage({ params }: Props) {
         ? s.sessionType !== "offline"
         : s.sessionType !== "online",
   );
-  const nextSlot =
-    [...slots].sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))[0] ?? null;
 
-  return <ProfileView practitioner={practitioner} slots={slots} nextSlot={nextSlot} preview />;
+  return <ProfileView practitioner={practitioner} slots={slots} preview />;
 }

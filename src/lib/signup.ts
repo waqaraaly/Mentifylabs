@@ -3,8 +3,9 @@ import { headers } from "next/headers";
 import { first, run } from "@/lib/db";
 import { MIN_PASSWORD_LENGTH, hashPassword } from "@/lib/password";
 import { MAX_PASSWORD_LENGTH } from "@/lib/session";
+import { zoneOrDefault } from "@/lib/time";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
-import { CONTACT_DETAIL_LABELS, uniqueSlugFor } from "@/data/practitioners";
+import { CONTACT_DETAIL_LABELS, freePlaceholderSlug } from "@/data/practitioners";
 import { sendVerificationEmail } from "@/lib/emailVerification";
 
 const MAX_SIGNUPS_PER_HOUR = 5;
@@ -13,6 +14,8 @@ export interface SignUpInput {
   fullName: string;
   email: string;
   password: string;
+  /** The device's time zone, if it reported one. A missing or invalid value falls back to the platform default. */
+  timezone?: string;
 }
 
 /**
@@ -50,19 +53,17 @@ export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true
     return { ok: false, message: "An account with this email already exists. Sign in, or reset your password." };
   }
 
-  const slug = await uniqueSlugFor(fullName);
-  if (!slug) return { ok: false, message: "Enter your name using letters." };
+  // No profile link yet: they choose it themselves while setting up, and can't publish until they have.
+  const slug = await freePlaceholderSlug();
 
-  const contactMethods = CONTACT_DETAIL_LABELS.map((label) => ({
-    label,
-    value: label === "Email" ? email : "",
-    isPublic: true,
-  }));
+  // The public contact details start empty. The sign-in email is never copied onto the profile: the practitioner
+  // adds an email or phone for clients themselves, if they want one shown.
+  const contactMethods = CONTACT_DETAIL_LABELS.map((label) => ({ label, value: "", isPublic: true }));
   const practitioner = await first<{ id: string }>(
     `INSERT INTO practitioners
        (slug, full_name, professional_title, email, session_type, contact_methods,
-        status, profile_status, creation_method, fee_currency)
-     VALUES (?, ?, ?, ?, 'both', ?, 'active', 'draft', 'self', ?)
+        status, profile_status, creation_method, fee_currency, timezone)
+     VALUES (?, ?, ?, ?, 'both', ?, 'active', 'draft', 'self', ?, ?)
      RETURNING id`,
     slug,
     fullName,
@@ -70,6 +71,7 @@ export async function signUpPractitioner(input: SignUpInput): Promise<{ ok: true
     email,
     JSON.stringify(contactMethods),
     DEFAULT_CURRENCY,
+    zoneOrDefault(input.timezone),
   );
 
   let user: { id: string } | null;

@@ -76,7 +76,7 @@ export async function bookAppointment(
   if (!appointment) {
     return {
       status: "error",
-      message: "That slot was just taken — please choose another one.",
+      message: "That slot was just taken. Please choose another one.",
     };
   }
 

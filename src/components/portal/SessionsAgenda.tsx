@@ -1,36 +1,27 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { Check, Eye, MoreHorizontal, CalendarClock, Search, Trash2, X } from "lucide-react";
 import type { Appointment } from "@/types/appointment";
 import type { Slot } from "@/types/slot";
 import { formatDate, formatDayCell, formatTime12h } from "@/lib/format";
+import { isPastIn } from "@/lib/time";
 import { cancelAppointment, completeAppointment, deleteAppointmentAction } from "@/app/dashboard/sessions/actions";
 import { RescheduleModal } from "./RescheduleModal";
 import { AppointmentDetailModal } from "./AppointmentDetailModal";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Tabs } from "@/components/ui/Tabs";
 import { ModeBadge } from "@/components/ui/ModeBadge";
+import { usePortalTimeZone } from "./PortalTimeZone";
 
-const EMPTY_COPY: Record<string, { title: string; body: string }> = {
-  upcoming: {
-    title: "Nothing scheduled",
-    body: "Approved sessions will show up here once clients are booked in.",
-  },
-  overdue: {
-    title: "Nothing overdue",
-    body: "Sessions whose time has passed without being marked completed or cancelled will show up here.",
-  },
-  completed: {
-    title: "No completed sessions yet",
-    body: "Sessions move here automatically once their scheduled time has passed.",
-  },
-  cancelled: {
-    title: "No cancelled sessions",
-    body: "Cancelled or declined bookings will be listed here for your records.",
-  },
+// What an empty tab says: one line, with no explanation of how sessions get there.
+const EMPTY_TITLE: Record<string, string> = {
+  upcoming: "Nothing scheduled",
+  overdue: "Nothing overdue",
+  completed: "No completed sessions yet",
+  cancelled: "No cancelled sessions",
 };
 
 function RowMenu({
@@ -180,8 +171,6 @@ function DeleteRecordMenu({
   );
 }
 
-const subscribeNever = () => () => {};
-
 export function SessionsAgenda({
   appointments: tabAppointments,
   tab,
@@ -198,15 +187,13 @@ export function SessionsAgenda({
   confirmedEnds: { date: string; endTime: string }[];
   tabItems: { value: string; label: string; count?: number }[];
 }) {
-  // Whether a session has ended depends on the viewer's own clock, which the server doesn't know. So the server
-  // and the first browser render treat nothing as ended, and the real split happens once the page is in the browser.
-  const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
-  const now = new Date();
-  const endedAt = (date: string, endTime: string) => inBrowser && new Date(`${date}T${endTime}:00`) < now;
+  // Whether a session has ended is judged on the practitioner's own clock, which the server and the browser both know.
+  const zone = usePortalTimeZone();
+  const endedAt = (date: string, endTime: string) => isPastIn(date, endTime, zone);
   const hasEnded = (a: Appointment) => endedAt(a.date, a.endTime);
   const overdueCount = confirmedEnds.filter((c) => endedAt(c.date, c.endTime)).length;
   const tabItems = serverTabItems.map((t) =>
-    !inBrowser ? t : t.value === "overdue" ? { ...t, count: overdueCount } : t.value === "upcoming" ? { ...t, count: confirmedEnds.length - overdueCount } : t,
+    t.value === "overdue" ? { ...t, count: overdueCount } : t.value === "upcoming" ? { ...t, count: confirmedEnds.length - overdueCount } : t,
   );
   const appointments =
     tab === "upcoming" ? tabAppointments.filter((a) => !hasEnded(a)) : tab === "overdue" ? tabAppointments.filter(hasEnded) : tabAppointments;
@@ -276,24 +263,13 @@ export function SessionsAgenda({
 
   const modeBadge = (a: Appointment) => <ModeBadge mode={a.sessionType} />;
 
-  // The Overdue list can only be known in the browser, so until then hold the space instead of flashing "nothing overdue".
-  if (tab === "overdue" && !inBrowser) {
-    return (
-      <div className="space-y-6">
-        {top}
-        <div className="h-64 rounded-2xl bg-surface ring-1 ring-black/[0.07]" aria-hidden />
-      </div>
-    );
-  }
-
   if (appointments.length === 0) {
-    const copy = EMPTY_COPY[tab] ?? EMPTY_COPY.upcoming;
+    const title = EMPTY_TITLE[tab] ?? EMPTY_TITLE.upcoming;
     return (
       <div className="space-y-6">
         {top}
         <div className="rounded-2xl bg-surface py-16 text-center ring-1 ring-black/[0.07]">
-          <p className="font-medium">{copy.title}</p>
-          <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted">{copy.body}</p>
+          <p className="font-medium">{title}</p>
         </div>
         {viewTarget && <AppointmentDetailModal appointment={viewTarget} onClose={() => setViewId(null)} />}
         {rescheduleTarget && (

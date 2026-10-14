@@ -16,7 +16,7 @@ function parseRange(value: string | string[] | undefined): StatsRange {
 export async function generateMetadata({ params }: PageProps<"/admin/profile-stats/[slug]">) {
   const { slug } = await params;
   const practitioner = (await getAllPractitioners()).find((p) => p.slug === slug);
-  return { title: practitioner ? `${practitioner.fullName} — profile stats` : "Profile stats" };
+  return { title: practitioner ? `Profile stats for ${practitioner.fullName}` : "Profile stats" };
 }
 
 /** The same report the practitioner sees on their own Stats page, so both always show exactly the same thing. */
@@ -51,7 +51,7 @@ export default async function AdminPractitionerStatsPage({
         }
       />
       <div style={{ padding: "0 var(--ml-gutter) 40px" }}>
-        <ProfileStatsReport stats={stats} audience="admin" slug={slug} />
+        <ProfileStatsReport stats={stats} audience="admin" />
       </div>
     </div>
   );

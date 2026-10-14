@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPublicPractitionerSlugs, getPublicPractitionerBySlug } from "@/data/practitioners";
+import { getPublicPractitionerSlugs, getPublicPractitionerBySlug, isReservedNotLive } from "@/data/practitioners";
 import { getOpenSlotsByPractitioner } from "@/data/slots";
+import { notStarted } from "@/lib/viewerTime";
 import { siteConfig } from "@/lib/site";
 import { ProfileView } from "@/components/practitioner/ProfileView";
+import { ProfileNotLive } from "@/components/practitioner/ProfileNotLive";
 
 // Pre-render every known practitioner at build time (SSG) so pages are
 // served instantly and fully-formed HTML reaches search engine crawlers.
@@ -22,10 +24,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const practitioner = await getPublicPractitionerBySlug(username);
 
   if (!practitioner) {
-    return { title: "Practitioner not found" };
+    // A reserved link gets a "not live yet" page. Search engines are kept off it either way.
+    return (await isReservedNotLive(username))
+      ? { title: "Profile not live yet", robots: { index: false, follow: false } }
+      : { title: "Practitioner not found" };
   }
 
-  const title = `${practitioner.fullName} — ${practitioner.professionalTitle}`;
+  const title = `${practitioner.fullName}, ${practitioner.professionalTitle}`;
   const description = practitioner.bio.slice(0, 155).trim();
   const url = `${siteConfig.url}/${practitioner.slug}`;
 
@@ -54,21 +59,26 @@ export default async function PractitionerProfilePage({ params }: Props) {
   const practitioner = await getPublicPractitionerBySlug(username);
 
   if (!practitioner) {
+    // Claimed but not live yet reads as "not live yet"; anything else is genuinely not found.
+    if (await isReservedNotLive(username)) return <ProfileNotLive />;
     notFound();
   }
 
   // Only slots in a format the practitioner currently offers (their session
   // mode is edited in the portal): an online-only profile shouldn't advertise
   // an on-site slot as its next available time.
-  const slots = (await getOpenSlotsByPractitioner(practitioner.slug)).filter((s) =>
-    practitioner.sessionType === "both"
-      ? true
-      : practitioner.sessionType === "online"
-        ? s.sessionType !== "offline"
-        : s.sessionType !== "online",
+  // Slots that have already started are left out, on the practitioner's own clock. This page is saved and reused for up
+  // to an hour, so the browser checks again as well; and it converts the times to the visitor's own time zone.
+  const slots = notStarted(
+    (await getOpenSlotsByPractitioner(practitioner.slug)).filter((s) =>
+      practitioner.sessionType === "both"
+        ? true
+        : practitioner.sessionType === "online"
+          ? s.sessionType !== "offline"
+          : s.sessionType !== "online",
+    ),
+    practitioner.timezone,
   );
-  const nextSlot =
-    [...slots].sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))[0] ?? null;
 
-  return <ProfileView practitioner={practitioner} slots={slots} nextSlot={nextSlot} />;
+  return <ProfileView practitioner={practitioner} slots={slots} />;
 }

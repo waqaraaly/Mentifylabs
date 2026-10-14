@@ -73,6 +73,7 @@ function BookedView({
   onBack: () => void;
 }) {
   const type = appointment?.sessionType ?? slot.sessionType;
+  const requested = appointment?.status === "pending";
   return (
     <>
       <div className="flex-1 space-y-5 overflow-y-auto px-7 py-4">
@@ -100,16 +101,18 @@ function BookedView({
             found.
           </p>
         )}
-        <p className="text-sm text-muted">
-          To change or cancel this session, use the Sessions page.
-        </p>
+        {!requested && (
+          <p className="text-sm text-muted">
+            To change or cancel this session, use the Sessions page.
+          </p>
+        )}
       </div>
       <Footer>
         <Link
-          href="/dashboard/sessions"
+          href={requested ? "/dashboard/requests" : "/dashboard/sessions"}
           className="text-sm font-semibold text-primary hover:underline"
         >
-          Open in Sessions
+          {requested ? "Open Appointment Requests" : "Open in Sessions"}
         </Link>
         <button type="button" onClick={onBack} className={primaryButton}>
           Done
@@ -241,7 +244,7 @@ function SlotEditView({
       <Footer>
         {confirmingRemove ? (
           <>
-            <p className="text-sm font-medium">Remove this slot?</p>
+            <p className="text-sm font-medium">Delete this slot?</p>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -257,21 +260,24 @@ function SlotEditView({
                 disabled={pending}
                 className="rounded-lg bg-alert px-5 py-2.5 text-sm font-semibold text-alert-foreground transition hover:opacity-90 disabled:opacity-60"
               >
-                {pending ? "Removing…" : "Remove"}
+                {pending ? "Deleting…" : "Delete"}
               </button>
             </div>
           </>
         ) : (
           <>
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setConfirmingRemove(true)}
-                disabled={pending}
-                className="rounded-lg px-3 py-2.5 text-sm font-semibold text-alert transition hover:bg-alert/[0.08] disabled:opacity-60"
-              >
-                Remove
-              </button>
+              {/* An open slot is blocked, not deleted, so it can be reopened. Only a blocked slot can be deleted for good. */}
+              {blocked && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingRemove(true)}
+                  disabled={pending}
+                  className="rounded-lg px-3 py-2.5 text-sm font-semibold text-alert transition hover:bg-alert/[0.08] disabled:opacity-60"
+                >
+                  Delete slot
+                </button>
+              )}
               {!blocked && (
                 <button
                   type="button"
@@ -279,7 +285,7 @@ function SlotEditView({
                   disabled={pending}
                   className={`${quietButton} disabled:opacity-60`}
                 >
-                  Mark unavailable
+                  Block this slot
                 </button>
               )}
             </div>
@@ -408,6 +414,17 @@ export function DayPanel({
     ? (existingSlots.find((s) => s.id === selectedSlotId) ?? null)
     : null;
 
+  // Confirmed sessions and unanswered requests both hold their slots, and both stay when a day is blocked.
+  const pendingCount = bookedSlots.filter((s) => getAppointment(s.id)?.status === "pending").length;
+  const confirmedCount = bookedSlots.length - pendingCount;
+  const heldSlotsText =
+    [
+      confirmedCount > 0 && `${confirmedCount} booked ${confirmedCount === 1 ? "session" : "sessions"}`,
+      pendingCount > 0 && `${pendingCount} pending ${pendingCount === 1 ? "request" : "requests"}`,
+    ]
+      .filter(Boolean)
+      .join(" and ") + (bookedSlots.length === 1 ? " stays as it is" : " stay as they are");
+
   function requestMarkUnavailable() {
     if (bookedSlots.length > 0) setConfirmingBlock(true);
     else void handleMarkUnavailable();
@@ -445,9 +462,10 @@ export function DayPanel({
   // Slot detail view — a booked slot shows its appointment, an open one shows the edit form.
   if (selectedSlotId && selectedSlot) {
     const booked = selectedSlot.status === "booked";
+    const requested = getAppointment(selectedSlot.id)?.status === "pending";
     return (
       <SidePanel
-        title={booked ? "Booked session" : selectedSlot.status === "unavailable" ? "Blocked slot" : "Edit slot"}
+        title={booked ? (requested ? "Session request" : "Booked session") : selectedSlot.status === "unavailable" ? "Blocked slot" : "Edit slot"}
         backLabel={formatDate(selectedSlot.date)}
         onBack={() => setSelectedSlotId(null)}
         onClose={onClose}
@@ -474,6 +492,8 @@ export function DayPanel({
 
   const renderRow = (slot: Slot) => {
     const booked = slot.status === "booked";
+    // Nobody has agreed to a request yet, so it is not a booking. The slot is held, but it reads "Requested".
+    const requested = booked && getAppointment(slot.id)?.status === "pending";
     return (
       <li key={slot.id}>
         <button
@@ -488,7 +508,7 @@ export function DayPanel({
             <span className="block text-sm text-muted">
               {sessionTypeLabel(slot.sessionType)} ·{" "}
               <span className={booked ? "font-medium text-primary" : ""}>
-                {booked ? "Booked" : slot.status === "unavailable" ? "Unavailable" : "Open"}
+                {requested ? "Requested" : booked ? "Booked" : slot.status === "unavailable" ? "Unavailable" : "Open"}
               </span>
             </span>
           </span>
@@ -697,9 +717,7 @@ export function DayPanel({
         {confirmingBlock ? (
           <>
             <p className="max-w-[16rem] text-sm">
-              {bookedSlots.length} booked{" "}
-              {bookedSlots.length === 1 ? "session stays" : "sessions stay"}{" "}
-              scheduled. Only open slots are blocked.
+              {heldSlotsText}. Only open slots are blocked.
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -742,7 +760,7 @@ export function DayPanel({
                       disabled={togglingAvailability}
                       className={`${quietButton} disabled:opacity-50`}
                     >
-                      Mark unavailable
+                      Block whole day
                     </button>
                   )}
                 </>

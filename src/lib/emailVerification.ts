@@ -30,7 +30,7 @@ export async function sendVerificationEmail(
   const change = !!opts.newEmail;
   await sendBrandedEmail({
     to: email,
-    subject: change ? "Confirm your new email — MentifyLabs" : "Confirm your email — MentifyLabs",
+    subject: change ? "Confirm your new MentifyLabs email" : "Confirm your MentifyLabs email",
     greeting: `Hi ${fullName},`,
     content: {
       eyebrow: "Email",
@@ -74,7 +74,7 @@ export async function resendVerificationEmail(userId: string): Promise<{ ok: boo
 export async function resendConfirmationForEmail(emailInput: string): Promise<void> {
   const email = emailInput.trim().toLowerCase();
   const user = await first<{ id: string }>(
-    "SELECT id FROM users WHERE email = ? AND email_verified_at IS NULL AND disabled_at IS NULL",
+    "SELECT id FROM users WHERE email = ? AND email_verified_at IS NULL",
     email,
   );
   if (user) await resendVerificationEmail(user.id);

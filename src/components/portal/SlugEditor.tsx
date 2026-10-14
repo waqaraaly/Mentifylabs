@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition, type KeyboardEvent, type ReactNode } from "react";
+import { useRef, useState, useTransition, type KeyboardEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, ExternalLink, Link2, Pencil, TriangleAlert, X } from "lucide-react";
-import { updateSlugAction } from "@/app/dashboard/profile/actions";
+import { checkHandleAction, updateSlugAction } from "@/app/dashboard/profile/actions";
 
 const iconButton =
   "ml-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/[0.06] hover:text-foreground disabled:opacity-60";
@@ -25,10 +25,27 @@ function ActionButton({ label, onClick, children }: { label: string; onClick: ()
   );
 }
 
-export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string }) {
-  const [currentSlug, setCurrentSlug] = useState(slug);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(slug);
+export function SlugEditor({
+  slug,
+  siteUrl,
+  chosen = true,
+  suggestion = "",
+  live = true,
+}: {
+  slug: string;
+  siteUrl: string;
+  chosen?: boolean;
+  suggestion?: string;
+  /** Whether the public page is live. Until it is, the link is reserved and opens a "not live yet" page. */
+  live?: boolean;
+}) {
+  // Until they choose one, the practitioner has no link at all: the field starts open and empty (or with a suggestion).
+  const [isChosen, setIsChosen] = useState(chosen);
+  const [currentSlug, setCurrentSlug] = useState(chosen ? slug : "");
+  const [editing, setEditing] = useState(!chosen);
+  const [draft, setDraft] = useState(chosen ? slug : suggestion);
+  const [availability, setAvailability] = useState<{ ok: boolean; message: string } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -36,18 +53,28 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
 
   const domain = siteUrl.replace(/^https?:\/\//, "");
   const fullUrl = `${siteUrl.replace(/\/$/, "")}/${currentSlug}`;
-  const changed = draft !== currentSlug;
+  const changed = draft !== currentSlug && draft.length > 0;
+
+  // Asks the server whether the link is free, a moment after they stop typing.
+  const checkSoon = (value: string) => {
+    if (timer.current) clearTimeout(timer.current);
+    setAvailability(null);
+    if (!value || value === currentSlug) return;
+    timer.current = setTimeout(async () => setAvailability(await checkHandleAction(value)), 350);
+  };
 
   const startEditing = () => {
     setDraft(currentSlug);
     setError(null);
+    setAvailability(null);
     setEditing(true);
   };
 
   const cancel = () => {
     setDraft(currentSlug);
     setError(null);
-    setEditing(false);
+    setAvailability(null);
+    setEditing(isChosen ? false : true);
   };
 
   const copy = async () => {
@@ -63,7 +90,7 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
   const save = () => {
     const next = draft.replace(/^-+|-+$/g, "");
     if (!next) {
-      setError("Your URL can't be empty.");
+      setError("Choose a link first.");
       return;
     }
     if (next === currentSlug) {
@@ -71,14 +98,16 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
       return;
     }
     startTransition(async () => {
-      const result = await updateSlugAction(currentSlug, next);
+      const result = await updateSlugAction(next);
       if (!result.ok) {
         setError(result.message);
         return;
       }
       setCurrentSlug(next);
+      setIsChosen(true);
       setEditing(false);
       setError(null);
+      setAvailability(null);
       router.refresh();
     });
   };
@@ -107,8 +136,10 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
           <input
             value={draft}
             onChange={(e) => {
-              setDraft(sanitizeSlug(e.target.value));
+              const value = sanitizeSlug(e.target.value);
+              setDraft(value);
               setError(null);
+              checkSoon(value);
             }}
             onKeyDown={onKeyDown}
             autoFocus
@@ -116,7 +147,7 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
             spellCheck={false}
             autoCapitalize="none"
             autoComplete="off"
-            aria-label="Public URL slug"
+            aria-label="Public profile link"
             aria-invalid={error ? true : undefined}
             className="min-w-0 flex-1 bg-transparent py-1.5 text-sm font-medium outline-none disabled:opacity-60"
           />
@@ -135,28 +166,32 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
               className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-primary px-3.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
             >
               <Check className="size-3.5" aria-hidden />
-              {pending ? "Saving…" : "Save"}
+              {pending ? "Saving…" : isChosen ? "Save" : "Choose this link"}
             </button>
-            <button type="button" onClick={cancel} disabled={pending} aria-label="Cancel" className={iconButton}>
-              <X className="size-4" aria-hidden />
-            </button>
+            {isChosen && (
+              <button type="button" onClick={cancel} disabled={pending} aria-label="Cancel" className={iconButton}>
+                <X className="size-4" aria-hidden />
+              </button>
+            )}
           </>
         ) : (
           <>
             <ActionButton label={copied ? "Copied" : "Copy link"} onClick={copy}>
               {copied ? <Check className="size-4 text-success" aria-hidden /> : <Copy className="size-4" aria-hidden />}
             </ActionButton>
+            {/* Always the real link, the same address that is copied and shown. Until the profile is live, it opens the
+                "not live yet" page clients would see. The private preview has its own button at the top of the page. */}
             <a
               href={`/${currentSlug}`}
               target="_blank"
               rel="noopener"
-              aria-label="Open your public page"
-              title="Open your public page"
+              aria-label={live ? "Open your public page" : "Open your link. It isn't live yet."}
+              title={live ? "Open your public page" : "Open your link. It isn't live yet."}
               className={iconButton}
             >
               <ExternalLink className="size-4" aria-hidden />
             </a>
-            <ActionButton label="Edit URL" onClick={startEditing}>
+            <ActionButton label="Edit link" onClick={startEditing}>
               <Pencil className="size-4" aria-hidden />
             </ActionButton>
           </>
@@ -164,14 +199,22 @@ export function SlugEditor({ slug, siteUrl }: { slug: string; siteUrl: string })
         </div>
       </div>
 
+      {!editing && isChosen && !live && (
+        <p className="mt-2 text-xs text-muted">Reserved for you. It opens to clients once your profile is live.</p>
+      )}
+
       {editing && (
         <div className="mt-2 space-y-1.5 text-xs">
           {error ? (
             <p className="text-alert">{error}</p>
+          ) : availability ? (
+            <p className={availability.ok ? "text-success" : "text-alert"}>{availability.message}</p>
           ) : (
-            <p className="text-muted">Lowercase letters, numbers and hyphens only.</p>
+            <p className="text-muted">
+              3 to 30 characters: lowercase letters, numbers and hyphens.
+            </p>
           )}
-          {changed && !error && (
+          {isChosen && changed && !error && (
             <p className="flex items-start gap-1.5 text-muted">
               <TriangleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
               <span>

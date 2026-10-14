@@ -1,9 +1,11 @@
-import { Check, KeyRound, Lock, Settings, ShieldCheck, User } from "lucide-react";
+import { Check, Globe, KeyRound, Lock, Settings, ShieldCheck, User } from "lucide-react";
 import { getCurrentPractitioner } from "@/data/practitioners";
 import { getAccount } from "@/data/account";
 import { Field } from "@/components/portal/Field";
 import { PasswordForm } from "@/components/portal/PasswordForm";
 import { SettingsCard } from "@/components/portal/SettingsCard";
+import { TimeZoneSetting } from "@/components/portal/TimeZoneSetting";
+import { TwoStepSignIn } from "@/components/portal/TwoStepSignIn";
 import { settingsInputClass } from "@/components/portal/SettingsRow";
 import { phoneExample } from "@/lib/countries";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -48,7 +50,7 @@ export default async function SettingsPage({
           className="flex items-center gap-2 rounded-xl bg-primary/[0.08] px-4 py-3 text-sm font-medium text-primary"
         >
           <Check className="size-4 shrink-0" aria-hidden />
-          {saved === "verification" ? "Verification email sent — check your inbox." : "Saved. Your public profile is unchanged."}
+          {saved === "verification" ? "Verification email sent. Check your inbox." : "Saved. Your public profile is unchanged."}
         </p>
       )}
       {error && (
@@ -103,6 +105,16 @@ export default async function SettingsPage({
                   </p>
                 )}
               </Field>
+              <Field label="Current password" htmlFor="currentPassword">
+                <input
+                  id="currentPassword"
+                  name="currentPassword"
+                  type="password"
+                  autoComplete="current-password"
+                  className={settingsInputClass}
+                />
+                <p className="mt-1.5 text-xs text-muted">Only needed if you change your email.</p>
+              </Field>
               <Field label="Phone" htmlFor="phone">
                 <input
                   id="phone"
@@ -129,6 +141,29 @@ export default async function SettingsPage({
         <SettingsCard icon={<KeyRound className="size-[18px]" aria-hidden />} title="Password">
           <PasswordForm />
         </SettingsCard>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+      <SettingsCard icon={<Globe className="size-[18px]" aria-hidden />} title="Time zone">
+        <TimeZoneSetting saved={practitioner.timezone} />
+      </SettingsCard>
+
+      <SettingsCard
+        icon={<ShieldCheck className="size-[18px]" aria-hidden />}
+        title="Two-step sign-in"
+        aside={
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+              account.twoFactorEnabled ? "bg-primary/[0.1] text-primary" : "bg-black/[0.05] text-muted"
+            }`}
+          >
+            <span className={`size-1.5 rounded-full ${account.twoFactorEnabled ? "bg-primary" : "bg-black/30"}`} aria-hidden />
+            {account.twoFactorEnabled ? "On" : "Off"}
+          </span>
+        }
+      >
+        <TwoStepSignIn enabled={account.twoFactorEnabled} email={account.email} />
+      </SettingsCard>
       </div>
     </div>
   );

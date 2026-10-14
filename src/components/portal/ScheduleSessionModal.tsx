@@ -7,6 +7,7 @@ import { CalendarHeart, MapPin, Phone, Plus, User, Video, X } from "lucide-react
 import type { Slot } from "@/types/slot";
 import { formatDateFull, isPastStart, todayIsoDate } from "@/lib/format";
 import { scheduleSessionAction } from "@/app/dashboard/sessions/actions";
+import { usePortalTimeZone } from "./PortalTimeZone";
 
 const fieldClass =
   "w-full rounded-xl bg-black/[0.03] px-3.5 py-3 text-sm outline-none ring-1 ring-transparent transition focus:bg-surface focus:ring-primary/40";
@@ -52,17 +53,19 @@ function ScheduleSessionModal({
   openSlots: Slot[];
   onClose: () => void;
 }) {
+  const zone = usePortalTimeZone();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // A session can't be scheduled for a time that has already gone by, so slots that have started aren't offered.
-  const openSlots = allOpenSlots.filter((s) => !isPastStart(s.date, s.startTime));
+  // A session can't be scheduled for a time that has already gone by (on the practitioner's clock), so slots that have started aren't offered.
+  const openSlots = allOpenSlots.filter((s) => !isPastStart(s.date, s.startTime, zone));
 
   const hasOpenSlots = openSlots.length > 0;
   const [mode, setMode] = useState<"slot" | "custom">(hasOpenSlots ? "slot" : "custom");
 
   const [clientName, setClientName] = useState("");
-  const [slotDate, setSlotDate] = useState(openSlots[0]?.date ?? todayIsoDate());
+  const [slotDate, setSlotDate] = useState(openSlots[0]?.date ?? todayIsoDate(zone));
   const [slotId, setSlotId] = useState(openSlots[0]?.id ?? "");
   const [customDate, setCustomDate] = useState("");
   const [customStart, setCustomStart] = useState("");
@@ -87,11 +90,11 @@ function ScheduleSessionModal({
   const preview =
     mode === "slot" && selectedSlot
       ? { date: selectedSlot.date, start: selectedSlot.startTime, end: selectedSlot.endTime, type: selectedSlot.sessionType === "both" ? customType : selectedSlot.sessionType }
-      : mode === "custom" && customDate && customStart && customEnd && customDate >= todayIsoDate() && !isPastStart(customDate, customStart)
+      : mode === "custom" && customDate && customStart && customEnd && customDate >= todayIsoDate(zone) && !isPastStart(customDate, customStart, zone)
         ? { date: customDate, start: customStart, end: customEnd, type: customType }
         : null;
 
-  const customInPast = !!customDate && (customDate < todayIsoDate() || (!!customStart && isPastStart(customDate, customStart)));
+  const customInPast = !!customDate && (customDate < todayIsoDate(zone) || (!!customStart && isPastStart(customDate, customStart, zone)));
   const canSubmit =
     mode === "slot" ? !!selectedSlot : !!(customDate && customStart && customEnd) && !customInPast;
 
@@ -99,7 +102,11 @@ function ScheduleSessionModal({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      await scheduleSessionAction(formData);
+      const result = await scheduleSessionAction(formData);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
       onClose();
       router.refresh();
     });
@@ -199,7 +206,7 @@ function ScheduleSessionModal({
                       <input
                         id="schedule-slot-date"
                         type="date"
-                        min={todayIsoDate()}
+                        min={todayIsoDate(zone)}
                         value={slotDate}
                         onChange={(e) => selectSlotDate(e.target.value)}
                         className={`mt-1 ${fieldClass}`}
@@ -247,7 +254,7 @@ function ScheduleSessionModal({
                       </div>
                     )}
                     <p className="col-span-2 text-xs text-muted">
-                      Pick any date — including further out — to see your open slots for that day.
+                      Pick any date, including further out, to see your open slots for that day.
                     </p>
                   </div>
                 ) : (
@@ -256,7 +263,7 @@ function ScheduleSessionModal({
                       type="date"
                       name="date"
                       required
-                      min={todayIsoDate()}
+                      min={todayIsoDate(zone)}
                       value={customDate}
                       onChange={(e) => setCustomDate(e.target.value)}
                       className={`col-span-2 ${fieldClass} sm:col-span-1`}
@@ -294,7 +301,7 @@ function ScheduleSessionModal({
                   </div>
                 )}
                 {!hasOpenSlots && (
-                  <p className="mt-2 text-xs text-muted">No open slots on your calendar — set a custom time instead.</p>
+                  <p className="mt-2 text-xs text-muted">No open slots on your calendar. Set a custom time instead.</p>
                 )}
               </div>
             </div>
@@ -324,6 +331,12 @@ function ScheduleSessionModal({
                 <p className="mt-1.5 text-sm text-muted">Fill in the details above to see what you&apos;re booking.</p>
               )}
             </div>
+
+            {error && (
+              <p role="alert" className="mt-5 text-sm font-medium text-alert">
+                {error}
+              </p>
+            )}
 
             <div className="mt-7 flex items-center justify-end gap-3 border-t border-black/[0.06] pt-6">
               <button

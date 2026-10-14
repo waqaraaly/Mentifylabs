@@ -97,6 +97,10 @@ export const canReactivate = (p: Pick<Practitioner, "status">) => p.status === "
 export const canDecideSubmission = (p: Pick<Practitioner, "verificationStatus" | "status">) =>
   p.verificationStatus === "pending" && p.status === "active";
 
+/** Re-send the confirmation link to someone who signed up themselves and has not confirmed their email yet. Admin-added practitioners get an invite instead. */
+export const canResendConfirmation = (p: { creationMethod: Practitioner["creationMethod"]; emailUnconfirmed?: boolean; hasLogin?: boolean; status: Practitioner["status"] }) =>
+  p.creationMethod === "self" && !!p.emailUnconfirmed && p.hasLogin !== false && p.status === "active";
+
 /** Reactivating straight to a live profile needs verified credentials, the same rule practitioners publish under. */
 export const canReactivateLive = (p: Pick<Practitioner, "verificationStatus">) => p.verificationStatus === "verified";
 

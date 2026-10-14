@@ -23,10 +23,6 @@ export function StructuredData({ practitioner }: { practitioner: Practitioner })
         address: practitioner.location
           ? { "@type": "PostalAddress", addressLocality: practitioner.location }
           : undefined,
-        hasCredential: practitioner.certifications.map((cert) => ({
-          "@type": "EducationalOccupationalCredential",
-          credentialCategory: cert,
-        })),
       },
       {
         "@type": "BreadcrumbList",

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { run } from "@/lib/db";
+import { isPlaceholderSlug } from "@/lib/handle";
 import { createTestPractitioner, deleteTestPractitioner } from "@/test/helpers";
 import {
   approveSubmission,
@@ -12,6 +13,7 @@ import {
   reactivatePractitioner,
   rejectVerification,
   unpublishOwnProfile,
+  updatePractitionerSlug,
 } from "./practitioners";
 import { DEFAULT_REJECTION_REASON, publishBlockReason, verificationState } from "@/lib/verification";
 
@@ -82,12 +84,13 @@ describe("publishing needs verified credentials", () => {
   });
 
   it("explains each blocked case in words", () => {
-    const base = { status: "active", profileStatus: "draft", verificationStatus: "unverified", verificationNote: undefined } as const;
+    const base = { status: "active", profileStatus: "draft", verificationStatus: "unverified", verificationNote: undefined, slugChosenAt: "2026-01-01T00:00:00.000Z" } as const;
     expect(publishBlockReason({ ...base })).toMatch(/verify your credentials/i);
     expect(publishBlockReason({ ...base, verificationStatus: "pending" })).toMatch(/under review/i);
     expect(publishBlockReason({ ...base, verificationNote: "Expired." })).toMatch(/need changes/i);
     expect(publishBlockReason({ ...base, profileStatus: "hidden" })).toMatch(/offline/i);
     expect(publishBlockReason({ ...base, verificationStatus: "verified" })).toBeNull();
+    expect(publishBlockReason({ ...base, verificationStatus: "verified", slugChosenAt: undefined })).toMatch(/choose your profile link/i);
   });
 });
 
@@ -169,14 +172,22 @@ describe("what the public can see", () => {
 });
 
 describe("practitioners added by Super Admin", () => {
-  it("'Skip verification' makes them verified and active, as a draft they can publish", async () => {
+  it("'Skip verification' makes them verified and active, as a draft they can publish once they choose a link", async () => {
     const result = await createPractitionerManually({ fullName: "Skip Tester", professionalTitle: "Counsellor", email: "skip@example.com", skipVerification: true });
     if (!result.ok) throw new Error(result.message);
     created.push(result.practitioner.slug);
 
     expect(result.practitioner).toMatchObject({ status: "active", verificationStatus: "verified", profileStatus: "draft" });
-    expect(publishBlockReason(result.practitioner)).toBeNull();
-    expect(await publishOwnProfile(result.practitioner.slug)).toEqual({ ok: true });
+    // Nobody picks their link for them: they start on a hidden placeholder and cannot publish until they choose.
+    expect(result.practitioner.slugChosenAt).toBeUndefined();
+    expect(isPlaceholderSlug(result.practitioner.slug)).toBe(true);
+    expect(publishBlockReason(result.practitioner)).toMatch(/choose your profile link/i);
+    expect((await publishOwnProfile(result.practitioner.slug)).ok).toBe(false);
+
+    const chosen = await updatePractitionerSlug(result.practitioner.slug, "skip-tester-handle");
+    expect(chosen).toEqual({ ok: true });
+    created.splice(created.indexOf(result.practitioner.slug), 1, "skip-tester-handle");
+    expect(await publishOwnProfile("skip-tester-handle")).toEqual({ ok: true });
   });
 
   it("without 'Skip verification' they start active but unverified, and can't publish", async () => {
@@ -186,5 +197,31 @@ describe("practitioners added by Super Admin", () => {
 
     expect(result.practitioner).toMatchObject({ status: "active", verificationStatus: "unverified" });
     expect((await publishOwnProfile(result.practitioner.slug)).ok).toBe(false);
+  });
+});
+
+describe("two admins deciding on the same submission", () => {
+  it("only the first decision changes anything", async () => {
+    await setState({ status: "active", verification_status: "pending" });
+    expect(await approveSubmission(slug)).not.toBeNull();
+    // the second admin, still looking at the old page
+    expect(await rejectVerification(slug, "Too late")).toBeNull();
+    expect(await approveSubmission(slug)).toBeNull();
+    expect(await getPractitionerBySlug(slug)).toMatchObject({ verificationStatus: "verified", verificationNote: undefined });
+  });
+
+  it("a send-back is not overwritten by a later approval", async () => {
+    await setState({ status: "active", verification_status: "pending" });
+    expect(await rejectVerification(slug, "Blurry")).not.toBeNull();
+    expect(await approveSubmission(slug)).toBeNull();
+    expect(verificationState((await getPractitionerBySlug(slug))!)).toBe("rejected");
+  });
+
+  it("refuses a decision on a suspended account or one that never submitted", async () => {
+    await setState({ status: "suspended", verification_status: "pending" });
+    expect(await approveSubmission(slug)).toBeNull();
+    await setState({ status: "active", verification_status: "unverified", verification_note: null });
+    expect(await approveSubmission(slug)).toBeNull();
+    expect(await rejectVerification(slug, "x")).toBeNull();
   });
 });

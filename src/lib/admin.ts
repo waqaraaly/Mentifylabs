@@ -31,18 +31,17 @@ export function computeProfileGaps(p: Practitioner): string[] {
   if (!p.photoUrl) gaps.push("Profile photo");
   if (!p.bio || p.bio.trim().length < 120) gaps.push("Bio (120+ characters)");
   if (!hasFeeRange(p.feeRange)) gaps.push("Fee range");
-  if (p.certifications.length === 0) gaps.push("Certifications");
   if (p.specializations.length === 0) gaps.push("Specializations");
   return gaps;
 }
 
-export interface BookingStats {
+export interface AppointmentStats {
   total: number;
   completed: number;
   cancelled: number;
 }
 
-export function bookingStatsFor(slug: string, appointments: Appointment[]): BookingStats {
+export function appointmentStatsFor(slug: string, appointments: Appointment[]): AppointmentStats {
   const own = appointments.filter((a) => a.practitionerSlug === slug);
   return {
     total: own.length,

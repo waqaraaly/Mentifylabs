@@ -1,16 +1,19 @@
 import { requireAdmin } from "@/lib/session";
-import { getAllPractitioners } from "@/data/practitioners";
-import { getAllAppointments } from "@/data/appointments";
+import { getReport } from "@/data/reports";
+import { REPORT_RANGES, type ReportRange } from "@/lib/reportRanges";
 import { ReportsView } from "@/components/admin/ReportsView";
 
-export const metadata = { title: "Reports & Analytics" };
+export const metadata = { title: "Reports" };
 
-export default async function AdminReportsPage() {
+function parseRange(value: string | string[] | undefined): ReportRange {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === "all") return "all";
+  const n = Number(raw);
+  return (REPORT_RANGES as readonly (number | string)[]).includes(n) ? (n as ReportRange) : 30;
+}
+
+export default async function AdminReportsPage({ searchParams }: PageProps<"/admin/reports">) {
   await requireAdmin();
-  const [practitioners, appointments] = await Promise.all([
-    getAllPractitioners(),
-    getAllAppointments(),
-  ]);
-
-  return <ReportsView practitioners={practitioners} appointments={appointments} />;
+  const range = parseRange((await searchParams).range);
+  return <ReportsView report={await getReport(range)} />;
 }

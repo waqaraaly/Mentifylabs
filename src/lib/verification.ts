@@ -43,7 +43,7 @@ export function isAwaitingApproval(p: Pick<Practitioner, "verificationStatus" | 
  * itself, and the server checks the same rule again before it publishes, so the two can never disagree.
  */
 export function publishBlockReason(
-  p: Pick<Practitioner, "status" | "profileStatus" | "verificationStatus" | "verificationNote">,
+  p: Pick<Practitioner, "status" | "profileStatus" | "verificationStatus" | "verificationNote" | "slugChosenAt">,
 ): string | null {
   if (p.profileStatus === "hidden" || p.profileStatus === "suspended") {
     return "Your profile has been taken offline by an admin. Contact the MentifyLabs team to have it restored.";
@@ -57,6 +57,7 @@ export function publishBlockReason(
   if (p.verificationStatus !== "verified") {
     return "Verify your credentials to publish your profile.";
   }
+  if (!p.slugChosenAt) return "Choose your profile link before you publish.";
   if (p.status !== "active") return "Your account must be active before you can publish.";
   return null;
 }

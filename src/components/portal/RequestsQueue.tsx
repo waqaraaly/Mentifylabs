@@ -1,12 +1,14 @@
 "use client";
 
-import { Fragment, useState, useSyncExternalStore } from "react";
+import { Fragment, useState } from "react";
 import { Inbox } from "lucide-react";
 import type { Appointment } from "@/types/appointment";
 import type { Slot } from "@/types/slot";
-import { daysBetween, formatDayCell, formatDayHeading, formatTime12h, localDayOf, todayIsoDate } from "@/lib/format";
+import { daysBetween, formatDayCell, formatDayHeading, formatTime12h, localDayOf } from "@/lib/format";
+import { wallClockIn } from "@/lib/time";
 import { approveAppointment } from "@/app/dashboard/sessions/actions";
 import { RequestDetailModal } from "./RequestDetailModal";
+import { usePortalTimeZone } from "./PortalTimeZone";
 
 function toMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
@@ -18,8 +20,6 @@ function slotHasPassed(a: Appointment, today: string, nowMinutes: number): boole
   const diff = daysBetween(today, a.date);
   return diff < 0 || (diff === 0 && toMinutes(a.endTime) <= nowMinutes);
 }
-
-const subscribeNever = () => () => {};
 
 export function RequestsQueue({
   requests,
@@ -38,16 +38,18 @@ export function RequestsQueue({
   };
   const openDetail = requests.find((r) => r.id === openId) ?? null;
 
-  const today = todayIsoDate();
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  // Everything here is on the practitioner's own clock, which the server and the browser both know, so they agree.
+  const zone = usePortalTimeZone();
+  const here = wallClockIn(zone);
+  const today = here.date;
+  const nowMinutes = here.minutes;
 
-  // Day headings depend on the viewer's timezone, which the server can't know. So the server and the first browser
-  // render show the plain list, and the grouped version takes over once the page is running in the browser.
-  const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
-  const rows = inBrowser
-    ? [...requests].sort((a, b) => localDayOf(b.createdAt).localeCompare(localDayOf(a.createdAt)) || a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
-    : requests;
+  const rows = [...requests].sort(
+    (a, b) =>
+      localDayOf(b.createdAt, zone).localeCompare(localDayOf(a.createdAt, zone)) ||
+      a.date.localeCompare(b.date) ||
+      a.startTime.localeCompare(b.startTime),
+  );
 
   if (requests.length === 0) {
     return (
@@ -57,7 +59,7 @@ export function RequestsQueue({
         </div>
         <p className="text-lg font-semibold tracking-tight">You&apos;re all caught up</p>
         <p className="max-w-xs text-sm text-muted">
-          No new requests right now. When a client asks to book you, it&apos;ll appear here first.
+          No new requests right now.
         </p>
       </div>
     );
@@ -81,13 +83,13 @@ export function RequestsQueue({
           {rows.map((r, i) => {
             const passed = slotHasPassed(r, today, nowMinutes);
             const cell = formatDayCell(r.date);
-            const day = inBrowser ? localDayOf(r.createdAt) : null;
-            const startsDay = day !== null && (i === 0 || day !== localDayOf(rows[i - 1].createdAt));
+            const day = localDayOf(r.createdAt, zone);
+            const startsDay = i === 0 || day !== localDayOf(rows[i - 1].createdAt, zone);
             return (
               <Fragment key={r.id}>
                 {startsDay && (
                   <li className="sticky top-0 z-10 bg-surface px-6 pt-4 pb-2 text-xs font-semibold tracking-[0.06em] text-muted uppercase">
-                    Received {formatDayHeading(day)}
+                    Received {formatDayHeading(day, zone)}
                   </li>
                 )}
               <li className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:gap-6">
