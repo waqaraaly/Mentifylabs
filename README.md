@@ -55,7 +55,7 @@ Files live in the R2 bucket `mentifylabs-uploads` (binding `UPLOADS`).
 
 ## Caching
 
-Pre-rendered public profiles are cached in KV (`NEXT_INC_CACHE_KV`). `revalidatePath()` records changes in the `mentifylabs-cache` D1 database (`NEXT_TAG_CACHE_D1`), so profile edits show on the live site immediately.
+Pre-rendered public profiles are cached in R2 (`NEXT_INC_CACHE_R2_BUCKET`: `mentifylabs-cache`, and `mentifylabs-staging-cache` for staging). R2 rather than KV because the free plan allows about a million R2 writes a month, where KV stops at 1,000 a day and every deploy refills the cache. `revalidatePath()` records changes in the `mentifylabs-cache` D1 database (`NEXT_TAG_CACHE_D1`), so profile edits show on the live site immediately.
 
 ## Deploying to Cloudflare
 
