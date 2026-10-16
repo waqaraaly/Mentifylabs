@@ -6,8 +6,8 @@ import { BOOKING_MODAL_ID } from "@/components/practitioner/BookingModal";
 const VARIANT = {
   solid: "bg-(--pt-accent) text-(--pt-accent-foreground) hover:bg-(--pt-accent-hover)",
   outline: "text-(--pt-text) shadow-[inset_0_0_0_1.5px_var(--pt-text)] hover:bg-(--pt-text) hover:text-(--pt-bg)",
-  // For sitting on the alt-coloured panel: the panel's own text colour as the fill.
-  inverse: "bg-(--pt-alt-foreground) text-(--pt-alt) hover:opacity-90",
+  // For sitting on a coloured panel: the panel's own text colour as the fill.
+  inverse: "bg-(--pt-tone-foreground) text-(--pt-tone) hover:opacity-90",
 } as const;
 
 /**
@@ -28,7 +28,7 @@ export function BookButton({
   children?: ReactNode;
 }) {
   if (!accepting) {
-    return <span className={`inline-flex items-center rounded-full px-5 py-3 text-sm text-(--pt-muted) shadow-[inset_0_0_0_1px_var(--pt-border)] ${className}`}>Not taking new bookings right now</span>;
+    return <span className={`inline-flex items-center rounded-(--pt-btn,0.75rem) px-5 py-3 text-sm text-(--pt-muted) shadow-[inset_0_0_0_1px_var(--pt-border)] ${className}`}>Not taking new bookings right now</span>;
   }
 
   return (
@@ -37,7 +37,7 @@ export function BookButton({
       disabled={preview}
       title={preview ? "Clients can book once your profile is published." : undefined}
       onClick={() => (document.getElementById(BOOKING_MODAL_ID) as HTMLDialogElement | null)?.showModal()}
-      className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-7 py-3.5 text-[15px] font-semibold whitespace-nowrap transition duration-200 disabled:cursor-default ${VARIANT[variant]} ${className}`}
+      className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-(--pt-btn,0.75rem) px-6 py-3.5 text-[15px] font-semibold whitespace-nowrap transition duration-200 disabled:cursor-default ${VARIANT[variant]} ${className}`}
     >
       {children}
     </button>

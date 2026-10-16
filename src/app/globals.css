@@ -1169,7 +1169,7 @@ body {
    resolveDesign in src/lib/templates.ts); everything below only reads them.
    ------------------------------------------------------------------------ */
 [data-pt-template] {
-  background: var(--pt-bg);
+  background: var(--pt-page, var(--pt-bg));
   color: var(--pt-text);
   font-family: var(--pt-body), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -1196,8 +1196,8 @@ body {
 }
 
 .pt-h1 {
-  font-size: calc(clamp(2.7rem, 6.4vw, 4.9rem) * var(--pt-ds));
-  line-height: 1;
+  font-size: calc(clamp(2rem, 4.6vw, 3.1rem) * var(--pt-ds));
+  line-height: 1.08;
   text-wrap: balance;
 }
 
@@ -1207,13 +1207,13 @@ body {
 }
 
 .pt-h2 {
-  font-size: calc(clamp(1.9rem, 3.6vw, 2.8rem) * var(--pt-ds));
-  line-height: 1.06;
+  font-size: calc(clamp(1.45rem, 2.5vw, 1.85rem) * var(--pt-ds));
+  line-height: 1.15;
 }
 
 .pt-h3 {
-  font-size: calc(1.4rem * var(--pt-ds));
-  line-height: 1.2;
+  font-size: calc(1.2rem * var(--pt-ds));
+  line-height: 1.25;
 }
 
 .pt-lede {

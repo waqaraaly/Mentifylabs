@@ -4,6 +4,7 @@ import { bioOf, experienceYearsOf, headlineOf, languagesOf } from "@/lib/profile
 import type { SectionKey } from "@/lib/templates";
 import { safeHttpUrl } from "@/lib/url";
 import type { Practitioner } from "@/types/practitioner";
+import type { Slot } from "@/types/slot";
 
 export interface Entry {
   title: string;
@@ -37,6 +38,14 @@ export interface ProfileModel {
   socials: { platform: Practitioner["socialLinks"][number]["platform"]; href: string }[];
   website?: string;
   hasContact: boolean;
+  /** Where in the practitioner's own words they trained, newest first: "M.Phil Clinical Psychology, University of the Punjab". */
+  qualification?: string;
+  /** The ways to meet: "Online", "On-site". */
+  formats: string[];
+  /** The fee as entered, "PKR 6,000-9,000", or undefined when none was set. */
+  fee?: string;
+  /** Open times, already limited to formats the practitioner offers, for the availability panel. */
+  slots: Slot[];
   /** True in the owner's private preview: nothing can be booked from it. */
   preview: boolean;
   /** False while the practitioner has paused new bookings. */
@@ -65,7 +74,7 @@ function newestFirst(list: string[] | undefined): Entry[] {
 }
 
 /** Everything the templates draw, worked out once from the practitioner. Optional parts that were left empty stay empty. */
-export function buildModel(practitioner: Practitioner, hidden: Set<SectionKey>, preview: boolean): ProfileModel {
+export function buildModel(practitioner: Practitioner, hidden: Set<SectionKey>, preview: boolean, slots: Slot[]): ProfileModel {
   const nameParts = practitioner.fullName.trim().split(/\s+/);
   const lastName = nameParts.length > 1 ? (nameParts.pop() ?? "") : "";
   const firstNames = nameParts.join(" ");
@@ -92,6 +101,10 @@ export function buildModel(practitioner: Practitioner, hidden: Set<SectionKey>, 
   const location = practitioner.sessionType === "online" ? undefined : practitioner.location;
   const languages = languagesOf(practitioner);
 
+  const education = newestFirst(practitioner.education);
+  const firstEducation = education[0];
+  const feeText = fee ? `${hasFeeRange(practitioner.feeRange) && practitioner.feeRange.currency ? `${practitioner.feeRange.currency} ` : ""}${fee}` : undefined;
+
   return {
     practitioner,
     firstNames: lastName ? firstNames : practitioner.fullName.trim(),
@@ -117,6 +130,10 @@ export function buildModel(practitioner: Practitioner, hidden: Set<SectionKey>, 
     socials,
     website,
     hasContact: contacts.length > 0 || Boolean(location) || languages.length > 0 || socials.length > 0 || Boolean(website),
+    qualification: firstEducation ? [firstEducation.title, firstEducation.place].filter(Boolean).join(", ") : undefined,
+    formats: hidden.has("stats") ? [] : practitioner.sessionType === "both" ? ["Online", "On-site"] : [MODE_LABEL[practitioner.sessionType]],
+    fee: hidden.has("stats") ? undefined : feeText,
+    slots,
     preview,
     accepting: practitioner.acceptingBookings,
   };

@@ -2,7 +2,7 @@ import { isLive } from "@/lib/practitionerState";
 import { DEFAULT_REJECTION_REASON } from "@/lib/verification";
 import type { ContactMethod, Practitioner } from "@/types/practitioner";
 import { isColorThemeId, type ColorThemeId } from "@/lib/themes";
-import { isTemplateId, parseStyleJson } from "@/lib/templates";
+import { normalizeSelection, parseStyleJson } from "@/lib/templates";
 import { isSupportedSocialLink } from "@/lib/social";
 import { all, first, run } from "@/lib/db";
 import { countStoredDocuments } from "@/data/documents";
@@ -95,6 +95,8 @@ const opt = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
 const json = <T>(v: string): T => JSON.parse(v) as T;
 
 function toPractitioner(r: PractitionerRow): Practitioner {
+  // An older save named a whole template; it becomes a layout plus that template's colours, typeface and photo shape.
+  const design = normalizeSelection(r.profile_template, parseStyleJson(r.profile_style));
   return {
     slug: r.slug,
     slugChosenAt: opt(r.slug_chosen_at),
@@ -120,9 +122,8 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     contactMethods: json(r.contact_methods),
     // A theme that has since been removed reads as unset, so the profile falls back to the default instead of losing its colours.
     colorTheme: isColorThemeId(r.color_theme) ? r.color_theme : undefined,
-    // A template that has since been removed reads as unset, so the profile falls back to the original design.
-    template: isTemplateId(r.profile_template) ? r.profile_template : undefined,
-    style: parseStyleJson(r.profile_style),
+    template: design.template,
+    style: design.style,
     status: r.status,
     profileStatus: r.profile_status,
     creationMethod: r.creation_method,

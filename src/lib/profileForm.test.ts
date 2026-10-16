@@ -65,18 +65,22 @@ describe("what the profile editor's form says about the profile", () => {
   });
 
   it("keeps a real template and only the valid changes to it", () => {
-    const p = parse({ template: "dusk", accent: "#A94662", font: "bodoni-dm", shape: "arch", hide: ["services", "nonsense", "journey"] });
-    expect(p.template).toBe("dusk");
-    expect(p.style).toEqual({ accent: "#a94662", font: "bodoni-dm", shape: "arch", hidden: ["services", "journey"] });
+    const p = parse({ template: "rail-card", scheme: "sage", accent: "#A94662", font: "lexend-source", shape: "oval", hide: ["services", "nonsense", "journey"] });
+    expect(p.template).toBe("rail-card");
+    expect(p.style).toEqual({ scheme: "sage", accent: "#a94662", font: "lexend-source", shape: "oval", hidden: ["services", "journey"] });
   });
 
   it("falls back to the original design for an unknown or empty template, and drops changes that go with it", () => {
     expect(parse({ template: "neon-casino", accent: "#ff0000" })).toMatchObject({ template: undefined, style: undefined });
-    expect(parse({ template: "", font: "bodoni-dm" })).toMatchObject({ template: undefined, style: undefined });
+    expect(parse({ template: "", font: "lexend-source" })).toMatchObject({ template: undefined, style: undefined });
   });
 
   it("refuses an accent that is not a plain hex colour, so nothing odd reaches the page's styles", () => {
-    expect(parse({ template: "linen", accent: "red; background:url(x)" }).style).toBeUndefined();
-    expect(parse({ template: "linen", accent: "#12" }).style).toBeUndefined();
+    expect(parse({ template: "tabs-plain", accent: "red; background:url(x)" }).style).toBeUndefined();
+    expect(parse({ template: "tabs-plain", accent: "#12" }).style).toBeUndefined();
+  });
+
+  it("drops a photo shape or typeface from the retired designs instead of storing it", () => {
+    expect(parse({ template: "rail-card", shape: "arch", font: "bodoni-dm", scheme: "rainbow" }).style).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 import { resolveCurrency } from "@/lib/currencies";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
 import { DEFAULT_COLOR_THEME, isColorThemeId } from "@/lib/themes";
-import { cleanStyle, isTemplateId, type ProfileStyle, type TemplateId } from "@/lib/templates";
+import { cleanStyle, isLayoutId, type LayoutId, type ProfileStyle } from "@/lib/templates";
 import { safeHttpUrl } from "@/lib/url";
 import type { ContactMethod, Practitioner, SessionType, SocialLink } from "@/types/practitioner";
 
@@ -21,11 +21,11 @@ function stringList(formData: FormData, name: string): string[] {
 }
 
 /** The template and the changes made to it, from the Appearance fields. Shared with the private preview, which reads the same fields from the address. */
-export function parseAppearance(get: (name: string) => string | undefined, getAll: (name: string) => string[]): { template: TemplateId | undefined; style: ProfileStyle | undefined } {
+export function parseAppearance(get: (name: string) => string | undefined, getAll: (name: string) => string[]): { template: LayoutId | undefined; style: ProfileStyle | undefined } {
   const requested = get("template");
-  const template = isTemplateId(requested) ? requested : undefined;
-  // Changes only mean something on a template; the original design is coloured by its colour theme instead.
-  const style = template ? cleanStyle({ accent: get("accent"), font: get("font"), shape: get("shape"), hidden: getAll("hide") }) : undefined;
+  const template = isLayoutId(requested) ? requested : undefined;
+  // These choices only mean something with a layout; the original design is coloured by its colour theme instead.
+  const style = template ? cleanStyle({ scheme: get("scheme"), accent: get("accent"), font: get("font"), shape: get("shape"), hidden: getAll("hide") }) : undefined;
   return { template, style };
 }
 

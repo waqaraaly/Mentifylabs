@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Eye } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import type { Slot } from "@/types/slot";
-import { resolveDesign, type ProfileStyle, type TemplateId } from "@/lib/templates";
+import { resolveDesign, type LayoutId, type ProfileStyle } from "@/lib/templates";
 import { siteConfig } from "@/lib/site";
 import { BookingModal } from "@/components/practitioner/BookingModal";
 import { StickyBookingBar } from "@/components/practitioner/StickyBookingBar";
@@ -10,11 +10,10 @@ import { StructuredData } from "@/components/practitioner/StructuredData";
 import { ProfileViewTracker } from "@/components/practitioner/ProfileViewTracker";
 import { TEMPLATE_FONT_CLASSES } from "@/components/practitioner/templates/fonts";
 import { buildModel } from "@/components/practitioner/templates/model";
-import { HeroBand, HeroCard, HeroCenter, HeroMasthead, HeroPoster, HeroSplit } from "@/components/practitioner/templates/heroes";
-import { BodyBento, BodyFlow, BodyRail, BodyStory } from "@/components/practitioner/templates/bodies";
+import { LayoutPanel, LayoutRail, LayoutTabs } from "@/components/practitioner/templates/layoutsA";
+import { LayoutCard, LayoutClinic, LayoutDirectory, LayoutNarrative } from "@/components/practitioner/templates/layoutsB";
 
-const HEROES = { split: HeroSplit, center: HeroCenter, band: HeroBand, masthead: HeroMasthead, poster: HeroPoster, card: HeroCard };
-const BODIES = { flow: BodyFlow, rail: BodyRail, bento: BodyBento, story: BodyStory };
+const LAYOUTS = { rail: LayoutRail, tabs: LayoutTabs, clinic: LayoutClinic, directory: LayoutDirectory, narrative: LayoutNarrative, card: LayoutCard, panel: LayoutPanel };
 
 /**
  * A public profile drawn with one of the templates. The live page and the private preview both use it, with the same
@@ -29,20 +28,19 @@ export function TemplateProfile({
 }: {
   practitioner: Practitioner;
   slots: Slot[];
-  template: TemplateId;
+  template: LayoutId;
   style?: ProfileStyle;
   preview?: boolean;
 }) {
   const design = resolveDesign(template, style);
-  const m = buildModel(practitioner, design.hidden, preview);
-  const Hero = HEROES[design.spec.hero];
-  const Body = BODIES[design.spec.body];
+  const m = buildModel(practitioner, design.hidden, preview, slots);
+  const Layout = LAYOUTS[design.spec.layout];
 
   return (
     <main
       data-pt-template={design.spec.id}
       style={design.vars}
-      className={`${TEMPLATE_FONT_CLASSES} relative flex min-h-screen flex-col overflow-x-clip ${design.spec.deco === "grain" ? "pt-grain" : ""}`}
+      className={`${TEMPLATE_FONT_CLASSES} relative flex min-h-screen flex-col overflow-x-clip`}
     >
       {preview && (
         <div className="relative z-10 flex flex-wrap items-center gap-2.5 bg-neutral-900 px-5 py-3 text-sm font-medium text-white">
@@ -59,8 +57,7 @@ export function TemplateProfile({
       {!preview && practitioner.acceptingBookings && <BookingModal practitioner={practitioner} slots={slots} />}
 
       <div className="relative z-[2] flex-1">
-        <Hero m={m} d={design} />
-        <Body m={m} d={design} />
+        <Layout m={m} d={design} />
       </div>
 
       <footer className="relative z-[2] mx-auto w-full max-w-6xl px-5 pb-28 sm:px-8">
