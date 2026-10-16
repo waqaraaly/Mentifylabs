@@ -2,6 +2,7 @@ import { isLive } from "@/lib/practitionerState";
 import { DEFAULT_REJECTION_REASON } from "@/lib/verification";
 import type { ContactMethod, Practitioner } from "@/types/practitioner";
 import { isColorThemeId, type ColorThemeId } from "@/lib/themes";
+import { isTemplateId, parseStyleJson } from "@/lib/templates";
 import { isSupportedSocialLink } from "@/lib/social";
 import { all, first, run } from "@/lib/db";
 import { countStoredDocuments } from "@/data/documents";
@@ -67,6 +68,8 @@ interface PractitionerRow {
   website_url: string | null;
   contact_methods: string;
   color_theme: ColorThemeId | null;
+  profile_template: string | null;
+  profile_style: string | null;
   email_unconfirmed?: number | null;
   has_login?: number | null;
   email_confirmed_at?: string | null;
@@ -117,6 +120,9 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     contactMethods: json(r.contact_methods),
     // A theme that has since been removed reads as unset, so the profile falls back to the default instead of losing its colours.
     colorTheme: isColorThemeId(r.color_theme) ? r.color_theme : undefined,
+    // A template that has since been removed reads as unset, so the profile falls back to the original design.
+    template: isTemplateId(r.profile_template) ? r.profile_template : undefined,
+    style: parseStyleJson(r.profile_style),
     status: r.status,
     profileStatus: r.profile_status,
     creationMethod: r.creation_method,
@@ -158,6 +164,8 @@ const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "slugChosenAt" | "feeR
   websiteUrl: ["website_url"],
   contactMethods: ["contact_methods", "json"],
   colorTheme: ["color_theme"],
+  template: ["profile_template"],
+  style: ["profile_style", "json"],
   status: ["status"],
   profileStatus: ["profile_status"],
   creationMethod: ["creation_method"],

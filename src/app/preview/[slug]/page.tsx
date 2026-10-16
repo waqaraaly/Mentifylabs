@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { getCurrentPractitioner, getOwnProfilePreview } from "@/data/practitioners";
 import { getOpenSlotsByPractitioner } from "@/data/slots";
 import { ProfileView } from "@/components/practitioner/ProfileView";
+import { parseAppearance } from "@/lib/profileForm";
 
 export const metadata = { title: "Profile preview", robots: { index: false, follow: false } };
 
@@ -13,10 +14,11 @@ type Props = PageProps<"/preview/[slug]">;
  * state — a preview URL, never the real one. Only the signed-in owner can
  * open it; booking is disabled (see ProfileView's `preview` flag).
  */
-export default async function ProfilePreviewPage({ params }: Props) {
+export default async function ProfilePreviewPage({ params, searchParams }: Props) {
   // Live data from D1 on every request, never a copy prerendered at build time.
   await connection();
   const { slug } = await params;
+  const query = await searchParams;
   const me = await getCurrentPractitioner();
   if (me.slug !== slug) notFound();
 
@@ -31,5 +33,10 @@ export default async function ProfilePreviewPage({ params }: Props) {
         : s.sessionType !== "online",
   );
 
-  return <ProfileView practitioner={practitioner} slots={slots} preview />;
+  // The portal's Appearance section opens this page with the choices it has not saved yet (?template=…&accent=…), so a
+  // practitioner can see their own details in a template before committing to it. Nothing here is stored.
+  const pick = (name: string) => (typeof query[name] === "string" ? query[name] : undefined);
+  const trial = "template" in query ? parseAppearance(pick, (name) => [query[name]].flat().filter((v): v is string => typeof v === "string")) : null;
+
+  return <ProfileView practitioner={trial ? { ...practitioner, template: trial.template, style: trial.style } : practitioner} slots={slots} preview />;
 }

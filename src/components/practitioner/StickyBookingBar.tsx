@@ -37,14 +37,14 @@ export function StickyBookingBar({
 
   if (!accepting) {
     return (
-      <div className="fixed bottom-8 left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-full border border-(--pt-border) bg-white px-6 py-3.5 text-center text-[13px] text-(--pt-muted) shadow-[0_20px_48px_-16px_rgba(32,34,31,0.32)] sm:w-auto">
+      <div className="fixed bottom-8 left-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-full border border-(--pt-border) bg-(--pt-surface,white) px-6 py-3.5 text-center text-[13px] text-(--pt-muted) shadow-[0_20px_48px_-16px_rgba(32,34,31,0.32)] sm:w-auto">
         Not taking new bookings right now
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-8 left-1/2 z-[60] flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-3 rounded-full border border-(--pt-border) bg-white py-2.5 pr-2.5 pl-5 shadow-[0_20px_48px_-16px_rgba(32,34,31,0.32)] transition hover:-translate-y-0.5 sm:w-auto sm:gap-6 sm:pl-8">
+    <div className="fixed bottom-8 left-1/2 z-[60] flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-3 rounded-full border border-(--pt-border) bg-(--pt-surface,white) py-2.5 pr-2.5 pl-5 shadow-[0_20px_48px_-16px_rgba(32,34,31,0.32)] transition hover:-translate-y-0.5 sm:w-auto sm:gap-6 sm:pl-8">
       {/* Two quiet lines that wrap, so the date and time are never cut off. */}
       {shown ? (
         <span className="flex min-w-0 flex-col gap-0.5 leading-snug">

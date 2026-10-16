@@ -9,6 +9,7 @@ import { StickyBookingBar } from "@/components/practitioner/StickyBookingBar";
 import { BookingModal } from "@/components/practitioner/BookingModal";
 import { StructuredData } from "@/components/practitioner/StructuredData";
 import { ProfileViewTracker } from "@/components/practitioner/ProfileViewTracker";
+import { TemplateProfile } from "@/components/practitioner/templates/TemplateProfile";
 
 /**
  * The public profile's full layout, shared between the live page (/[username])
@@ -25,6 +26,11 @@ export function ProfileView({
   slots: Slot[];
   preview?: boolean;
 }) {
+  // A practitioner who has chosen a template gets that design; everyone else keeps the original one below.
+  if (practitioner.template) {
+    return <TemplateProfile practitioner={practitioner} slots={slots} template={practitioner.template} style={practitioner.style} preview={preview} />;
+  }
+
   return (
     <main
       data-pt-theme={practitioner.colorTheme ?? DEFAULT_COLOR_THEME}

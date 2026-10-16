@@ -305,9 +305,9 @@ export function BookingModal({
                   <span
                     className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
                       isActive
-                        ? "bg-white text-(--pt-text)"
+                        ? "bg-white text-neutral-900"
                         : isDone
-                          ? "bg-white/90 text-(--pt-text)"
+                          ? "bg-white/90 text-neutral-900"
                           : "border border-(--sb-fg)/30 text-(--sb-fg)/50"
                     }`}
                   >

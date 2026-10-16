@@ -1,6 +1,7 @@
 import { resolveCurrency } from "@/lib/currencies";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
 import { DEFAULT_COLOR_THEME, isColorThemeId } from "@/lib/themes";
+import { cleanStyle, isTemplateId, type ProfileStyle, type TemplateId } from "@/lib/templates";
 import { safeHttpUrl } from "@/lib/url";
 import type { ContactMethod, Practitioner, SessionType, SocialLink } from "@/types/practitioner";
 
@@ -17,6 +18,15 @@ function stringList(formData: FormData, name: string): string[] {
     .map((value) => value.toString().trim().slice(0, PROFILE_LIMITS.item))
     .filter(Boolean)
     .slice(0, PROFILE_LIMITS.items);
+}
+
+/** The template and the changes made to it, from the Appearance fields. Shared with the private preview, which reads the same fields from the address. */
+export function parseAppearance(get: (name: string) => string | undefined, getAll: (name: string) => string[]): { template: TemplateId | undefined; style: ProfileStyle | undefined } {
+  const requested = get("template");
+  const template = isTemplateId(requested) ? requested : undefined;
+  // Changes only mean something on a template; the original design is coloured by its colour theme instead.
+  const style = template ? cleanStyle({ accent: get("accent"), font: get("font"), shape: get("shape"), hidden: getAll("hide") }) : undefined;
+  return { template, style };
 }
 
 /**
@@ -48,6 +58,11 @@ export function parseProfileForm(formData: FormData, currentCurrency: string): P
   const requestedTheme = formData.get("colorTheme")?.toString();
   const colorTheme = isColorThemeId(requestedTheme) ? requestedTheme : DEFAULT_COLOR_THEME;
 
+  const appearance = parseAppearance(
+    (name) => formData.get(name)?.toString(),
+    (name) => formData.getAll(name).map((v) => v.toString()),
+  );
+
   return {
     fullName: clip(formData.get("fullName"), PROFILE_LIMITS.name),
     professionalTitle: clip(formData.get("professionalTitle"), PROFILE_LIMITS.title),
@@ -71,5 +86,7 @@ export function parseProfileForm(formData: FormData, currentCurrency: string): P
     websiteUrl: safeHttpUrl(formData.get("websiteUrl")?.toString()),
     contactMethods,
     colorTheme,
+    template: appearance.template,
+    style: appearance.style,
   };
 }

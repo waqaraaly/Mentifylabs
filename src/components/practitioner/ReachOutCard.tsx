@@ -41,7 +41,7 @@ function Row({
 
 const CONTACT_ICON: Record<string, ComponentType<{ className?: string }>> = { Email: Mail, Phone };
 
-function contactHref(value: string): string | undefined {
+export function contactHref(value: string): string | undefined {
   if (/^https?:\/\//i.test(value)) return value;
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return `mailto:${value}`;
   if (/^\+?[\d\s()-]{7,}$/.test(value)) return `tel:${value.replace(/[^\d+]/g, "")}`;

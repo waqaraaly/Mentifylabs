@@ -1,4 +1,5 @@
 import type { ColorThemeId } from "@/lib/themes";
+import type { ProfileStyle, TemplateId } from "@/lib/templates";
 
 export type SessionType = "online" | "offline" | "both";
 
@@ -66,6 +67,10 @@ export interface Practitioner {
   contactMethods: ContactMethod[];
   /** The public profile page's color palette. Defaults to "moss-honey" when unset. */
   colorTheme?: ColorThemeId;
+  /** The template the public profile is drawn with. Unset means the original design, coloured by `colorTheme`. */
+  template?: TemplateId;
+  /** The practitioner's changes to their template: accent colour, typeface, photo shape and hidden sections. */
+  style?: ProfileStyle;
 
   // Super Admin account lifecycle
   status: PractitionerStatus;

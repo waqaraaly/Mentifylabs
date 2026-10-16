@@ -13,7 +13,7 @@ const SESSION_MODE_LABEL: Record<Practitioner["sessionType"], string> = {
 // A solid accent-colored circle with a checkmark in --pt-accent-foreground
 // (white for the darker accents, dark ink for pale ones like Golden Hour),
 // matching the reference design's verified badge exactly.
-function VerifiedBadge({ className = "" }: { className?: string }) {
+export function VerifiedBadge({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <circle cx="12" cy="12" r="10" fill="var(--pt-accent)" />
@@ -32,7 +32,7 @@ function VerifiedBadge({ className = "" }: { className?: string }) {
 // A custom dark tooltip (bg-(--pt-text)/bg-(--pt-bg), so it's legible in
 // every color theme) instead of the browser's plain native `title`
 // tooltip — pure CSS group-hover/group-focus, no JS state needed.
-function VerifiedTooltip({ children, label }: { children: ReactNode; label: string }) {
+export function VerifiedTooltip({ children, label }: { children: ReactNode; label: string }) {
   return (
     <span tabIndex={0} className="group relative inline-flex outline-none" aria-label={label}>
       {children}

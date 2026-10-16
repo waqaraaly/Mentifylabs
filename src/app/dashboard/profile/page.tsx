@@ -2,7 +2,6 @@ import { ArrowUpRight, Eye, FileText, GraduationCap, Link2, Palette, User, Walle
 import { getContactDetails, getCurrentPractitioner, isPubliclyVisible, suggestHandle } from "@/data/practitioners";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
 import { siteConfig } from "@/lib/site";
-import { DEFAULT_COLOR_THEME } from "@/lib/themes";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProfilePhotoUploader } from "@/components/portal/ProfilePhotoUploader";
 import { EditableList } from "@/components/portal/EditableList";
@@ -17,7 +16,7 @@ import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { currencyOptions } from "@/lib/currencies";
 import { UnpublishProfileButton } from "@/components/portal/UnpublishProfileButton";
 import { publishBlockReason } from "@/lib/verification";
-import { ThemePicker } from "@/components/portal/ThemePicker";
+import { AppearanceEditor } from "@/components/portal/AppearanceEditor";
 import { BRAND_BACKGROUND, PLATFORM_ICON_PATH } from "@/components/practitioner/ContactLinks";
 import { updateProfileAction } from "./actions";
 
@@ -294,9 +293,7 @@ export default async function PublicProfilePage() {
       title: "Appearance",
       icon: <Palette className={iconClass} aria-hidden />,
       content: (
-        <SettingsRow label="Color theme" htmlFor="colorTheme">
-          <ThemePicker selected={practitioner.colorTheme ?? DEFAULT_COLOR_THEME} />
-        </SettingsRow>
+        <AppearanceEditor slug={practitioner.slug} template={practitioner.template} style={practitioner.style} colorTheme={practitioner.colorTheme} />
       ),
     },
   ];

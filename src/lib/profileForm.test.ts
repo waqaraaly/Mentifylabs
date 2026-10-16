@@ -63,4 +63,20 @@ describe("what the profile editor's form says about the profile", () => {
     expect(p.socialLinks).toEqual([{ platform: "instagram", url: "https://instagram.com/dr.khan" }]);
     expect(p.websiteUrl).toBe("https://example.com");
   });
+
+  it("keeps a real template and only the valid changes to it", () => {
+    const p = parse({ template: "dusk", accent: "#A94662", font: "bodoni-dm", shape: "arch", hide: ["services", "nonsense", "journey"] });
+    expect(p.template).toBe("dusk");
+    expect(p.style).toEqual({ accent: "#a94662", font: "bodoni-dm", shape: "arch", hidden: ["services", "journey"] });
+  });
+
+  it("falls back to the original design for an unknown or empty template, and drops changes that go with it", () => {
+    expect(parse({ template: "neon-casino", accent: "#ff0000" })).toMatchObject({ template: undefined, style: undefined });
+    expect(parse({ template: "", font: "bodoni-dm" })).toMatchObject({ template: undefined, style: undefined });
+  });
+
+  it("refuses an accent that is not a plain hex colour, so nothing odd reaches the page's styles", () => {
+    expect(parse({ template: "linen", accent: "red; background:url(x)" }).style).toBeUndefined();
+    expect(parse({ template: "linen", accent: "#12" }).style).toBeUndefined();
+  });
 });
