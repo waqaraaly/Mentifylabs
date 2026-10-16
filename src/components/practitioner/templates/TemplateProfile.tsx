@@ -11,9 +11,10 @@ import { ProfileViewTracker } from "@/components/practitioner/ProfileViewTracker
 import { TEMPLATE_FONT_CLASSES } from "@/components/practitioner/templates/fonts";
 import { buildModel } from "@/components/practitioner/templates/model";
 import { LayoutPanel, LayoutRail, LayoutTabs } from "@/components/practitioner/templates/layoutsA";
+import { LayoutFolio } from "@/components/practitioner/templates/layoutsC";
 import { LayoutCard, LayoutClinic, LayoutDirectory, LayoutNarrative } from "@/components/practitioner/templates/layoutsB";
 
-const LAYOUTS = { rail: LayoutRail, tabs: LayoutTabs, clinic: LayoutClinic, directory: LayoutDirectory, narrative: LayoutNarrative, card: LayoutCard, panel: LayoutPanel };
+const LAYOUTS = { rail: LayoutRail, tabs: LayoutTabs, clinic: LayoutClinic, directory: LayoutDirectory, narrative: LayoutNarrative, card: LayoutCard, panel: LayoutPanel, folio: LayoutFolio };
 
 /**
  * A public profile drawn with one of the templates. The live page and the private preview both use it, with the same

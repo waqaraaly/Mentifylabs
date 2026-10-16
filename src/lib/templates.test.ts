@@ -2,17 +2,17 @@ import { describe, expect, it } from "vitest";
 import { FONT_PAIRS, LAYOUTS, LAYOUT_FAMILIES, SCHEMES, normalizeSelection, resolveDesign } from "./templates";
 
 describe("the profile design choices", () => {
-  it("offer seventeen layouts in seven families, none of which name a colour", () => {
-    expect(LAYOUTS).toHaveLength(17);
-    expect(LAYOUT_FAMILIES).toHaveLength(7);
-    expect(new Set(LAYOUTS.map((l) => l.id)).size).toBe(17);
+  it("offer eighteen layouts in eight families, none of which name a colour", () => {
+    expect(LAYOUTS).toHaveLength(18);
+    expect(LAYOUT_FAMILIES).toHaveLength(8);
+    expect(new Set(LAYOUTS.map((l) => l.id)).size).toBe(18);
     const colourWords = /\b(teal|navy|green|blue|plum|sand|clay|petrol|mint|sky|sage|olive|walnut|indigo|lavender)\b/i;
     for (const l of LAYOUTS) expect(`${l.name} ${l.description}`).not.toMatch(colourWords);
   });
 
-  it("offer twenty colour schemes, each complete, with exactly two dark ones", () => {
-    expect(SCHEMES).toHaveLength(20);
-    expect(new Set(SCHEMES.map((s) => s.id)).size).toBe(20);
+  it("offer twenty-one colour schemes, each complete, with exactly two dark ones", () => {
+    expect(SCHEMES).toHaveLength(21);
+    expect(new Set(SCHEMES.map((s) => s.id)).size).toBe(21);
     expect(SCHEMES.filter((s) => s.palette.dark)).toHaveLength(2);
     for (const s of SCHEMES) expect(Object.keys(s.palette)).toEqual(expect.arrayContaining(["bg", "surface", "ink", "accent", "alt"]));
   });

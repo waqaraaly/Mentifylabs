@@ -289,6 +289,37 @@ export function TemplateThumb({ id, style, className = "" }: { id: LayoutId; sty
         </div>
       );
       break;
+    case "folio":
+      art = (
+        <div className="grid grid-cols-[30cqw_1fr] gap-[7cqw] px-[7cqw] pt-[12cqw]">
+          <div className="flex flex-col gap-[2.2cqw]">
+            <Photo t={t} w="17cqw" extra={{ boxShadow: `inset 0 0 0 0.3cqw ${t.soft}` }} />
+            <div className="mt-[2cqw]"><Name t={t} size={5.2} /></div>
+            <Bar t={t} w={70} h={1.5} c={ink} />
+            <Bar t={t} w={50} h={1.4} />
+            <div className="mt-[2cqw] flex gap-[1.4cqw]">
+              {[0, 1, 2].map((i) => (
+                <span key={i} className="block size-[4cqw] rounded-[1cqw]" style={{ background: t.soft }} />
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-[3.4cqw]">
+            <div className="border-b pb-[2cqw]" style={{ borderColor: t.soft }}><Bar t={t} w={24} h={1.3} /></div>
+            <div className="overflow-hidden rounded-[2.4cqw]" style={{ background: p.surface, boxShadow: `inset 0 0 0 1px ${t.soft}` }}>
+              <div className="flex flex-col gap-[1.8cqw] p-[3.4cqw]">
+                <Bar t={t} w={60} h={2.8} c={ink} />
+                <Bar t={t} w={90} />
+                <Times t={t} />
+              </div>
+              <div className="h-[6cqw]" style={{ background: mix(p.accent, p.bg, 0.1), borderTop: `1px solid ${mix(p.accent, p.bg, 0.2)}` }} />
+            </div>
+            <div className="border-b pb-[2cqw]" style={{ borderColor: t.soft }}><Bar t={t} w={18} h={1.3} /></div>
+            <Bar t={t} w={95} />
+            <Bar t={t} w={80} />
+          </div>
+        </div>
+      );
+      break;
   }
 
   const pageBg = d.vars["--pt-page"];

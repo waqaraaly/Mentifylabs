@@ -17,8 +17,9 @@ import { HEX, contrast, darken, mix, readableOn } from "@/lib/color";
  * rail: identity header, content, and a sticky booking card. tabs: the same with a sticky tab bar. clinic: a
  * practice-website page. directory: a compact card page for phones. narrative: a calm, readable story page.
  * card: one narrow column of big buttons. panel: identity fixed on one side, content scrolling on the other.
+ * folio: a quiet personal page: plain identity fixed on the left, labelled sections and hairline cards on the right.
  */
-export type LayoutKind = "rail" | "tabs" | "clinic" | "directory" | "narrative" | "card" | "panel";
+export type LayoutKind = "rail" | "tabs" | "clinic" | "directory" | "narrative" | "card" | "panel" | "folio";
 export type PhotoShape = "circle" | "rounded" | "oval" | "square";
 export type ExpertiseStyle = "chips" | "bullets" | "checks" | "tiles" | "cloud";
 export type ServicesStyle = "bullets" | "checks" | "cards" | "rows";
@@ -59,7 +60,8 @@ export type SchemeId =
   | "soft-teal"
   | "forest-mint"
   | "deep-teal"
-  | "stone-terracotta";
+  | "stone-terracotta"
+  | "stone-forest";
 
 export interface Scheme {
   id: SchemeId;
@@ -87,6 +89,7 @@ export const SCHEMES: Scheme[] = [
   { id: "sand-clay", name: "Sand and clay", palette: { bg: "#F6EFE6", surface: "#FFFCF8", ink: "#33261E", accent: "#B5543A", alt: "#EFE0CE" } },
   { id: "stone-terracotta", name: "Stone and terracotta", palette: { bg: "#FBFAF7", surface: "#FFFFFF", ink: "#2D2A26", accent: "#A24F2F", alt: "#E9E3D8" } },
   { id: "paper-walnut", name: "Paper and walnut", palette: { bg: "#FAF5EA", surface: "#FFFDF8", ink: "#3A2B20", accent: "#8A5A36", alt: "#EFE4CF" } },
+  { id: "stone-forest", name: "Stone and forest", palette: { bg: "#FAFAF9", surface: "#FFFFFF", ink: "#1C1917", accent: "#3B6651", alt: "#E8F0DF" } },
   { id: "navy-mint", name: "Navy and mint (dark)", palette: { bg: "#0E1A2B", surface: "#16263D", ink: "#E8EEF5", accent: "#5CC6B1", alt: "#1F3552", dark: true } },
   { id: "forest-mint", name: "Forest and mint (dark)", palette: { bg: "#0F211B", surface: "#17302A", ink: "#E6F2EC", accent: "#7FD1A8", alt: "#1D3D33", dark: true } },
 ];
@@ -97,7 +100,7 @@ export const getScheme = (id: SchemeId | undefined): Scheme => SCHEMES.find((s) 
 
 // ---- Typefaces ----
 
-export type FontPairId = "jakarta" | "lexend-source" | "atkinson" | "nunito" | "sourceserif-sans" | "fraunces-public" | "newsreader-inter" | "instrument";
+export type FontPairId = "inter" | "jakarta" | "lexend-source" | "atkinson" | "nunito" | "sourceserif-sans" | "fraunces-public" | "newsreader-inter" | "instrument";
 
 export interface FontPair {
   id: FontPairId;
@@ -113,6 +116,7 @@ export interface FontPair {
 }
 
 export const FONT_PAIRS: FontPair[] = [
+  { id: "inter", name: "Clean and neutral", note: "Inter", display: "--font-inter", body: "--font-inter", weight: 700, tracking: "-0.03em", scale: 0.97 },
   { id: "jakarta", name: "Modern sans", note: "Plus Jakarta Sans", display: "--f-jakarta", body: "--f-jakarta", weight: 700, tracking: "-0.02em", scale: 0.97 },
   { id: "lexend-source", name: "Easy to read", note: "Lexend and Source Sans", display: "--f-lexend", body: "--f-source", weight: 600, tracking: "-0.015em", scale: 0.94 },
   { id: "atkinson", name: "Maximum legibility", note: "Atkinson Hyperlegible", display: "--f-atkinson", body: "--f-atkinson", weight: 700, tracking: "-0.01em", scale: 0.97 },
@@ -178,7 +182,8 @@ export type LayoutId =
   | "narrative-left"
   | "narrative-centered"
   | "digital-card"
-  | "side-panel";
+  | "side-panel"
+  | "folio";
 
 export interface LayoutSpec {
   id: LayoutId;
@@ -219,6 +224,7 @@ export const LAYOUTS: LayoutSpec[] = [
   { id: "narrative-centered", family: "Narrative", name: "Centred", description: "The story page with photo, name and pull-quote centred above it.", layout: "narrative", header: "plain", expertise: "chips", services: "bullets", journey: "rows", radius: 10 },
   { id: "digital-card", family: "Digital card", name: "Link card", description: "One narrow column of big buttons for sharing a link: details, booking buttons, then folding sections.", layout: "card", expertise: "chips", services: "checks", journey: "rows", radius: 24 },
   { id: "side-panel", family: "Side panel", name: "Side panel", description: "A panel with your photo, details and booking stays in view on one side while the page scrolls beside it.", layout: "panel", tone: "accent", expertise: "chips", services: "bullets", journey: "rail", radius: 12 },
+  { id: "folio", family: "Folio", name: "Folio", description: "A restrained personal page: your photo and details stay fixed on the left, with labelled sections and fine-lined cards scrolling on the right.", layout: "folio", expertise: "chips", services: "rows", journey: "rows", radius: 16 },
 ];
 
 export const LAYOUT_IDS = LAYOUTS.map((l) => l.id);
