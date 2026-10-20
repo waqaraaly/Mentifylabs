@@ -37,3 +37,6 @@ export function readableOn(background: string, light = "#ffffff", dark = "#17140
 
 export const darken = (hex: string, amount: number) => mix("#000000", hex, amount);
 export const lighten = (hex: string, amount: number) => mix("#ffffff", hex, amount);
+
+/** Whether a page in this colour is dark enough to need light text. */
+export const isDark = (hex: string) => luminance(hex) < 0.2;

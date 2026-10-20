@@ -65,19 +65,14 @@ describe("what the profile editor's form says about the profile", () => {
   });
 
   it("keeps a real template and only the valid changes to it", () => {
-    const p = parse({ template: "rail-card", scheme: "sage", accent: "#A94662", font: "lexend-source", shape: "oval", hide: ["services", "nonsense", "journey"] });
+    const p = parse({ template: "rail-card", scheme: "sage", font: "lexend-source", shape: "oval", accent: "#A94662", hide: ["services"] });
     expect(p.template).toBe("rail-card");
-    expect(p.style).toEqual({ scheme: "sage", accent: "#a94662", font: "lexend-source", shape: "oval", hidden: ["services", "journey"] });
+    expect(p.style).toEqual({ scheme: "sage", font: "lexend-source", shape: "oval" });
   });
 
-  it("falls back to the original design for an unknown or empty template, and drops changes that go with it", () => {
-    expect(parse({ template: "neon-casino", accent: "#ff0000" })).toMatchObject({ template: undefined, style: undefined });
-    expect(parse({ template: "", font: "lexend-source" })).toMatchObject({ template: undefined, style: undefined });
-  });
-
-  it("refuses an accent that is not a plain hex colour, so nothing odd reaches the page's styles", () => {
-    expect(parse({ template: "tabs-plain", accent: "red; background:url(x)" }).style).toBeUndefined();
-    expect(parse({ template: "tabs-plain", accent: "#12" }).style).toBeUndefined();
+  it("falls back to the original design for an unknown template, and keeps its colour scheme, typeface and photo shape", () => {
+    expect(parse({ template: "neon-casino" })).toMatchObject({ template: undefined, style: undefined });
+    expect(parse({ template: "", scheme: "sage", font: "lexend-source", shape: "oval" })).toMatchObject({ template: undefined, style: { scheme: "sage", font: "lexend-source", shape: "oval" } });
   });
 
   it("drops a photo shape or typeface from the retired designs instead of storing it", () => {

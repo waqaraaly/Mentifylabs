@@ -1,5 +1,3 @@
-import { Availability } from "@/components/practitioner/templates/Availability";
-import { BookButton } from "@/components/practitioner/templates/BookButton";
 import type { ProfileModel } from "@/components/practitioner/templates/model";
 import {
   Badges,
@@ -13,7 +11,7 @@ import {
   SectionTitle,
   rise,
 } from "@/components/practitioner/templates/parts";
-import { BookingCard, WRAP, blocks, firstName, pageStyle, toneStyle, type Block, type LayoutProps } from "@/components/practitioner/templates/shared";
+import { BookingCard, WRAP, blocks, toneStyle, type Block, type LayoutProps } from "@/components/practitioner/templates/shared";
 
 /** Photo, name, credentials, trust badges and the headline: the part every health profile opens with. */
 function Identity({ m, d, photo = "w-28 sm:w-36" }: LayoutProps & { photo?: string }) {
@@ -120,109 +118,3 @@ export function LayoutRail({ m, d }: LayoutProps) {
     </div>
   );
 }
-
-// ---- tabs: identity and booking side by side, then a tab bar that stays under the top of the screen ----
-
-export function LayoutTabs({ m, d }: LayoutProps) {
-  const list = blocks(m, d);
-  const style = d.spec.header ?? "plain";
-  const tabs: { id: string; label: string }[] = [
-    ...list.map((b) => ({ id: b.id, label: b.id === "expertise" ? "Specialities" : b.id === "journey" ? "Background" : b.id === "about" ? "About" : "Services" })),
-    ...(m.hasContact ? [{ id: "contact", label: "Contact" }] : []),
-  ];
-
-  const top = (
-    <div className={`${WRAP} grid gap-8 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-12`}>
-      <Identity m={m} d={d} photo="w-28 sm:w-36" />
-      <div style={pageStyle(d)}>
-        <BookingCard m={m} />
-      </div>
-    </div>
-  );
-
-  return (
-    <div>
-      {style === "band" ? <div style={toneStyle(d)}>{top}</div> : style === "card" ? <div className="bg-(--pt-alt)">{top}</div> : top}
-
-      <nav aria-label="Profile sections" className="sticky top-0 z-30 border-y border-(--pt-border) bg-(--pt-bg)/95 backdrop-blur">
-        <div className={`${WRAP} flex gap-1 overflow-x-auto`}>
-          {tabs.map((t) => (
-            <a key={t.id} href={`#${t.id}`} className="shrink-0 border-b-2 border-transparent px-4 py-3.5 text-[0.95rem] font-semibold text-(--pt-muted) transition hover:border-(--pt-accent) hover:text-(--pt-text)">
-              {t.label}
-            </a>
-          ))}
-        </div>
-      </nav>
-
-      <div className={`${WRAP} grid gap-10 pt-10 pb-20 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14`}>
-        <div className="min-w-0 space-y-12">
-          <SectionList list={list} flat id />
-          <section className="border-t border-(--pt-border) pt-8">
-            <h2 className="pt-display pt-h2 mb-5">How booking works</h2>
-            <HowBooking />
-          </section>
-        </div>
-        <aside id="contact" className="scroll-mt-24 space-y-6 self-start lg:sticky lg:top-20">
-          <InfoCard m={m} />
-        </aside>
-      </div>
-    </div>
-  );
-}
-
-// ---- panel: a coloured side panel that stays put while the page scrolls beside it ----
-
-export function LayoutPanel({ m, d }: LayoutProps) {
-  const list = blocks(m, d);
-  return (
-    <div className="lg:grid lg:min-h-screen lg:grid-cols-[23rem_minmax(0,1fr)] xl:grid-cols-[26rem_minmax(0,1fr)]">
-      <aside style={toneStyle(d)} className="lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
-        <div className="mx-auto flex max-w-xl flex-col gap-6 px-6 py-10 sm:px-10 lg:max-w-none lg:py-12">
-          <Portrait m={m} shape={d.shape} className="pt-rise w-36 lg:w-44" />
-          <div>
-            <div className="pt-rise" style={rise(1)}>
-              <Name m={m} size="text-[calc(1.9rem*var(--pt-ds))] leading-tight" />
-            </div>
-            <Credentials m={m} className="pt-rise mt-2" />
-          </div>
-          <Badges m={m} show={["verified", "accepting", "years"]} className="pt-rise" />
-          <div className="rounded-(--pt-r) bg-(--pt-surface) p-5" style={pageStyle(d)}>
-            <PanelBooking m={m} d={d} />
-          </div>
-          <div id="contact" className="scroll-mt-8">
-            <ContactList m={m} />
-          </div>
-        </div>
-      </aside>
-
-      <div className="min-w-0 px-5 py-10 sm:px-10 lg:px-14 lg:py-14 xl:px-20">
-        <div className="mx-auto max-w-3xl space-y-12">
-          {m.headline && <p className="pt-display text-[calc(clamp(1.4rem,2.6vw,1.9rem)*var(--pt-ds))] leading-snug text-(--pt-tagline) [overflow-wrap:anywhere]">{m.headline}</p>}
-          {list.map((b) => (
-            <section key={b.id} className="scroll-mt-8">
-              <SectionTitle id={b.id} />
-              {b.node}
-            </section>
-          ))}
-          <section>
-            <h2 className="pt-display pt-h2 mb-5">How booking works</h2>
-            <HowBooking />
-          </section>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** The booking block that sits in a white card inside the coloured panel, so its buttons keep the page's own colours. */
-function PanelBooking({ m }: LayoutProps) {
-  return (
-    <div className="space-y-4">
-      <h3 className="pt-display pt-h3">Book with {firstName(m)}</h3>
-      <Availability slots={m.slots} zone={m.practitioner.timezone} accepting={m.accepting} preview={m.preview} variant="chips" />
-      <BookButton accepting={m.accepting} preview={m.preview} className="w-full" />
-      {m.fee && <p className="text-center text-sm text-(--pt-muted)">Fee {m.fee}</p>}
-    </div>
-  );
-}
-

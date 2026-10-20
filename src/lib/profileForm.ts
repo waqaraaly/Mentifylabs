@@ -21,11 +21,10 @@ function stringList(formData: FormData, name: string): string[] {
 }
 
 /** The template and the changes made to it, from the Appearance fields. Shared with the private preview, which reads the same fields from the address. */
-export function parseAppearance(get: (name: string) => string | undefined, getAll: (name: string) => string[]): { template: LayoutId | undefined; style: ProfileStyle | undefined } {
+export function parseAppearance(get: (name: string) => string | undefined): { template: LayoutId | undefined; style: ProfileStyle | undefined } {
   const requested = get("template");
   const template = isLayoutId(requested) ? requested : undefined;
-  // These choices only mean something with a layout; the original design is coloured by its colour theme instead.
-  const style = template ? cleanStyle({ scheme: get("scheme"), accent: get("accent"), font: get("font"), shape: get("shape"), hidden: getAll("hide") }) : undefined;
+  const style = cleanStyle({ scheme: get("scheme"), font: get("font"), headingFont: get("headingFont"), textFont: get("textFont"), shape: get("shape"), colors: { page: get("colorPage"), panels: get("colorPanels"), text: get("colorText"), accent: get("colorAccent") } });
   return { template, style };
 }
 
@@ -58,10 +57,7 @@ export function parseProfileForm(formData: FormData, currentCurrency: string): P
   const requestedTheme = formData.get("colorTheme")?.toString();
   const colorTheme = isColorThemeId(requestedTheme) ? requestedTheme : DEFAULT_COLOR_THEME;
 
-  const appearance = parseAppearance(
-    (name) => formData.get(name)?.toString(),
-    (name) => formData.getAll(name).map((v) => v.toString()),
-  );
+  const appearance = parseAppearance((name) => formData.get(name)?.toString());
 
   return {
     fullName: clip(formData.get("fullName"), PROFILE_LIMITS.name),

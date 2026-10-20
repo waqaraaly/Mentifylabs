@@ -1,10 +1,15 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Eye } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import type { Slot } from "@/types/slot";
 import { DEFAULT_COLOR_THEME } from "@/lib/themes";
+import { chosenFaces, getScheme, resolvePalette } from "@/lib/templates";
+import { originalThemeVars } from "@/lib/originalTheme";
+import { TEMPLATE_FONT_CLASSES } from "@/components/practitioner/templates/fonts";
 import { ProfileBody } from "@/components/practitioner/ProfileBody";
 import { ProfileFooter } from "@/components/practitioner/ProfileFooter";
+import { PreviewBookingNotice } from "@/components/practitioner/templates/PreviewBookingNotice";
 import { StickyBookingBar } from "@/components/practitioner/StickyBookingBar";
 import { BookingModal } from "@/components/practitioner/BookingModal";
 import { StructuredData } from "@/components/practitioner/StructuredData";
@@ -21,28 +26,64 @@ export function ProfileView({
   practitioner,
   slots,
   preview = false,
+  embedded = false,
 }: {
   practitioner: Practitioner;
   slots: Slot[];
   preview?: boolean;
+  /** Drawn inside a small frame in the portal: no banner. */
+  embedded?: boolean;
 }) {
   // A practitioner who has chosen a template gets that design; everyone else keeps the original one below.
   if (practitioner.template) {
-    return <TemplateProfile practitioner={practitioner} slots={slots} template={practitioner.template} style={practitioner.style} preview={preview} />;
+    return (
+      <TemplateProfile
+        practitioner={practitioner}
+        slots={slots}
+        template={practitioner.template}
+        style={practitioner.style}
+        preview={preview}
+        embedded={embedded}
+      />
+    );
   }
+
+  const faces = chosenFaces(practitioner.style);
+  const scheme = practitioner.style?.scheme
+    ? getScheme(practitioner.style.scheme)
+    : null;
+  const hasFaces = Boolean(faces.display || faces.body);
+  const style = (
+    scheme || hasFaces
+      ? {
+          ...(scheme ? originalThemeVars(resolvePalette(scheme.palette, practitioner.style?.colors)) : {}),
+          ...(faces.body
+            ? { fontFamily: `var(${faces.body}), system-ui, sans-serif` }
+            : {}),
+          ...(faces.display
+            ? { "--pt-heading-font": `var(${faces.display})` }
+            : {}),
+        }
+      : undefined
+  ) as CSSProperties | undefined;
 
   return (
     <main
       data-pt-theme={practitioner.colorTheme ?? DEFAULT_COLOR_THEME}
-      // The frame is the same width on every side. The page inside grows to fill the screen, so a short profile does not
-      // leave a wide band of frame colour at the bottom.
-      className="flex min-h-screen flex-col bg-(--pt-outer) p-[7.5px] sm:p-[16.5px]"
+      // A colour scheme or typeface chosen for the original design replaces its colour theme and its Inter.
+      data-pt-headings={faces.display ? "" : undefined}
+      style={style}
+      className={`${hasFaces ? TEMPLATE_FONT_CLASSES : ""} flex min-h-screen flex-col bg-(--pt-outer) p-[7.5px] sm:p-[16.5px]`}
     >
-      {preview && (
+      {preview && !embedded && (
         <div className="mx-auto mb-[7.5px] flex max-w-[1360px] items-center gap-2.5 rounded-2xl bg-foreground px-5 py-3 text-sm font-medium text-background">
           <Eye className="size-4 shrink-0" aria-hidden />
-          Private preview. Only you can see this page, and nobody can book from it. Clients can find and book you once you publish.
-          <Link href="/dashboard/profile" className="ml-auto shrink-0 underline underline-offset-2">
+          Private preview. Only you can see this page, and nobody can book from
+          it. Clients can find and book you once you publish.
+          <Link
+            href="/dashboard/profile"
+            className="ml-auto shrink-0 underline underline-offset-2"
+          >
             Back to portal
           </Link>
         </div>
@@ -53,7 +94,11 @@ export function ProfileView({
 
         {!preview && <ProfileViewTracker slug={practitioner.slug} />}
 
-        {!preview && practitioner.acceptingBookings && <BookingModal practitioner={practitioner} slots={slots} />}
+        {!preview && practitioner.acceptingBookings && (
+          <BookingModal practitioner={practitioner} slots={slots} />
+        )}
+
+        {preview && <PreviewBookingNotice />}
 
         {/* A plain full-width wrapper: the page is a flex column, and the sections inside have auto side margins, which would shrink them. */}
         <div className="w-full">
@@ -67,7 +112,11 @@ export function ProfileView({
         </div>
       </div>
 
-      {!preview && <StickyBookingBar slots={slots} practitionerZone={practitioner.timezone} accepting={practitioner.acceptingBookings} />}
+      <StickyBookingBar
+        slots={slots}
+        practitionerZone={practitioner.timezone}
+        accepting={practitioner.acceptingBookings}
+      />
     </main>
   );
 }

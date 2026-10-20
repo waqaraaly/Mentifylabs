@@ -16,13 +16,13 @@ const VARIANT = {
  */
 export function BookButton({
   accepting,
-  preview,
   variant = "solid",
   className = "",
   children = "Book a session",
 }: {
   accepting: boolean;
-  preview: boolean;
+  /** Accepted so every call site reads the same; in the preview the button opens a notice instead of the booking window. */
+  preview?: boolean;
   variant?: keyof typeof VARIANT;
   className?: string;
   children?: ReactNode;
@@ -34,8 +34,6 @@ export function BookButton({
   return (
     <button
       type="button"
-      disabled={preview}
-      title={preview ? "Clients can book once your profile is published." : undefined}
       onClick={() => (document.getElementById(BOOKING_MODAL_ID) as HTMLDialogElement | null)?.showModal()}
       className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-(--pt-btn,0.75rem) px-6 py-3.5 text-[15px] font-semibold whitespace-nowrap transition duration-200 disabled:cursor-default ${VARIANT[variant]} ${className}`}
     >

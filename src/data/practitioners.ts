@@ -2,7 +2,11 @@ import { isLive } from "@/lib/practitionerState";
 import { DEFAULT_REJECTION_REASON } from "@/lib/verification";
 import type { ContactMethod, Practitioner } from "@/types/practitioner";
 import { isColorThemeId, type ColorThemeId } from "@/lib/themes";
-import { normalizeSelection, parseStyleJson } from "@/lib/templates";
+import {
+  nearestScheme,
+  normalizeSelection,
+  parseStyleJson,
+} from "@/lib/templates";
 import { isSupportedSocialLink } from "@/lib/social";
 import { all, first, run } from "@/lib/db";
 import { countStoredDocuments } from "@/data/documents";
@@ -11,7 +15,11 @@ import { requireRole } from "@/lib/session";
 import { publishBlockReason } from "@/lib/verification";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { zoneOrDefault } from "@/lib/time";
-import { STALE_HANDLE_DAYS, makePlaceholderSlug, validateHandleFormat } from "@/lib/handle";
+import {
+  STALE_HANDLE_DAYS,
+  makePlaceholderSlug,
+  validateHandleFormat,
+} from "@/lib/handle";
 
 // Slugs a practitioner may not claim, since practitioners are served at the
 // root URL (/[username]) alongside app routes like /dashboard, /admin or /login.
@@ -96,7 +104,22 @@ const json = <T>(v: string): T => JSON.parse(v) as T;
 
 function toPractitioner(r: PractitionerRow): Practitioner {
   // An older save named a whole template; it becomes a layout plus that template's colours, typeface and photo shape.
-  const design = normalizeSelection(r.profile_template, parseStyleJson(r.profile_style));
+  const chosen = normalizeSelection(
+    r.profile_template,
+    parseStyleJson(r.profile_style),
+  );
+  // The original design is drawn in a colour scheme like the layouts are. One that never chose a scheme gets the one
+  // closest to the colour theme it has, so the editor and the page agree.
+  const design =
+    chosen.template || chosen.style?.scheme
+      ? chosen
+      : {
+          ...chosen,
+          style: {
+            ...chosen.style,
+            scheme: nearestScheme(r.color_theme ?? undefined),
+          },
+        };
   return {
     slug: r.slug,
     slugChosenAt: opt(r.slug_chosen_at),
@@ -111,7 +134,8 @@ function toPractitioner(r: PractitionerRow): Practitioner {
     services: json(r.services),
     experienceYears: r.experience_years,
     education: json(r.education),
-    workExperience: r.work_experience === null ? undefined : json(r.work_experience),
+    workExperience:
+      r.work_experience === null ? undefined : json(r.work_experience),
     languages: json(r.languages),
     sessionType: r.session_type,
     feeRange: { currency: r.fee_currency, min: r.fee_min, max: r.fee_max },
@@ -144,7 +168,18 @@ function toPractitioner(r: PractitionerRow): Practitioner {
 }
 
 /** Column for each field; JSON columns are marked so their values are serialized on write. */
-const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "slugChosenAt" | "feeRange" | "emailUnconfirmed" | "hasLogin" | "emailConfirmedAt">, [string, "json"?]> = {
+const COLUMN: Record<
+  Exclude<
+    keyof Practitioner,
+    | "slug"
+    | "slugChosenAt"
+    | "feeRange"
+    | "emailUnconfirmed"
+    | "hasLogin"
+    | "emailConfirmedAt"
+  >,
+  [string, "json"?]
+> = {
   fullName: ["full_name"],
   professionalTitle: ["professional_title"],
   email: ["email"],
@@ -188,12 +223,19 @@ const COLUMN: Record<Exclude<keyof Practitioner, "slug" | "slugChosenAt" | "feeR
 type ColumnValue = string | number | null;
 
 /** Maps a partial Practitioner to column values. A key that is present but undefined clears the column. */
-function toColumns(updates: Partial<Omit<Practitioner, "slug">>): Record<string, ColumnValue> {
+function toColumns(
+  updates: Partial<Omit<Practitioner, "slug">>,
+): Record<string, ColumnValue> {
   const cols: Record<string, ColumnValue> = {};
   for (const [key, value] of Object.entries(updates)) {
     if (key === "feeRange") {
       const fee = value as Practitioner["feeRange"] | undefined;
-      if (fee) Object.assign(cols, { fee_currency: fee.currency, fee_min: fee.min, fee_max: fee.max });
+      if (fee)
+        Object.assign(cols, {
+          fee_currency: fee.currency,
+          fee_min: fee.min,
+          fee_max: fee.max,
+        });
       continue;
     }
     const spec = COLUMN[key as keyof typeof COLUMN];
@@ -212,7 +254,11 @@ function toColumns(updates: Partial<Omit<Practitioner, "slug">>): Record<string,
 }
 
 /** `guard` is a fixed SQL condition (never user input) the row must still meet, so the check and the write are one statement. */
-async function updateBySlug(slug: string, cols: Record<string, ColumnValue>, guard?: string): Promise<Practitioner | null> {
+async function updateBySlug(
+  slug: string,
+  cols: Record<string, ColumnValue>,
+  guard?: string,
+): Promise<Practitioner | null> {
   const names = Object.keys(cols);
   if (names.length === 0) return getPractitionerBySlug(slug);
   const row = await first<PractitionerRow>(
@@ -229,24 +275,36 @@ const today = () => new Date().toISOString().slice(0, 10);
  * The state a decision needs (same rule as canDecideSubmission). Used inside the UPDATE itself: with two admins deciding
  * at once, only the first statement changes the row and the second gets null back.
  */
-const PENDING_AND_ACTIVE = "verification_status = 'pending' AND status = 'active'";
+const PENDING_AND_ACTIVE =
+  "verification_status = 'pending' AND status = 'active'";
 
 export async function getAllPractitionerSlugs(): Promise<string[]> {
-  const rows = await all<{ slug: string }>("SELECT slug FROM practitioners ORDER BY created_at");
+  const rows = await all<{ slug: string }>(
+    "SELECT slug FROM practitioners ORDER BY created_at",
+  );
   return rows.map((r) => r.slug);
 }
 
-export async function getPractitionerBySlug(slug: string): Promise<Practitioner | null> {
+export async function getPractitionerBySlug(
+  slug: string,
+): Promise<Practitioner | null> {
   if (isReservedSlug(slug)) return null;
-  const row = await first<PractitionerRow>("SELECT * FROM practitioners WHERE slug = ?", slug);
+  const row = await first<PractitionerRow>(
+    "SELECT * FROM practitioners WHERE slug = ?",
+    slug,
+  );
   return row ? toPractitioner(row) : null;
 }
 
 /** The signed-in practitioner. Redirects to /login when nobody (or an admin) is signed in. */
 export async function getCurrentPractitioner(): Promise<Practitioner> {
   const user = await requireRole("practitioner");
-  const row = await first<PractitionerRow>("SELECT * FROM practitioners WHERE id = ?", user.practitionerId);
-  if (!row) throw new Error("This account's practitioner record no longer exists.");
+  const row = await first<PractitionerRow>(
+    "SELECT * FROM practitioners WHERE id = ?",
+    user.practitionerId,
+  );
+  if (!row)
+    throw new Error("This account's practitioner record no longer exists.");
   return toPractitioner(row);
 }
 
@@ -254,7 +312,9 @@ export async function getCurrentPractitioner(): Promise<Practitioner> {
  * For server actions: the signed-in practitioner's slug, after checking that the slug the
  * browser sent is theirs. Stops one practitioner from acting on another's data.
  */
-export async function requireOwnSlug(slug: string | undefined | null): Promise<string> {
+export async function requireOwnSlug(
+  slug: string | undefined | null,
+): Promise<string> {
   const me = await getCurrentPractitioner();
   if (slug !== me.slug) throw new Error("You can only change your own data.");
   return me.slug;
@@ -277,7 +337,12 @@ export async function getAllPractitioners(): Promise<Practitioner[]> {
             (SELECT u.email_verified_at FROM users u WHERE u.practitioner_id = p.id LIMIT 1) AS email_confirmed_at
        FROM practitioners p ORDER BY p.created_at`,
   );
-  return rows.map((r) => ({ ...toPractitioner(r), emailUnconfirmed: !!r.email_unconfirmed, hasLogin: !!r.has_login, emailConfirmedAt: r.email_confirmed_at ?? undefined }));
+  return rows.map((r) => ({
+    ...toPractitioner(r),
+    emailUnconfirmed: !!r.email_unconfirmed,
+    hasLogin: !!r.has_login,
+    emailConfirmedAt: r.email_confirmed_at ?? undefined,
+  }));
 }
 
 export async function setPractitionerStatus(
@@ -287,25 +352,44 @@ export async function setPractitionerStatus(
   return updateBySlug(slug, { status });
 }
 
-export async function suspendPractitioner(slug: string): Promise<Practitioner | null> {
-  return updateBySlug(slug, { status: "suspended", suspended_on: today(), profile_status: "suspended" });
+export async function suspendPractitioner(
+  slug: string,
+): Promise<Practitioner | null> {
+  return updateBySlug(slug, {
+    status: "suspended",
+    suspended_on: today(),
+    profile_status: "suspended",
+  });
 }
 
-export async function reactivatePractitioner(slug: string, goLive = false): Promise<Practitioner | null> {
+export async function reactivatePractitioner(
+  slug: string,
+  goLive = false,
+): Promise<Practitioner | null> {
   // By default the profile stays offline after reactivation and the practitioner publishes it again themselves.
   // Super Admin can restore it straight to live instead, but only for verified credentials (the same rule as publishing).
   const current = goLive ? await getPractitionerBySlug(slug) : null;
   const live = goLive && current?.verificationStatus === "verified";
-  return updateBySlug(slug, { status: "active", suspended_on: null, profile_status: live ? "published" : "draft" });
+  return updateBySlug(slug, {
+    status: "active",
+    suspended_on: null,
+    profile_status: live ? "published" : "draft",
+  });
 }
 
 /**
  * Super Admin's one approval: marks the credentials verified. It never publishes. Going live is the practitioner's own step (publishOwnProfile).
  */
-export async function approveSubmission(slug: string): Promise<Practitioner | null> {
+export async function approveSubmission(
+  slug: string,
+): Promise<Practitioner | null> {
   return updateBySlug(
     slug,
-    { verification_status: "verified", verified_on: today(), verification_note: null },
+    {
+      verification_status: "verified",
+      verified_on: today(),
+      verification_note: null,
+    },
     PENDING_AND_ACTIVE,
   );
 }
@@ -318,34 +402,50 @@ export async function hideProfile(slug: string): Promise<Practitioner | null> {
  * The practitioner takes their own profile live. Only possible once their credentials are verified
  * (see publishBlockReason), so pending, unverified and sent-back practitioners can't.
  */
-export async function publishOwnProfile(slug: string): Promise<{ ok: true } | { ok: false; message: string }> {
+export async function publishOwnProfile(
+  slug: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
   const current = await getPractitionerBySlug(slug);
   if (!current) return { ok: false, message: "Profile not found." };
   const blocked = publishBlockReason(current);
   if (blocked) return { ok: false, message: blocked };
-  await updateBySlug(slug, { profile_status: "published", rejection_note: null });
+  await updateBySlug(slug, {
+    profile_status: "published",
+    rejection_note: null,
+  });
   return { ok: true };
 }
 
 /** The practitioner takes their own profile offline again. It goes back to draft, so they can republish whenever they like. */
-export async function unpublishOwnProfile(slug: string): Promise<{ ok: true } | { ok: false; message: string }> {
+export async function unpublishOwnProfile(
+  slug: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
   const current = await getPractitionerBySlug(slug);
   if (!current) return { ok: false, message: "Profile not found." };
-  if (current.profileStatus !== "published") return { ok: false, message: "Your profile isn't published." };
+  if (current.profileStatus !== "published")
+    return { ok: false, message: "Your profile isn't published." };
   await updateBySlug(slug, { profile_status: "draft" });
   return { ok: true };
 }
 
 /** Send the profile back for edits with feedback — doesn't touch account status. */
-export async function rejectProfile(slug: string, note: string): Promise<Practitioner | null> {
-  return updateBySlug(slug, { profile_status: "incomplete", rejection_note: note });
+export async function rejectProfile(
+  slug: string,
+  note: string,
+): Promise<Practitioner | null> {
+  return updateBySlug(slug, {
+    profile_status: "incomplete",
+    rejection_note: note,
+  });
 }
 
 // ---- Credential verification ----
 
 /** Marks the first-login setup popup as seen, so it only shows once. */
 export async function dismissVerificationPrompt(slug: string): Promise<void> {
-  await updateBySlug(slug, { verification_prompt_seen_at: new Date().toISOString() });
+  await updateBySlug(slug, {
+    verification_prompt_seen_at: new Date().toISOString(),
+  });
 }
 
 /** Ends the guided /onboarding flow (finished or skipped), unlocking the dashboard. */
@@ -357,7 +457,9 @@ export async function completeOnboarding(slug: string): Promise<void> {
  * Submitting a verification document moves the request into Super Admin's review queue. There has to be a stored file
  * to review: with none, nothing changes and this returns null, so a submission can never reach the queue empty.
  */
-export async function submitVerification(slug: string): Promise<Practitioner | null> {
+export async function submitVerification(
+  slug: string,
+): Promise<Practitioner | null> {
   if ((await countStoredDocuments(slug)) === 0) return null;
   return updateBySlug(slug, {
     verification_status: "pending",
@@ -367,13 +469,20 @@ export async function submitVerification(slug: string): Promise<Practitioner | n
 }
 
 /** Sends the request back with feedback; the practitioner can resubmit. Null when it is no longer waiting for a decision. */
-export async function rejectVerification(slug: string, note: string): Promise<Practitioner | null> {
+export async function rejectVerification(
+  slug: string,
+  note: string,
+): Promise<Practitioner | null> {
   // The reason is optional for the admin, but a saved reason is what marks the submission as rejected, so it is never blank.
-  return updateBySlug(slug, {
-    verification_status: "unverified",
-    verification_submitted_at: null,
-    verification_note: note.trim() || DEFAULT_REJECTION_REASON,
-  }, PENDING_AND_ACTIVE);
+  return updateBySlug(
+    slug,
+    {
+      verification_status: "unverified",
+      verification_submitted_at: null,
+      verification_note: note.trim() || DEFAULT_REJECTION_REASON,
+    },
+    PENDING_AND_ACTIVE,
+  );
 }
 
 /**
@@ -417,14 +526,19 @@ export async function deletePractitionerCompletely(
  * so appointments, slots, availability, and documents follow automatically.
  */
 /** Why a handle can't be used by this practitioner, or null if it can. Also frees a handle an unverified account has sat on too long. */
-export async function handleProblem(handle: string, ownSlug: string): Promise<{ ok: true; handle: string } | { ok: false; message: string }> {
+export async function handleProblem(
+  handle: string,
+  ownSlug: string,
+): Promise<{ ok: true; handle: string } | { ok: false; message: string }> {
   const format = validateHandleFormat(handle);
   if (!format.ok) return format;
   const next = format.handle;
-  if (isReservedSlug(next)) return { ok: false, message: "That link is reserved. Choose another." };
+  if (isReservedSlug(next))
+    return { ok: false, message: "That link is reserved. Choose another." };
   if (next === ownSlug) return { ok: true, handle: next };
   await releaseStaleHandle(next);
-  if (await first("SELECT 1 FROM practitioners WHERE slug = ?", next)) return { ok: false, message: "That link is already taken." };
+  if (await first("SELECT 1 FROM practitioners WHERE slug = ?", next))
+    return { ok: false, message: "That link is already taken." };
   return { ok: true, handle: next };
 }
 
@@ -440,7 +554,12 @@ async function releaseStaleHandle(handle: string): Promise<void> {
     handle,
     `-${STALE_HANDLE_DAYS} days`,
   );
-  if (holder) await run("UPDATE practitioners SET slug = ?, slug_chosen_at = NULL WHERE slug = ?", await freePlaceholderSlug(), holder.slug);
+  if (holder)
+    await run(
+      "UPDATE practitioners SET slug = ?, slug_chosen_at = NULL WHERE slug = ?",
+      await freePlaceholderSlug(),
+      holder.slug,
+    );
 }
 
 /** Sets or changes a profile link. The old one stops working at once: nothing redirects and nothing is held back. */
@@ -465,7 +584,8 @@ export async function updatePractitionerSlug(
 export async function freePlaceholderSlug(): Promise<string> {
   for (;;) {
     const slug = makePlaceholderSlug();
-    if (!(await first("SELECT 1 FROM practitioners WHERE slug = ?", slug))) return slug;
+    if (!(await first("SELECT 1 FROM practitioners WHERE slug = ?", slug)))
+      return slug;
   }
 }
 
@@ -489,14 +609,18 @@ export async function createPractitionerManually(input: {
   professionalTitle: string;
   email: string;
   skipVerification?: boolean;
-}): Promise<{ ok: true; practitioner: Practitioner } | { ok: false; message: string }> {
+}): Promise<
+  { ok: true; practitioner: Practitioner } | { ok: false; message: string }
+> {
   // No profile link yet: the practitioner chooses their own when they set up their account.
   const normalizedSlug = await freePlaceholderSlug();
 
   const day = today();
   const skip = input.skipVerification ?? true;
   // The public Email/Phone rows start empty. The sign-in email is never copied onto the profile.
-  const contactMethods: ContactMethod[] = CONTACT_DETAIL_LABELS.map((label) => ({ label, value: "", isPublic: true }));
+  const contactMethods: ContactMethod[] = CONTACT_DETAIL_LABELS.map(
+    (label) => ({ label, value: "", isPublic: true }),
+  );
   const row = await first<PractitionerRow>(
     `INSERT INTO practitioners
        (slug, full_name, professional_title, email, session_type, contact_methods,
@@ -533,7 +657,12 @@ export const CONTACT_DETAIL_LABELS = ["Email", "Phone"] as const;
 /** The profile's public Email and Phone contact details (always both rows, possibly empty). */
 export function getContactDetails(p: Practitioner): ContactMethod[] {
   return CONTACT_DETAIL_LABELS.map(
-    (label) => p.contactMethods.find((c) => c.label === label) ?? { label, value: "", isPublic: false },
+    (label) =>
+      p.contactMethods.find((c) => c.label === label) ?? {
+        label,
+        value: "",
+        isPublic: false,
+      },
   );
 }
 
@@ -547,18 +676,24 @@ function sanitizeForProfilePage(practitioner: Practitioner): Practitioner {
     phone: undefined,
     // Only the platforms the portal can edit, so a stale link never lingers.
     socialLinks: practitioner.socialLinks.filter(isSupportedSocialLink),
-    contactMethods: getContactDetails(practitioner).filter((c) => c.isPublic && c.value),
+    contactMethods: getContactDetails(practitioner).filter(
+      (c) => c.isPublic && c.value,
+    ),
   };
 }
 
-export async function getPublicPractitionerBySlug(slug: string): Promise<Practitioner | null> {
+export async function getPublicPractitionerBySlug(
+  slug: string,
+): Promise<Practitioner | null> {
   const practitioner = await getPractitionerBySlug(slug);
   if (!practitioner || !isPubliclyVisible(practitioner)) return null;
   return sanitizeForProfilePage(practitioner);
 }
 
 /** The signed-in practitioner's own profile, sanitized the same way as the public page, regardless of publish state. */
-export async function getOwnProfilePreview(slug: string): Promise<Practitioner | null> {
+export async function getOwnProfilePreview(
+  slug: string,
+): Promise<Practitioner | null> {
   const practitioner = await getPractitionerBySlug(slug);
   return practitioner ? sanitizeForProfilePage(practitioner) : null;
 }

@@ -1272,3 +1272,8 @@ body {
     animation: none;
   }
 }
+
+/* The original profile design: a heading typeface chosen in Appearance applies to every heading on the page. */
+[data-pt-headings] :is(h1, h2, h3, h4) {
+  font-family: var(--pt-heading-font), system-ui, sans-serif;
+}

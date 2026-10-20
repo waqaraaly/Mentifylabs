@@ -4,6 +4,7 @@ import { getCurrentPractitioner, getOwnProfilePreview } from "@/data/practitione
 import { getOpenSlotsByPractitioner } from "@/data/slots";
 import { ProfileView } from "@/components/practitioner/ProfileView";
 import { parseAppearance } from "@/lib/profileForm";
+import { isColorThemeId } from "@/lib/themes";
 
 export const metadata = { title: "Profile preview", robots: { index: false, follow: false } };
 
@@ -36,7 +37,10 @@ export default async function ProfilePreviewPage({ params, searchParams }: Props
   // The portal's Appearance section opens this page with the choices it has not saved yet (?template=…&accent=…), so a
   // practitioner can see their own details in a template before committing to it. Nothing here is stored.
   const pick = (name: string) => (typeof query[name] === "string" ? query[name] : undefined);
-  const trial = "template" in query ? parseAppearance(pick, (name) => [query[name]].flat().filter((v): v is string => typeof v === "string")) : null;
+  const trial = "template" in query ? parseAppearance(pick) : null;
 
-  return <ProfileView practitioner={trial ? { ...practitioner, template: trial.template, style: trial.style } : practitioner} slots={slots} preview />;
+  const theme = pick("colorTheme");
+  const shown = trial ? { ...practitioner, template: trial.template, style: trial.style, colorTheme: isColorThemeId(theme) ? theme : practitioner.colorTheme } : practitioner;
+
+  return <ProfileView practitioner={shown} slots={slots} preview embedded={query.embed === "1"} />;
 }

@@ -2,45 +2,46 @@
 
 import { useState, type ReactNode } from "react";
 
-export interface ProfileTab {
-  id: string;
-  label: string;
-  icon: ReactNode;
-  content: ReactNode;
-}
+type TabId = "profile" | "appearance";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "appearance", label: "Appearance" },
+];
 
 /**
- * Client-side tab switcher. Every tab's content stays mounted (just hidden
- * via CSS) so the surrounding <form> keeps every field's value regardless
- * of which tab is active — a single "Save changes" submits everything.
+ * The two halves of the public profile page: what it says (Profile) and how it looks (Appearance). Both stay on the
+ * page, with the one not shown hidden, so the whole thing is still one form and one Save.
  */
-export function ProfileTabs({ tabs }: { tabs: ProfileTab[] }) {
-  const [active, setActive] = useState(tabs[0]?.id);
+export function ProfileTabs({ profile, appearance }: { profile: ReactNode; appearance: ReactNode }) {
+  const [tab, setTab] = useState<TabId>("profile");
 
   return (
     <div>
-      <div className="flex gap-1.5 overflow-x-auto rounded-full bg-black/[0.03] p-1.5">
-        {tabs.map((tab) => (
+      <div role="tablist" aria-label="Public profile" className="flex gap-1 border-b border-black/[0.08]">
+        {TABS.map((t) => (
           <button
-            key={tab.id}
+            key={t.id}
             type="button"
-            onClick={() => setActive(tab.id)}
-            className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition ${
-              active === tab.id ? "bg-surface text-primary shadow-sm" : "text-muted hover:text-foreground"
+            role="tab"
+            id={`profile-tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls={`profile-panel-${t.id}`}
+            onClick={() => setTab(t.id)}
+            className={`-mb-px cursor-pointer border-b-2 px-5 py-3 text-sm font-semibold transition ${
+              tab === t.id ? "border-primary text-foreground" : "border-transparent text-muted hover:text-foreground"
             }`}
           >
-            {tab.icon}
-            {tab.label}
+            {t.label}
           </button>
         ))}
       </div>
 
-      <div className="mt-6">
-        {tabs.map((tab) => (
-          <div key={tab.id} className={active === tab.id ? "block" : "hidden"}>
-            {tab.content}
-          </div>
-        ))}
+      <div role="tabpanel" id="profile-panel-profile" aria-labelledby="profile-tab-profile" hidden={tab !== "profile"} className="mt-8">
+        {profile}
+      </div>
+      <div role="tabpanel" id="profile-panel-appearance" aria-labelledby="profile-tab-appearance" hidden={tab !== "appearance"} className="mt-2">
+        {appearance}
       </div>
     </div>
   );

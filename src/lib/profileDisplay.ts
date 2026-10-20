@@ -1,3 +1,4 @@
+import { formatFeeAmounts, hasFeeRange } from "@/lib/fees";
 import type { Practitioner } from "@/types/practitioner";
 
 /**
@@ -27,3 +28,21 @@ export const languagesOf = (p: Pick<Practitioner, "languages">): string[] => {
 /** Years of experience, only when they gave a number. The field starts at 0, which means "not filled in", not "none". */
 export const experienceYearsOf = (p: Pick<Practitioner, "experienceYears">): number | undefined =>
   p.experienceYears > 0 ? p.experienceYears : undefined;
+
+/** How the ways of meeting are written wherever a profile shows them, so every layout says the same thing. */
+export const SESSION_MODE_LABEL: Record<Practitioner["sessionType"], string> = {
+  online: "Online",
+  offline: "On-site",
+  both: "Online and on-site",
+};
+
+/** "1 year", "6 years". */
+export const yearsText = (years: number): string => `${years} ${years === 1 ? "year" : "years"}`;
+
+/** The fee as entered, with its currency ("PKR 6,000-9,000"), or the same plain words every layout uses when none was set. */
+export const FEE_ON_REQUEST = "On request";
+export const feeOf = (p: Pick<Practitioner, "feeRange">): string | undefined => {
+  const amounts = formatFeeAmounts(p.feeRange);
+  if (!amounts) return undefined;
+  return `${hasFeeRange(p.feeRange) && p.feeRange.currency ? `${p.feeRange.currency} ` : ""}${amounts}`;
+};

@@ -1,4 +1,4 @@
-import { ArrowUpRight, Eye, FileText, GraduationCap, Link2, Palette, User, Wallet } from "lucide-react";
+import { ArrowUpRight, Eye, User } from "lucide-react";
 import { getContactDetails, getCurrentPractitioner, isPubliclyVisible, suggestHandle } from "@/data/practitioners";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
 import { siteConfig } from "@/lib/site";
@@ -8,6 +8,7 @@ import { EditableList } from "@/components/portal/EditableList";
 import { EntryListEditor } from "@/components/portal/EntryListEditor";
 import { ContactDetailsEditor } from "@/components/portal/ContactDetailsEditor";
 import { ProfileSections, type ProfileSection } from "@/components/portal/ProfileSections";
+import { ProfileTabs } from "@/components/portal/ProfileTabs";
 import { SessionModeFields } from "@/components/portal/SessionModeFields";
 import { SettingsRow, settingsInputClass } from "@/components/portal/SettingsRow";
 import { SlugEditor } from "@/components/portal/SlugEditor";
@@ -22,8 +23,6 @@ import { updateProfileAction } from "./actions";
 
 export const metadata = { title: "Public profile" };
 
-const iconClass = "size-4";
-
 export default async function PublicProfilePage() {
   const practitioner = await getCurrentPractitioner();
   const contactDetails = getContactDetails(practitioner);
@@ -37,9 +36,7 @@ export default async function PublicProfilePage() {
   const sections: ProfileSection[] = [
     {
       id: "basics",
-      label: "Basics",
       title: "Basics",
-      icon: <User className={iconClass} aria-hidden />,
       content: (
         <>
           <SettingsRow
@@ -98,9 +95,7 @@ export default async function PublicProfilePage() {
     },
     {
       id: "about",
-      label: "About you",
       title: "About you",
-      icon: <FileText className={iconClass} aria-hidden />,
       content: (
         <>
           <SettingsRow label="Bio" htmlFor="bio">
@@ -135,9 +130,7 @@ export default async function PublicProfilePage() {
     },
     {
       id: "credentials",
-      label: "Education & experience",
       title: "Education & experience",
-      icon: <GraduationCap className={iconClass} aria-hidden />,
       content: (
         <>
           <SettingsRow label="Years of experience" htmlFor="experienceYears">
@@ -180,9 +173,7 @@ export default async function PublicProfilePage() {
     },
     {
       id: "session",
-      label: "Sessions & fees",
       title: "Sessions & fees",
-      icon: <Wallet className={iconClass} aria-hidden />,
       content: (
         <>
           <SessionModeFields
@@ -229,9 +220,7 @@ export default async function PublicProfilePage() {
     },
     {
       id: "links",
-      label: "Contact & links",
       title: "Contact & links",
-      icon: <Link2 className={iconClass} aria-hidden />,
       content: (
         <>
           <SettingsRow
@@ -285,15 +274,6 @@ export default async function PublicProfilePage() {
             </div>
           </SettingsRow>
         </>
-      ),
-    },
-    {
-      id: "theme",
-      label: "Appearance",
-      title: "Appearance",
-      icon: <Palette className={iconClass} aria-hidden />,
-      content: (
-        <AppearanceEditor slug={practitioner.slug} template={practitioner.template} style={practitioner.style} colorTheme={practitioner.colorTheme} />
       ),
     },
   ];
@@ -360,7 +340,10 @@ export default async function PublicProfilePage() {
       <form action={updateProfileAction}>
         <input type="hidden" name="slug" value={practitioner.slug} />
 
-        <ProfileSections sections={sections} />
+        <ProfileTabs
+          profile={<ProfileSections sections={sections} />}
+          appearance={<AppearanceEditor slug={practitioner.slug} template={practitioner.template} style={practitioner.style} colorTheme={practitioner.colorTheme} />}
+        />
 
         <div className="sticky bottom-4 z-10 mt-8 flex items-center justify-between gap-4 rounded-2xl bg-surface/90 px-5 py-3.5 shadow-lg ring-1 ring-black/[0.08] backdrop-blur">
           <button

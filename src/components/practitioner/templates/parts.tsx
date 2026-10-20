@@ -16,6 +16,7 @@ export const SHAPE_STYLE: Record<PhotoShape, { aspect: string; radius: string }>
   rounded: { aspect: "1 / 1", radius: "22%" },
   oval: { aspect: "4 / 5", radius: "50%" },
   square: { aspect: "1 / 1", radius: "6px" },
+  blob: { aspect: "4 / 5", radius: "60% 40% 30% 70% / 55% 45% 65% 35%" },
 };
 
 /** The practitioner's photo in the template's shape, or their initials when there is no photo. */

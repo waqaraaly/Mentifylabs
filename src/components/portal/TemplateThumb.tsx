@@ -1,331 +1,204 @@
-import type { CSSProperties, ReactNode } from "react";
-import { mix } from "@/lib/color";
-import { resolveDesign, type Palette, type PhotoShape, type LayoutId, type ProfileStyle } from "@/lib/templates";
-import { SHAPE_STYLE } from "@/components/practitioner/templates/parts";
-
-interface Ctx {
-  p: Palette;
-  ink: string;
-  soft: string;
-  faint: string;
-  photoBg: string;
-  shape: PhotoShape;
-  scale: number;
-  tone: string;
-  toneOn: string;
-}
-
-function Bar({ t, w, h = 1.7, c, className = "" }: { t: Ctx; w: number | string; h?: number; c?: string; className?: string }) {
-  return <span className={`block rounded-full ${className}`} style={{ width: typeof w === "number" ? `${w}%` : w, height: `${h}cqw`, background: c ?? t.faint }} />;
-}
-
-function Photo({ t, w, shape, extra }: { t: Ctx; w: string; shape?: PhotoShape; extra?: CSSProperties }) {
-  const s = SHAPE_STYLE[shape ?? t.shape];
-  return (
-    <span className="relative block shrink-0 overflow-hidden" style={{ width: w, aspectRatio: s.aspect, borderRadius: s.radius, background: t.photoBg, ...extra }}>
-      <span className="absolute top-[24%] left-1/2 block aspect-square w-[34%] -translate-x-1/2 rounded-full" style={{ background: mix(t.ink, t.photoBg, 0.35) }} />
-      <span className="absolute top-[56%] left-1/2 block aspect-[5/3] w-[70%] -translate-x-1/2 rounded-t-full" style={{ background: mix(t.ink, t.photoBg, 0.35) }} />
-    </span>
-  );
-}
-
-function Name({ t, size, color, align = "left" }: { t: Ctx; size: number; color?: string; align?: "left" | "center" }) {
-  return (
-    <span className="pt-display block leading-[1.05]" style={{ fontSize: `${size * t.scale}cqw`, color: color ?? t.ink, textAlign: align }}>
-      Dr. Amina Rahman
-    </span>
-  );
-}
-
-function Pill({ t, w = 20, c, outline = false }: { t: Ctx; w?: number; c?: string; outline?: boolean }) {
-  const color = c ?? t.p.accent;
-  return <span className="block rounded-[1cqw]" style={{ width: `${w}cqw`, height: "4.6cqw", background: outline ? "transparent" : color, boxShadow: outline ? `inset 0 0 0 0.45cqw ${color}` : undefined }} />;
-}
-
-function Badges({ t, n = 3 }: { t: Ctx; n?: number }) {
-  return (
-    <div className="flex gap-[1.4cqw]">
-      {Array.from({ length: n }, (_, i) => (
-        <span key={i} className="block h-[3.4cqw] rounded-full" style={{ width: `${[13, 17, 11][i]}cqw`, background: mix(t.p.accent, t.p.bg, 0.16), boxShadow: `inset 0 0 0 1px ${t.soft}` }} />
-      ))}
-    </div>
-  );
-}
-
-function Box({ t, h, w, tone, className = "" }: { t: Ctx; h: number; w?: string; tone?: "accent" | "tint" | "plain"; className?: string }) {
-  const bg = tone === "accent" ? t.p.accent : tone === "tint" ? mix(t.p.accent, t.p.bg, 0.12) : t.p.surface;
-  return <span className={`block ${className}`} style={{ height: `${h}cqw`, width: w, borderRadius: "1.8cqw", background: bg, boxShadow: tone === "accent" ? undefined : `inset 0 0 0 1px ${t.soft}` }} />;
-}
-
-function Times({ t }: { t: Ctx }) {
-  return (
-    <div className="flex gap-[1.4cqw]">
-      {[0, 1, 2].map((i) => (
-        <span key={i} className="block h-[3.6cqw] flex-1 rounded-[0.9cqw]" style={{ boxShadow: `inset 0 0 0 0.4cqw ${t.p.accent}` }} />
-      ))}
-    </div>
-  );
-}
+import type { CSSProperties } from "react";
+import type { LayoutId } from "@/lib/templates";
 
 /**
- * A small drawing of a template: its page architecture, palette, photo shape and typeface. It is drawn from the same
- * recipe the real page uses (resolveDesign), so it follows the practitioner's accent, typeface and shape choices as they
- * make them. Sizes are in container units, so it scales to any card.
+ * A wireframe of a layout: grey blocks in the page's real proportions, with colour only on the booking button. It shows
+ * how the page is organised and nothing else, so it never changes with the colours, fonts or details chosen. Positions
+ * are percentages of the card, so it scales to any size.
  */
-export function TemplateThumb({ id, style, className = "" }: { id: LayoutId; style?: ProfileStyle; className?: string }) {
-  const d = resolveDesign(id, style);
-  const { palette: p, spec, shape } = d;
-  const ink = p.ink;
-  const t: Ctx = {
-    p,
-    ink,
-    soft: mix(ink, p.bg, 0.16),
-    faint: mix(ink, p.bg, 0.3),
-    photoBg: mix(p.accent, p.bg, 0.3),
-    shape,
-    scale: Number(d.vars["--pt-ds"]),
-    tone: d.vars["--pt-tone"],
-    toneOn: d.vars["--pt-tone-foreground"],
-  };
 
-  const identity = (
-    <div className="flex items-start gap-[4cqw]">
-      <Photo t={t} w="20cqw" />
-      <div className="flex flex-1 flex-col gap-[1.8cqw] pt-[0.5cqw]">
-        <Name t={t} size={6.2} />
-        <Bar t={t} w={60} h={1.5} />
-        <Badges t={t} />
-      </div>
-    </div>
-  );
+const PAGE = "var(--surface)";
+const SOFT = "color-mix(in srgb, var(--primary) 9%, var(--surface))";
+const MID = "color-mix(in srgb, var(--primary) 24%, var(--surface))";
+const DARK = "color-mix(in srgb, var(--primary) 58%, var(--surface))";
+const ACCENT = "var(--primary)";
+const OUTLINE = `inset 0 0 0 1px ${MID}`;
 
-  let art: ReactNode;
-  switch (spec.layout) {
-    case "rail": {
-      const header = spec.header ?? "card";
-      art = (
-        <div className="flex flex-col gap-[4cqw]">
-          {header === "band" ? (
-            <div className="px-[7cqw] py-[5cqw]" style={{ background: t.tone }}>{identity}</div>
-          ) : header === "card" ? (
-            <div className="mx-[6cqw] mt-[5cqw] rounded-[2.4cqw] p-[4cqw]" style={{ background: p.surface, boxShadow: `inset 0 0 0 1px ${t.soft}` }}>{identity}</div>
-          ) : (
-            <div className="px-[7cqw] pt-[6cqw]">{identity}</div>
-          )}
-          <div className="grid grid-cols-[1fr_28cqw] gap-[3cqw] px-[6cqw]">
-            <div className="flex flex-col gap-[2.4cqw]">
-              <Box t={t} h={13} />
-              <Box t={t} h={11} />
-            </div>
-            <div className="flex flex-col gap-[2cqw] rounded-[1.8cqw] p-[2.4cqw]" style={{ background: p.surface, boxShadow: `inset 0 0 0 1px ${t.soft}` }}>
-              <Bar t={t} w={70} c={ink} h={1.8} />
-              <Times t={t} />
-              <Times t={t} />
-              <Pill t={t} w={23} />
-            </div>
-          </div>
-        </div>
-      );
-      break;
-    }
-    case "tabs":
-      art = (
-        <div className="flex flex-col gap-[3.5cqw]">
-          <div className="grid grid-cols-[1fr_28cqw] gap-[3cqw] px-[6cqw] pt-[6cqw]">
-            {identity}
-            <div className="flex flex-col gap-[2cqw] rounded-[1.8cqw] p-[2.4cqw]" style={{ background: p.surface, boxShadow: `inset 0 0 0 1px ${t.soft}` }}>
-              <Bar t={t} w={70} c={ink} h={1.8} />
-              <Times t={t} />
-              <Pill t={t} w={23} />
-            </div>
-          </div>
-          <div className="flex gap-[5cqw] border-y px-[6cqw] py-[2.4cqw]" style={{ borderColor: t.soft }}>
-            {[12, 14, 11, 9].map((w, i) => (
-              <span key={i} className="block h-[1.8cqw] rounded-full" style={{ width: `${w}cqw`, background: i === 0 ? p.accent : t.faint }} />
-            ))}
-          </div>
-          <div className="flex flex-col gap-[2cqw] px-[6cqw]">
-            <Bar t={t} w={30} h={3} c={ink} />
-            <Bar t={t} w={92} />
-            <Bar t={t} w={78} />
-          </div>
-        </div>
-      );
-      break;
-    case "clinic":
-      art = (
-        <div className="flex flex-col">
-          <div className="flex items-center justify-between border-b px-[6cqw] py-[3cqw]" style={{ borderColor: t.soft, background: p.surface }}>
-            <Bar t={t} w="22cqw" c={ink} h={2} />
-            <Pill t={t} w={14} />
-          </div>
-          <div className="grid grid-cols-[1.15fr_0.85fr] items-center gap-[4cqw] px-[6cqw] py-[6cqw]" style={{ background: p.alt }}>
-            <div className="flex flex-col gap-[2cqw]">
-              <Bar t={t} w={30} c={p.accent} h={1.2} />
-              <Name t={t} size={8} />
-              <Bar t={t} w={90} />
-              <Badges t={t} n={2} />
-              <Pill t={t} w={20} />
-            </div>
-            <Photo t={t} w="100%" />
-          </div>
-          <div className="flex flex-col gap-[2cqw] px-[6cqw] py-[4cqw]">
-            <Bar t={t} w={34} h={3} c={ink} />
-            <div className="grid grid-cols-3 gap-[2cqw]">
-              <Box t={t} h={10} />
-              <Box t={t} h={10} />
-              <Box t={t} h={10} />
-            </div>
-          </div>
-          <div className="mx-0 mt-[1cqw] px-[6cqw] py-[4cqw]" style={{ background: p.accent }}>
-            <Bar t={t} w={40} c={mix(t.toneOn === ink ? p.bg : p.bg, p.accent, 0.9)} h={2} />
-          </div>
-        </div>
-      );
-      break;
-    case "directory":
-      art = (
-        <div className="flex flex-col gap-[2.6cqw] px-[9cqw] pt-[5cqw]">
-          <div className="rounded-[2cqw] p-[3.6cqw]" style={{ background: p.surface, boxShadow: `inset 0 0 0 1px ${t.soft}` }}>
-            <div className="flex items-center gap-[3.5cqw]">
-              <Photo t={t} w="17cqw" />
-              <div className="flex flex-1 flex-col gap-[1.6cqw]">
-                <Name t={t} size={5.6} />
-                <Bar t={t} w={58} h={1.4} />
-              </div>
-            </div>
-            <div className="mt-[3cqw] grid grid-cols-3 divide-x border-t pt-[2.4cqw]" style={{ borderColor: t.soft }}>
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="mx-auto block h-[2.4cqw] w-[10cqw] rounded-full" style={{ background: t.faint }} />
-              ))}
-            </div>
-          </div>
-          {[0, 1].map((i) => (
-            <div key={i} className="rounded-[2cqw] p-[3cqw]" style={{ background: p.surface, boxShadow: `inset 0 0 0 1px ${t.soft}` }}>
-              <div className="mb-[2cqw] flex items-center justify-between">
-                <Bar t={t} w="28cqw" c={ink} h={2} />
-                <Pill t={t} w={16} />
-              </div>
-              <Times t={t} />
-            </div>
-          ))}
-          <Box t={t} h={9} />
-        </div>
-      );
-      break;
-    case "narrative":
-      art = (
-        <div className="flex flex-col gap-[5cqw] px-[8cqw] pt-[8cqw]">
-          <div className="grid grid-cols-[1fr_22cqw] items-start gap-[5cqw]">
-            <div className="flex flex-col gap-[2.2cqw]">
-              <Bar t={t} w={36} c={p.accent} h={1.2} />
-              <Name t={t} size={9.5} />
-              <div className="border-l-[0.8cqw] pl-[2.6cqw]" style={{ borderColor: p.accent }}>
-                <Bar t={t} w={95} h={2.2} c={t.faint} />
-                <div className="mt-[1.4cqw]"><Bar t={t} w={70} h={2.2} c={t.faint} /></div>
-              </div>
-              <Pill t={t} w={20} />
-            </div>
-            <Photo t={t} w="100%" />
-          </div>
-          <div className="grid grid-cols-[1fr_26cqw] gap-[4cqw] border-t pt-[4cqw]" style={{ borderColor: t.soft }}>
-            <div className="flex flex-col gap-[2cqw]">
-              <Bar t={t} w={36} h={3} c={ink} />
-              <Bar t={t} w={95} />
-              <Bar t={t} w={82} />
-            </div>
-            <Box t={t} h={16} />
-          </div>
-        </div>
-      );
-      break;
-    case "card":
-      art = (
-        <div className="px-[14cqw] pt-[6cqw]">
-          <div className="overflow-hidden rounded-[3.4cqw]" style={{ background: p.surface, boxShadow: "0 3cqw 6cqw -3cqw rgba(0,0,0,.35)" }}>
-            <div className="h-[11cqw]" style={{ background: p.alt }} />
-            <div className="flex flex-col items-center gap-[2cqw] px-[5cqw] pb-[4cqw]">
-              <Photo t={t} w="17cqw" extra={{ marginTop: "-8.5cqw", boxShadow: `0 0 0 1.2cqw ${p.surface}` }} />
-              <Name t={t} size={5.8} align="center" />
-              <Badges t={t} />
-              <span className="block h-[6cqw] w-full rounded-[1.4cqw]" style={{ background: p.accent }} />
-              <span className="block h-[5cqw] w-full rounded-[1.4cqw]" style={{ boxShadow: `inset 0 0 0 0.45cqw ${p.accent}` }} />
-            </div>
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex items-center justify-between border-t px-[5cqw] py-[2.6cqw]" style={{ borderColor: t.soft }}>
-                <Bar t={t} w="22cqw" c={ink} h={1.8} />
-                <span className="block size-[2cqw] rounded-full" style={{ background: t.faint }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-      break;
-    case "panel":
-      art = (
-        <div className="grid h-[88cqw] grid-cols-[34cqw_1fr]">
-          <div className="flex flex-col items-start gap-[2.4cqw] p-[4.5cqw]" style={{ background: t.tone }}>
-            <Photo t={t} w="19cqw" />
-            <Name t={t} size={5.4} color={t.toneOn} />
-            <Bar t={t} w={80} h={1.4} c={mix(t.toneOn, t.tone, 0.6)} />
-            <div className="mt-[1cqw] w-full rounded-[1.6cqw] p-[2.4cqw]" style={{ background: p.surface }}>
-              <Times t={t} />
-              <div className="mt-[1.6cqw]"><Pill t={t} w={20} /></div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-[2.2cqw] px-[5cqw] pt-[6cqw]">
-            <Bar t={t} w={80} h={2.6} c={t.faint} />
-            <Bar t={t} w={36} h={3} c={ink} />
-            <Bar t={t} w={95} />
-            <Bar t={t} w={82} />
-            <div className="mt-[2cqw] flex gap-[1.6cqw]">
-              {[16, 20, 14].map((w, i) => (
-                <span key={i} className="block h-[4.6cqw] rounded-full" style={{ width: `${w}cqw`, background: mix(p.accent, p.bg, 0.16), boxShadow: `inset 0 0 0 1px ${t.soft}` }} />
-              ))}
-            </div>
-            <Bar t={t} w={36} h={3} c={ink} />
-            <Bar t={t} w={90} />
-          </div>
-        </div>
-      );
-      break;
-    case "folio":
-      art = (
-        <div className="grid grid-cols-[30cqw_1fr] gap-[7cqw] px-[7cqw] pt-[12cqw]">
-          <div className="flex flex-col gap-[2.2cqw]">
-            <Photo t={t} w="17cqw" extra={{ boxShadow: `inset 0 0 0 0.3cqw ${t.soft}` }} />
-            <div className="mt-[2cqw]"><Name t={t} size={5.2} /></div>
-            <Bar t={t} w={70} h={1.5} c={ink} />
-            <Bar t={t} w={50} h={1.4} />
-            <div className="mt-[2cqw] flex gap-[1.4cqw]">
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="block size-[4cqw] rounded-[1cqw]" style={{ background: t.soft }} />
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-[3.4cqw]">
-            <div className="border-b pb-[2cqw]" style={{ borderColor: t.soft }}><Bar t={t} w={24} h={1.3} /></div>
-            <div className="overflow-hidden rounded-[2.4cqw]" style={{ background: p.surface, boxShadow: `inset 0 0 0 1px ${t.soft}` }}>
-              <div className="flex flex-col gap-[1.8cqw] p-[3.4cqw]">
-                <Bar t={t} w={60} h={2.8} c={ink} />
-                <Bar t={t} w={90} />
-                <Times t={t} />
-              </div>
-              <div className="h-[6cqw]" style={{ background: mix(p.accent, p.bg, 0.1), borderTop: `1px solid ${mix(p.accent, p.bg, 0.2)}` }} />
-            </div>
-            <div className="border-b pb-[2cqw]" style={{ borderColor: t.soft }}><Bar t={t} w={18} h={1.3} /></div>
-            <Bar t={t} w={95} />
-            <Bar t={t} w={80} />
-          </div>
-        </div>
-      );
-      break;
-  }
-
-  const pageBg = d.vars["--pt-page"];
+function Block({
+  x,
+  y,
+  w,
+  h,
+  fill = "transparent",
+  round = "1.4cqw",
+  outline = false,
+  style,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fill?: string;
+  round?: string;
+  outline?: boolean;
+  style?: CSSProperties;
+}) {
   return (
-    <div className={`@container relative overflow-hidden ${className}`} style={{ ...d.vars, background: pageBg, color: ink } as CSSProperties}>
-      <div className="aspect-[4/5] overflow-hidden">{art}</div>
+    <span
+      aria-hidden
+      className="absolute block"
+      style={{
+        left: `${x}%`,
+        top: `${y}%`,
+        width: `${w}%`,
+        height: `${h}%`,
+        background: fill,
+        borderRadius: round,
+        boxShadow: outline ? OUTLINE : undefined,
+        ...style,
+      }}
+    />
+  );
+}
+
+function Dot({
+  x,
+  y,
+  d,
+  fill = MID,
+}: {
+  x: number;
+  y: number;
+  d: number;
+  fill?: string;
+}) {
+  return (
+    <span
+      aria-hidden
+      className="absolute block rounded-full"
+      style={{
+        left: `${x}%`,
+        top: `${y}%`,
+        width: `${d}%`,
+        aspectRatio: "1",
+        background: fill,
+      }}
+    />
+  );
+}
+
+/** Lines of text: the last one shorter. */
+function Lines({
+  x,
+  y,
+  w,
+  n,
+  gap = 4.2,
+  fill = MID,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  n: number;
+  gap?: number;
+  fill?: string;
+}) {
+  return (
+    <>
+      {Array.from({ length: n }, (_, i) => (
+        <Block
+          key={i}
+          x={x}
+          y={y + i * gap}
+          w={i === n - 1 ? w * 0.65 : w}
+          h={2}
+          fill={fill}
+          round="99px"
+        />
+      ))}
+    </>
+  );
+}
+
+/** The first layout: a framed page with a menu bar, the photo beside the introduction, tiles, text and a closing card. */
+function Framed() {
+  return (
+    <>
+      <Block x={0} y={0} w={100} h={100} fill={SOFT} round="0" />
+      <Block x={4} y={3} w={92} h={97} fill={PAGE} round="4cqw 4cqw 0 0" />
+      <Block x={9} y={8} w={22} h={2.6} fill={MID} round="99px" />
+      <Block x={70} y={7} w={21} h={4.4} fill={ACCENT} round="99px" />
+      <Dot x={9} y={19} d={26} />
+      <Block x={42} y={21} w={44} h={4.5} fill={DARK} round="99px" />
+      <Lines x={42} y={30} w={44} n={3} />
+      {[0, 1, 2].map((i) => (
+        <Block key={i} x={9 + i * 29.5} y={50} w={26} h={10} fill={SOFT} />
+      ))}
+      <Lines x={9} y={66} w={82} n={3} />
+      <Block x={9} y={82} w={82} h={12} fill={MID} />
+    </>
+  );
+}
+
+/** The second layout: a profile card across the top, content cards below it, and a booking card kept beside them. */
+function Rail() {
+  return (
+    <>
+      <Block
+        x={0}
+        y={0}
+        w={100}
+        h={100}
+        fill={SOFT}
+        round="0"
+        style={{ opacity: 0.55 }}
+      />
+      <Block x={6} y={6} w={88} h={24} fill={PAGE} outline />
+      <Dot x={10} y={10} d={15} />
+      <Block x={29} y={11} w={38} h={3.4} fill={DARK} round="99px" />
+      <Lines x={29} y={18} w={38} n={2} />
+      <Block x={6} y={35} w={54} h={18} fill={PAGE} outline />
+      <Block x={6} y={57} w={54} h={18} fill={PAGE} outline />
+      <Block x={6} y={79} w={54} h={15} fill={PAGE} outline />
+      <Block x={64} y={35} w={30} h={33} fill={PAGE} outline />
+      <Block x={68} y={39} w={22} h={3} fill={MID} round="99px" />
+      <Block x={68} y={46} w={22} h={5} fill={SOFT} />
+      <Block x={68} y={53} w={22} h={5} fill={SOFT} />
+      <Block x={68} y={61} w={22} h={5} fill={ACCENT} />
+    </>
+  );
+}
+
+/** The third layout: the profile fixed down the left, and a card for each thing on the right. */
+function Sidebar() {
+  return (
+    <>
+      <Dot x={8} y={10} d={17} />
+      <Block x={8} y={31} w={24} h={3} fill={DARK} round="99px" />
+      <Lines x={8} y={38} w={24} n={2} />
+      {[0, 1, 2].map((i) => (
+        <Dot key={i} x={8 + i * 8.5} y={50} d={6.5} fill={SOFT} />
+      ))}
+      <Block x={8} y={62} w={24} h={5} fill={ACCENT} />
+      <Block x={42} y={8} w={50} h={20} fill={PAGE} outline />
+      <Block x={42} y={31} w={50} h={14} fill={PAGE} outline />
+      <Block x={42} y={48} w={50} h={14} fill={PAGE} outline />
+      <Block x={42} y={65} w={50} h={14} fill={PAGE} outline />
+      <Block x={42} y={82} w={50} h={12} fill={PAGE} outline />
+    </>
+  );
+}
+
+const ART: Record<LayoutId | "original", () => React.JSX.Element> = {
+  original: Framed,
+  "rail-card": Rail,
+  "link-page": Sidebar,
+};
+
+export function TemplateThumb({
+  id,
+  className = "",
+}: {
+  id: LayoutId | "original";
+  className?: string;
+}) {
+  const Art = ART[id];
+  return (
+    <div
+      aria-hidden
+      className={`@container relative aspect-[4/5] overflow-hidden bg-surface ${className}`}
+    >
+      <Art />
     </div>
   );
 }

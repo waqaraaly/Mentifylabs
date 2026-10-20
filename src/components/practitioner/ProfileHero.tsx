@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
 import type { Practitioner } from "@/types/practitioner";
+import { ORIGINAL_SHAPE } from "@/lib/templates";
+import { SHAPE_STYLE } from "@/components/practitioner/templates/parts";
 import { HighlightMark } from "@/components/ui/HighlightMark";
-import { formatFeeAmounts, hasFeeRange } from "@/lib/fees";
-import { experienceYearsOf, headlineOf } from "@/lib/profileDisplay";
-
-const SESSION_MODE_LABEL: Record<Practitioner["sessionType"], string> = {
-  online: "Online",
-  offline: "On-Site",
-  both: "Online, On-Site",
-};
+import {
+  FEE_ON_REQUEST,
+  SESSION_MODE_LABEL,
+  experienceYearsOf,
+  feeOf,
+  headlineOf,
+  yearsText,
+} from "@/lib/profileDisplay";
 
 // A solid accent-colored circle with a checkmark in --pt-accent-foreground
 // (white for the darker accents, dark ink for pale ones like Golden Hour),
@@ -32,9 +34,19 @@ export function VerifiedBadge({ className = "" }: { className?: string }) {
 // A custom dark tooltip (bg-(--pt-text)/bg-(--pt-bg), so it's legible in
 // every color theme) instead of the browser's plain native `title`
 // tooltip — pure CSS group-hover/group-focus, no JS state needed.
-export function VerifiedTooltip({ children, label }: { children: ReactNode; label: string }) {
+export function VerifiedTooltip({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
   return (
-    <span tabIndex={0} className="group relative inline-flex outline-none" aria-label={label}>
+    <span
+      tabIndex={0}
+      className="group relative inline-flex outline-none"
+      aria-label={label}
+    >
       {children}
       <span
         role="tooltip"
@@ -70,9 +82,9 @@ export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
   const lastName = nameParts.pop();
   const firstNames = nameParts.join(" ");
 
-  // The reference's exact organic-blob radius, on both the offset backdrop
-  // and the photo itself.
-  const blobRadius = "60% 40% 30% 70% / 55% 45% 65% 35%";
+  // The photo's shape: the organic blob this design was made with, unless another was chosen in Appearance.
+  const { aspect, radius: blobRadius } =
+    SHAPE_STYLE[practitioner.style?.shape ?? ORIGINAL_SHAPE];
 
   return (
     <div className="mx-auto max-w-5xl px-[5.1px] pt-14 sm:px-[10.2px] sm:pt-20">
@@ -83,12 +95,15 @@ export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
               offset shape peeking from one corner. */}
           <div
             className="absolute -top-[15.4px] -right-[15.4px] -bottom-[15.4px] -left-[15.4px]"
-            style={{ background: "var(--pt-ring, var(--pt-outer))", borderRadius: blobRadius }}
+            style={{
+              background: "var(--pt-ring, var(--pt-outer))",
+              borderRadius: blobRadius,
+            }}
             aria-hidden
           />
           <div
-            className="relative aspect-[4/5] w-full overflow-hidden shadow-[0_24px_48px_-20px_rgba(32,34,31,0.3)]"
-            style={{ borderRadius: blobRadius }}
+            className="relative w-full overflow-hidden shadow-[0_24px_48px_-20px_rgba(32,34,31,0.3)]"
+            style={{ aspectRatio: aspect, borderRadius: blobRadius }}
           >
             {practitioner.photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -101,7 +116,7 @@ export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
               <div
                 role="img"
                 aria-label={`${practitioner.fullName}'s portrait`}
-                className="flex h-full w-full items-center justify-center bg-white font-serif text-5xl text-(--pt-accent)"
+                className="flex h-full w-full items-center justify-center bg-(--pt-surface,white) font-serif text-5xl text-(--pt-accent)"
               >
                 {getInitials(practitioner.fullName)}
               </div>
@@ -123,28 +138,41 @@ export function ProfileHero({ practitioner }: { practitioner: Practitioner }) {
             )}
           </h1>
 
-          <p className="mt-6 text-lg font-medium [overflow-wrap:anywhere] text-(--pt-muted)">{practitioner.professionalTitle}</p>
-          {tagline && <p className="mt-5 max-w-xl text-[19px] leading-relaxed [overflow-wrap:anywhere] text-(--pt-tagline)">{tagline}</p>}
+          <p className="mt-6 text-lg font-medium [overflow-wrap:anywhere] text-(--pt-muted)">
+            {practitioner.professionalTitle}
+          </p>
+          {tagline && (
+            <p className="mt-5 max-w-xl text-[19px] leading-relaxed [overflow-wrap:anywhere] text-(--pt-tagline)">
+              {tagline}
+            </p>
+          )}
 
           <div className="mt-8 flex max-w-xl flex-wrap gap-x-12 gap-y-6 border-t border-(--pt-border) pt-7">
             {experienceYears !== undefined && (
               <div>
-                <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">Experience</p>
+                <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">
+                  Experience
+                </p>
                 <p className="mt-2.5 text-xl text-(--pt-text)">
-                  {experienceYears} {experienceYears === 1 ? "Year" : "Years"}
+                  {yearsText(experienceYears)}
                 </p>
               </div>
             )}
             <div>
               <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">
-                Fee range
-                {hasFeeRange(practitioner.feeRange) && practitioner.feeRange.currency && ` (${practitioner.feeRange.currency})`}
+                Fee
               </p>
-              <p className="mt-2.5 text-xl text-(--pt-text)">{formatFeeAmounts(practitioner.feeRange) ?? "—"}</p>
+              <p className="mt-2.5 text-xl text-(--pt-text)">
+                {feeOf(practitioner) ?? FEE_ON_REQUEST}
+              </p>
             </div>
             <div>
-              <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">Session mode</p>
-              <p className="mt-2.5 text-xl text-(--pt-text)">{SESSION_MODE_LABEL[practitioner.sessionType]}</p>
+              <p className="text-xs tracking-[0.1em] text-(--pt-muted) uppercase">
+                Sessions
+              </p>
+              <p className="mt-2.5 text-xl text-(--pt-text)">
+                {SESSION_MODE_LABEL[practitioner.sessionType]}
+              </p>
             </div>
           </div>
         </div>

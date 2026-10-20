@@ -1,7 +1,6 @@
 import { contactHref } from "@/components/practitioner/ReachOutCard";
 import { formatFeeAmounts, hasFeeRange } from "@/lib/fees";
-import { bioOf, experienceYearsOf, headlineOf, languagesOf } from "@/lib/profileDisplay";
-import type { SectionKey } from "@/lib/templates";
+import { FEE_ON_REQUEST, SESSION_MODE_LABEL, bioOf, experienceYearsOf, headlineOf, languagesOf, yearsText } from "@/lib/profileDisplay";
 import { safeHttpUrl } from "@/lib/url";
 import type { Practitioner } from "@/types/practitioner";
 import type { Slot } from "@/types/slot";
@@ -52,12 +51,6 @@ export interface ProfileModel {
   accepting: boolean;
 }
 
-const MODE_LABEL: Record<Practitioner["sessionType"], string> = {
-  online: "Online",
-  offline: "On-site",
-  both: "Online and on-site",
-};
-
 function parseEntry(raw: string): Entry & { start: number } {
   const [title = "", place = "", years = ""] = raw.split(",").map((part) => part.trim());
   return { title, place, years, start: Number(years.match(/\d{4}/)?.[0] ?? 0) };
@@ -74,7 +67,7 @@ function newestFirst(list: string[] | undefined): Entry[] {
 }
 
 /** Everything the templates draw, worked out once from the practitioner. Optional parts that were left empty stay empty. */
-export function buildModel(practitioner: Practitioner, hidden: Set<SectionKey>, preview: boolean, slots: Slot[]): ProfileModel {
+export function buildModel(practitioner: Practitioner, preview: boolean, slots: Slot[]): ProfileModel {
   const nameParts = practitioner.fullName.trim().split(/\s+/);
   const lastName = nameParts.length > 1 ? (nameParts.pop() ?? "") : "";
   const firstNames = nameParts.join(" ");
@@ -82,12 +75,12 @@ export function buildModel(practitioner: Practitioner, hidden: Set<SectionKey>, 
   const years = experienceYearsOf(practitioner);
   const fee = formatFeeAmounts(practitioner.feeRange);
   const stats: Stat[] = [];
-  if (years !== undefined) stats.push({ label: "Experience", value: `${years} ${years === 1 ? "year" : "years"}` });
+  if (years !== undefined) stats.push({ label: "Experience", value: yearsText(years) });
   stats.push({
     label: "Fee",
-    value: fee ? `${hasFeeRange(practitioner.feeRange) && practitioner.feeRange.currency ? `${practitioner.feeRange.currency} ` : ""}${fee}` : "On request",
+    value: fee ? `${hasFeeRange(practitioner.feeRange) && practitioner.feeRange.currency ? `${practitioner.feeRange.currency} ` : ""}${fee}` : FEE_ON_REQUEST,
   });
-  stats.push({ label: "Sessions", value: MODE_LABEL[practitioner.sessionType] });
+  stats.push({ label: "Sessions", value: SESSION_MODE_LABEL[practitioner.sessionType] });
 
   const bio = bioOf(practitioner);
   const contacts = practitioner.contactMethods
@@ -119,20 +112,20 @@ export function buildModel(practitioner: Practitioner, hidden: Set<SectionKey>, 
     title: practitioner.professionalTitle,
     headline: headlineOf(practitioner),
     paragraphs: bio ? bio.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean) : [],
-    stats: hidden.has("stats") ? [] : stats,
+    stats: stats,
     location,
     languages,
-    expertise: hidden.has("expertise") ? [] : practitioner.specializations.filter(Boolean),
-    services: hidden.has("services") ? [] : practitioner.services.filter(Boolean),
-    education: hidden.has("journey") ? [] : newestFirst(practitioner.education),
-    experience: hidden.has("journey") ? [] : newestFirst(practitioner.workExperience),
+    expertise: practitioner.specializations.filter(Boolean),
+    services: practitioner.services.filter(Boolean),
+    education: newestFirst(practitioner.education),
+    experience: newestFirst(practitioner.workExperience),
     contacts,
     socials,
     website,
     hasContact: contacts.length > 0 || Boolean(location) || languages.length > 0 || socials.length > 0 || Boolean(website),
     qualification: firstEducation ? [firstEducation.title, firstEducation.place].filter(Boolean).join(", ") : undefined,
-    formats: hidden.has("stats") ? [] : practitioner.sessionType === "both" ? ["Online", "On-site"] : [MODE_LABEL[practitioner.sessionType]],
-    fee: hidden.has("stats") ? undefined : feeText,
+    formats: practitioner.sessionType === "both" ? ["Online", "On-site"] : [SESSION_MODE_LABEL[practitioner.sessionType]],
+    fee: feeText,
     slots,
     preview,
     accepting: practitioner.acceptingBookings,

@@ -1,4 +1,5 @@
-import { HEX, contrast, darken, mix, readableOn } from "@/lib/color";
+import { HEX, contrast, darken, isDark, mix, readableOn } from "@/lib/color";
+import { COLOR_THEMES } from "@/lib/themes";
 
 /**
  * Profile design, as four independent choices (see docs/profile-template-audit.md for why these shapes):
@@ -18,13 +19,13 @@ import { HEX, contrast, darken, mix, readableOn } from "@/lib/color";
  * practice-website page. directory: a compact card page for phones. narrative: a calm, readable story page.
  * card: one narrow column of big buttons. panel: identity fixed on one side, content scrolling on the other.
  * folio: a quiet personal page: plain identity fixed on the left, labelled sections and hairline cards on the right.
+ * linkpage: the same page in its plainest form: photo, name, title and links on the left, one card per thing on the right.
  */
-export type LayoutKind = "rail" | "tabs" | "clinic" | "directory" | "narrative" | "card" | "panel" | "folio";
-export type PhotoShape = "circle" | "rounded" | "oval" | "square";
+export type LayoutKind = "rail" | "linkpage";
+export type PhotoShape = "circle" | "rounded" | "oval" | "square" | "blob";
 export type ExpertiseStyle = "chips" | "bullets" | "checks" | "tiles" | "cloud";
 export type ServicesStyle = "bullets" | "checks" | "cards" | "rows";
 export type JourneyStyle = "rail" | "rows" | "cards";
-export type SectionKey = "stats" | "expertise" | "services" | "journey";
 
 // ---- Colour schemes ----
 
@@ -71,119 +72,451 @@ export interface Scheme {
 
 /** Calm, health-appropriate colours: teal, blue, green, sage, plum, warm neutrals, and two dark options. */
 export const SCHEMES: Scheme[] = [
-  { id: "teal-white", name: "Teal on white", palette: { bg: "#FFFFFF", surface: "#FFFFFF", ink: "#14303A", accent: "#00808A", alt: "#E3F3F4" } },
-  { id: "clinic-blue", name: "Clinic blue", palette: { bg: "#FFFFFF", surface: "#F3F7FC", ink: "#14263F", accent: "#2563A8", alt: "#E6EEF8" } },
-  { id: "sky-green", name: "Sky and green", palette: { bg: "#EAF2FA", surface: "#FFFFFF", ink: "#16283A", accent: "#0F6B52", alt: "#D5E6F5" } },
-  { id: "sky-blue", name: "Pale sky and blue", palette: { bg: "#F1F7FC", surface: "#FFFFFF", ink: "#1B2C3C", accent: "#2C6E9B", alt: "#D9EAF6" } },
-  { id: "grey-navy", name: "Cool grey and navy", palette: { bg: "#EEF2F7", surface: "#FFFFFF", ink: "#12263D", accent: "#0F4C81", alt: "#DCE7F3" } },
-  { id: "soft-teal", name: "Soft teal", palette: { bg: "#DDEFF0", surface: "#FFFFFF", ink: "#123238", accent: "#0E7C86", alt: "#BFE1E3" } },
-  { id: "deep-teal", name: "Deep teal", palette: { bg: "#FFFFFF", surface: "#F2F7F7", ink: "#17323A", accent: "#0F5964", alt: "#E1EEEF" } },
-  { id: "sand-petrol", name: "Sand and petrol", palette: { bg: "#FFFFFF", surface: "#FFFFFF", ink: "#17262E", accent: "#0B6E84", alt: "#EEE8DB" } },
-  { id: "sage", name: "Sage on white", palette: { bg: "#FBFCFA", surface: "#FFFFFF", ink: "#1F2D26", accent: "#4A7A5C", alt: "#E8F0EA" } },
-  { id: "leaf-green", name: "Leaf green", palette: { bg: "#F3F8F3", surface: "#FFFFFF", ink: "#1E3328", accent: "#2F7D5B", alt: "#DCEBDD" } },
-  { id: "mint-green", name: "Mint grey and green", palette: { bg: "#EFF5F1", surface: "#FFFFFF", ink: "#16302A", accent: "#1E8456", alt: "#D8EBE0" } },
-  { id: "cream-olive", name: "Cream and olive", palette: { bg: "#F6F5EC", surface: "#FFFFFF", ink: "#2B3322", accent: "#5E7C34", alt: "#E6EBD3" } },
-  { id: "lavender-indigo", name: "Lavender and indigo", palette: { bg: "#F4F2F9", surface: "#FFFFFF", ink: "#2A2640", accent: "#5848A6", alt: "#E4DFF3" } },
-  { id: "white-plum", name: "White and plum", palette: { bg: "#FFFFFF", surface: "#F8F3F7", ink: "#231C2A", accent: "#6B2F5E", alt: "#F1E7F0" } },
-  { id: "stone-slate", name: "Stone and slate", palette: { bg: "#F4F1EC", surface: "#FBF9F6", ink: "#26323A", accent: "#2E4A5A", alt: "#E6DFD3" } },
-  { id: "sand-clay", name: "Sand and clay", palette: { bg: "#F6EFE6", surface: "#FFFCF8", ink: "#33261E", accent: "#B5543A", alt: "#EFE0CE" } },
-  { id: "stone-terracotta", name: "Stone and terracotta", palette: { bg: "#FBFAF7", surface: "#FFFFFF", ink: "#2D2A26", accent: "#A24F2F", alt: "#E9E3D8" } },
-  { id: "paper-walnut", name: "Paper and walnut", palette: { bg: "#FAF5EA", surface: "#FFFDF8", ink: "#3A2B20", accent: "#8A5A36", alt: "#EFE4CF" } },
-  { id: "stone-forest", name: "Stone and forest", palette: { bg: "#FAFAF9", surface: "#FFFFFF", ink: "#1C1917", accent: "#3B6651", alt: "#E8F0DF" } },
-  { id: "navy-mint", name: "Navy and mint (dark)", palette: { bg: "#0E1A2B", surface: "#16263D", ink: "#E8EEF5", accent: "#5CC6B1", alt: "#1F3552", dark: true } },
-  { id: "forest-mint", name: "Forest and mint (dark)", palette: { bg: "#0F211B", surface: "#17302A", ink: "#E6F2EC", accent: "#7FD1A8", alt: "#1D3D33", dark: true } },
+  {
+    id: "teal-white",
+    name: "Teal on white",
+    palette: {
+      bg: "#FFFFFF",
+      surface: "#FFFFFF",
+      ink: "#14303A",
+      accent: "#00808A",
+      alt: "#E3F3F4",
+    },
+  },
+  {
+    id: "clinic-blue",
+    name: "Clinic blue",
+    palette: {
+      bg: "#FFFFFF",
+      surface: "#F3F7FC",
+      ink: "#14263F",
+      accent: "#2563A8",
+      alt: "#E6EEF8",
+    },
+  },
+  {
+    id: "sky-green",
+    name: "Sky and green",
+    palette: {
+      bg: "#EAF2FA",
+      surface: "#FFFFFF",
+      ink: "#16283A",
+      accent: "#0F6B52",
+      alt: "#D5E6F5",
+    },
+  },
+  {
+    id: "sky-blue",
+    name: "Pale sky and blue",
+    palette: {
+      bg: "#F1F7FC",
+      surface: "#FFFFFF",
+      ink: "#1B2C3C",
+      accent: "#2C6E9B",
+      alt: "#D9EAF6",
+    },
+  },
+  {
+    id: "grey-navy",
+    name: "Cool grey and navy",
+    palette: {
+      bg: "#EEF2F7",
+      surface: "#FFFFFF",
+      ink: "#12263D",
+      accent: "#0F4C81",
+      alt: "#DCE7F3",
+    },
+  },
+  {
+    id: "soft-teal",
+    name: "Soft teal",
+    palette: {
+      bg: "#DDEFF0",
+      surface: "#FFFFFF",
+      ink: "#123238",
+      accent: "#0E7C86",
+      alt: "#BFE1E3",
+    },
+  },
+  {
+    id: "deep-teal",
+    name: "Deep teal",
+    palette: {
+      bg: "#FFFFFF",
+      surface: "#F2F7F7",
+      ink: "#17323A",
+      accent: "#0F5964",
+      alt: "#E1EEEF",
+    },
+  },
+  {
+    id: "sand-petrol",
+    name: "Sand and petrol",
+    palette: {
+      bg: "#FFFFFF",
+      surface: "#FFFFFF",
+      ink: "#17262E",
+      accent: "#0B6E84",
+      alt: "#EEE8DB",
+    },
+  },
+  {
+    id: "sage",
+    name: "Sage on white",
+    palette: {
+      bg: "#FBFCFA",
+      surface: "#FFFFFF",
+      ink: "#1F2D26",
+      accent: "#4A7A5C",
+      alt: "#E8F0EA",
+    },
+  },
+  {
+    id: "leaf-green",
+    name: "Leaf green",
+    palette: {
+      bg: "#F3F8F3",
+      surface: "#FFFFFF",
+      ink: "#1E3328",
+      accent: "#2F7D5B",
+      alt: "#DCEBDD",
+    },
+  },
+  {
+    id: "mint-green",
+    name: "Mint grey and green",
+    palette: {
+      bg: "#EFF5F1",
+      surface: "#FFFFFF",
+      ink: "#16302A",
+      accent: "#1E8456",
+      alt: "#D8EBE0",
+    },
+  },
+  {
+    id: "cream-olive",
+    name: "Cream and olive",
+    palette: {
+      bg: "#F6F5EC",
+      surface: "#FFFFFF",
+      ink: "#2B3322",
+      accent: "#5E7C34",
+      alt: "#E6EBD3",
+    },
+  },
+  {
+    id: "lavender-indigo",
+    name: "Lavender and indigo",
+    palette: {
+      bg: "#F4F2F9",
+      surface: "#FFFFFF",
+      ink: "#2A2640",
+      accent: "#5848A6",
+      alt: "#E4DFF3",
+    },
+  },
+  {
+    id: "white-plum",
+    name: "White and plum",
+    palette: {
+      bg: "#FFFFFF",
+      surface: "#F8F3F7",
+      ink: "#231C2A",
+      accent: "#6B2F5E",
+      alt: "#F1E7F0",
+    },
+  },
+  {
+    id: "stone-slate",
+    name: "Stone and slate",
+    palette: {
+      bg: "#F4F1EC",
+      surface: "#FBF9F6",
+      ink: "#26323A",
+      accent: "#2E4A5A",
+      alt: "#E6DFD3",
+    },
+  },
+  {
+    id: "sand-clay",
+    name: "Sand and clay",
+    palette: {
+      bg: "#F6EFE6",
+      surface: "#FFFCF8",
+      ink: "#33261E",
+      accent: "#B5543A",
+      alt: "#EFE0CE",
+    },
+  },
+  {
+    id: "stone-terracotta",
+    name: "Stone and terracotta",
+    palette: {
+      bg: "#FBFAF7",
+      surface: "#FFFFFF",
+      ink: "#2D2A26",
+      accent: "#A24F2F",
+      alt: "#E9E3D8",
+    },
+  },
+  {
+    id: "paper-walnut",
+    name: "Paper and walnut",
+    palette: {
+      bg: "#FAF5EA",
+      surface: "#FFFDF8",
+      ink: "#3A2B20",
+      accent: "#8A5A36",
+      alt: "#EFE4CF",
+    },
+  },
+  {
+    id: "stone-forest",
+    name: "Stone and forest",
+    palette: {
+      bg: "#FAFAF9",
+      surface: "#FFFFFF",
+      ink: "#1C1917",
+      accent: "#3B6651",
+      alt: "#E8F0DF",
+    },
+  },
+  {
+    id: "navy-mint",
+    name: "Navy and mint (dark)",
+    palette: {
+      bg: "#0E1A2B",
+      surface: "#16263D",
+      ink: "#E8EEF5",
+      accent: "#5CC6B1",
+      alt: "#1F3552",
+      dark: true,
+    },
+  },
+  {
+    id: "forest-mint",
+    name: "Forest and mint (dark)",
+    palette: {
+      bg: "#0F211B",
+      surface: "#17302A",
+      ink: "#E6F2EC",
+      accent: "#7FD1A8",
+      alt: "#1D3D33",
+      dark: true,
+    },
+  },
 ];
 
 export const SCHEME_IDS = SCHEMES.map((s) => s.id);
-export const isSchemeId = (value: unknown): value is SchemeId => SCHEME_IDS.includes(value as SchemeId);
-export const getScheme = (id: SchemeId | undefined): Scheme => SCHEMES.find((s) => s.id === id) ?? SCHEMES[0];
+export const isSchemeId = (value: unknown): value is SchemeId =>
+  SCHEME_IDS.includes(value as SchemeId);
+export const getScheme = (id: SchemeId | undefined): Scheme =>
+  SCHEMES.find((s) => s.id === id) ?? SCHEMES[0];
 
 // ---- Typefaces ----
 
-export type FontPairId = "inter" | "jakarta" | "lexend-source" | "atkinson" | "nunito" | "sourceserif-sans" | "fraunces-public" | "newsreader-inter" | "instrument";
+export type FontPairId =
+  | "inter"
+  | "jakarta"
+  | "lexend-source"
+  | "atkinson"
+  | "nunito"
+  | "sourceserif-sans"
+  | "fraunces-public"
+  | "newsreader-inter"
+  | "instrument";
 
-export interface FontPair {
-  id: FontPairId;
+/** What an older save's pair stands for: its heading face and its text face. */
+const FONT_PAIRS: { id: FontPairId; heading: FaceId; text: FaceId }[] = [
+  { id: "inter", heading: "inter", text: "inter" },
+  { id: "jakarta", heading: "jakarta", text: "jakarta" },
+  { id: "lexend-source", heading: "lexend", text: "source" },
+  { id: "atkinson", heading: "atkinson", text: "atkinson" },
+  { id: "nunito", heading: "nunito", text: "nunito-sans" },
+  { id: "sourceserif-sans", heading: "source-serif", text: "source" },
+  { id: "fraunces-public", heading: "fraunces", text: "public" },
+  { id: "newsreader-inter", heading: "newsreader", text: "inter" },
+  { id: "instrument", heading: "instrument", text: "instrument-sans" },
+];
+
+export const FONT_PAIR_IDS = FONT_PAIRS.map((f) => f.id);
+
+/**
+ * The same typefaces, chosen one at a time: one for headings and one for text. A face that can be a heading carries the
+ * weight, tracking and size that suit it there. Older saves chose a pair above, which is split into its two faces.
+ */
+export type FaceId =
+  | "inter"
+  | "jakarta"
+  | "lexend"
+  | "source"
+  | "atkinson"
+  | "nunito"
+  | "nunito-sans"
+  | "source-serif"
+  | "fraunces"
+  | "public"
+  | "newsreader"
+  | "instrument"
+  | "instrument-sans";
+
+export interface Face {
+  id: FaceId;
   name: string;
-  note: string;
-  /** CSS variables set by next/font (see components/practitioner/templates/fonts.ts). */
+  /** CSS variable set by next/font. */
+  var: string;
+  /** Set when the face is offered for headings. */
+  heading?: { weight: number; tracking: string; scale: number };
+  /** Set when the face is offered for text. */
+  text?: true;
+}
+
+export const FACES: Face[] = [
+  {
+    id: "inter",
+    name: "Inter",
+    var: "--font-inter",
+    heading: { weight: 700, tracking: "-0.03em", scale: 0.97 },
+    text: true,
+  },
+  {
+    id: "jakarta",
+    name: "Plus Jakarta Sans",
+    var: "--f-jakarta",
+    heading: { weight: 700, tracking: "-0.02em", scale: 0.97 },
+    text: true,
+  },
+  {
+    id: "lexend",
+    name: "Lexend",
+    var: "--f-lexend",
+    heading: { weight: 600, tracking: "-0.015em", scale: 0.94 },
+    text: true,
+  },
+  {
+    id: "atkinson",
+    name: "Atkinson Hyperlegible",
+    var: "--f-atkinson",
+    heading: { weight: 700, tracking: "-0.01em", scale: 0.97 },
+    text: true,
+  },
+  {
+    id: "nunito",
+    name: "Nunito",
+    var: "--f-nunito",
+    heading: { weight: 800, tracking: "-0.01em", scale: 0.96 },
+  },
+  {
+    id: "source-serif",
+    name: "Source Serif",
+    var: "--f-sourceserif",
+    heading: { weight: 600, tracking: "-0.01em", scale: 1 },
+    text: true,
+  },
+  {
+    id: "fraunces",
+    name: "Fraunces",
+    var: "--font-fraunces",
+    heading: { weight: 500, tracking: "-0.015em", scale: 1 },
+  },
+  {
+    id: "newsreader",
+    name: "Newsreader",
+    var: "--f-newsreader",
+    heading: { weight: 500, tracking: "-0.01em", scale: 1.03 },
+    text: true,
+  },
+  {
+    id: "instrument",
+    name: "Instrument Serif",
+    var: "--f-instrument",
+    heading: { weight: 400, tracking: "-0.005em", scale: 1.1 },
+  },
+  { id: "source", name: "Source Sans", var: "--f-source", text: true },
+  { id: "nunito-sans", name: "Nunito Sans", var: "--f-nunitosans", text: true },
+  { id: "public", name: "Public Sans", var: "--f-public", text: true },
+  {
+    id: "instrument-sans",
+    name: "Instrument Sans",
+    var: "--f-instrsans",
+    text: true,
+  },
+];
+
+export const HEADING_FACES = FACES.filter((f) => f.heading);
+export const TEXT_FACES = FACES.filter((f) => f.text);
+export const isHeadingFace = (v: unknown): v is FaceId =>
+  HEADING_FACES.some((f) => f.id === v);
+export const isTextFace = (v: unknown): v is FaceId =>
+  TEXT_FACES.some((f) => f.id === v);
+export const getFace = (id: FaceId): Face => FACES.find((f) => f.id === id)!;
+
+/** The two faces an older saved pair stands for. */
+export const pairFaces = (
+  id: FontPairId | undefined,
+): { heading: FaceId; text: FaceId } => {
+  const pair = FONT_PAIRS.find((p) => p.id === id) ?? FONT_PAIRS[0];
+  return { heading: pair.heading, text: pair.text };
+};
+
+export interface ResolvedFont {
+  /** CSS variables for headings and text. */
   display: string;
   body: string;
   weight: number;
   tracking: string;
-  /** Faces differ in how big they look at the same size; this evens the headings out. Kept within a few per cent. */
   scale: number;
 }
 
-export const FONT_PAIRS: FontPair[] = [
-  { id: "inter", name: "Clean and neutral", note: "Inter", display: "--font-inter", body: "--font-inter", weight: 700, tracking: "-0.03em", scale: 0.97 },
-  { id: "jakarta", name: "Modern sans", note: "Plus Jakarta Sans", display: "--f-jakarta", body: "--f-jakarta", weight: 700, tracking: "-0.02em", scale: 0.97 },
-  { id: "lexend-source", name: "Easy to read", note: "Lexend and Source Sans", display: "--f-lexend", body: "--f-source", weight: 600, tracking: "-0.015em", scale: 0.94 },
-  { id: "atkinson", name: "Maximum legibility", note: "Atkinson Hyperlegible", display: "--f-atkinson", body: "--f-atkinson", weight: 700, tracking: "-0.01em", scale: 0.97 },
-  { id: "nunito", name: "Friendly and rounded", note: "Nunito and Nunito Sans", display: "--f-nunito", body: "--f-nunitosans", weight: 800, tracking: "-0.01em", scale: 0.96 },
-  { id: "sourceserif-sans", name: "Calm serif", note: "Source Serif and Source Sans", display: "--f-sourceserif", body: "--f-source", weight: 600, tracking: "-0.01em", scale: 1 },
-  { id: "fraunces-public", name: "Warm serif", note: "Fraunces and Public Sans", display: "--font-fraunces", body: "--f-public", weight: 500, tracking: "-0.015em", scale: 1 },
-  { id: "newsreader-inter", name: "Editorial serif", note: "Newsreader and Inter", display: "--f-newsreader", body: "--font-inter", weight: 500, tracking: "-0.01em", scale: 1.03 },
-  { id: "instrument", name: "Refined serif", note: "Instrument Serif and Sans", display: "--f-instrument", body: "--f-instrsans", weight: 400, tracking: "-0.005em", scale: 1.1 },
-];
+/** For the original design, only what was chosen: a face left alone keeps the design's own Fraunces or Inter. */
+export function chosenFaces(style?: {
+  font?: FontPairId;
+  headingFont?: FaceId;
+  textFont?: FaceId;
+}): { display?: string; body?: string } {
+  const pair = style?.font ? pairFaces(style.font) : undefined;
+  const heading = style?.headingFont ?? pair?.heading;
+  const text = style?.textFont ?? pair?.text;
+  return {
+    display: heading && FACES.find((f) => f.id === heading)?.var,
+    body: text && FACES.find((f) => f.id === text)?.var,
+  };
+}
 
-export const FONT_PAIR_IDS = FONT_PAIRS.map((f) => f.id);
-export const getFontPair = (id: FontPairId | undefined): FontPair => FONT_PAIRS.find((f) => f.id === id) ?? FONT_PAIRS[0];
+/** The faces a profile uses: its own heading and text choices, then the saved pair, then the default pair. */
+export function resolveFont(style?: {
+  font?: FontPairId;
+  headingFont?: FaceId;
+  textFont?: FaceId;
+}): ResolvedFont {
+  const pair = pairFaces(style?.font ?? DEFAULT_FONT);
+  const heading = FACES.find(
+    (f) => f.id === (style?.headingFont ?? pair.heading),
+  )!;
+  const text = FACES.find((f) => f.id === (style?.textFont ?? pair.text))!;
+  const h = heading.heading!;
+  return {
+    display: heading.var,
+    body: text.var,
+    weight: h.weight,
+    tracking: h.tracking,
+    scale: h.scale,
+  };
+}
 
-// ---- Photo shapes, accent colours, sections ----
+// ---- Photo shapes ----
 
 export const PHOTO_SHAPES: { id: PhotoShape; name: string }[] = [
   { id: "circle", name: "Circle" },
   { id: "rounded", name: "Rounded" },
   { id: "oval", name: "Oval" },
   { id: "square", name: "Square" },
+  { id: "blob", name: "Organic" },
 ];
-
-/** Accent colours offered on top of each scheme's own. The practitioner can also pick any colour. All are calm, health-appropriate hues. */
-export const ACCENT_PRESETS: { name: string; hex: string }[] = [
-  { name: "Teal", hex: "#0B7285" },
-  { name: "Sea green", hex: "#1E8456" },
-  { name: "Sage", hex: "#4A7A5C" },
-  { name: "Olive", hex: "#66742F" },
-  { name: "Sky blue", hex: "#2B6FA8" },
-  { name: "Navy", hex: "#1F3F6E" },
-  { name: "Indigo", hex: "#4B4C9E" },
-  { name: "Plum", hex: "#6B2F5E" },
-  { name: "Rose", hex: "#A8456B" },
-  { name: "Clay", hex: "#B5543A" },
-  { name: "Walnut", hex: "#7A5436" },
-  { name: "Slate", hex: "#34495A" },
-];
-
-export const SECTION_LABELS: Record<SectionKey, string> = {
-  stats: "Quick facts (experience, fee, session format)",
-  expertise: "Areas of expertise",
-  services: "Services offered",
-  journey: "Education and experience",
-};
-export const SECTION_KEYS = Object.keys(SECTION_LABELS) as SectionKey[];
 
 // ---- Layouts: structure only ----
 
-export type LayoutId =
-  | "rail-card"
-  | "rail-band"
-  | "rail-plain"
-  | "tabs-plain"
-  | "tabs-card"
-  | "tabs-band"
-  | "clinic-split"
-  | "clinic-centered"
-  | "clinic-compact"
-  | "directory-card"
-  | "directory-band"
-  | "directory-flat"
-  | "narrative-right"
-  | "narrative-left"
-  | "narrative-centered"
-  | "digital-card"
-  | "side-panel"
-  | "folio";
+export type LayoutId = "rail-card" | "link-page";
 
 export interface LayoutSpec {
   id: LayoutId;
@@ -207,67 +540,95 @@ export interface LayoutSpec {
 }
 
 export const LAYOUTS: LayoutSpec[] = [
-  { id: "rail-card", family: "Booking rail", name: "Card header", description: "Your details in a card at the top. Sections below, with a booking card that stays in view beside them.", layout: "rail", header: "card", wash: true, expertise: "chips", services: "checks", journey: "rows", radius: 18 },
-  { id: "rail-band", family: "Booking rail", name: "Band header", description: "Your details across a full-width band, then sections with the booking card beside them.", layout: "rail", header: "band", tone: "alt", expertise: "bullets", services: "bullets", journey: "rows", radius: 14 },
-  { id: "rail-plain", family: "Booking rail", name: "Open page", description: "No boxes: sections separated by fine lines, with the booking card beside them.", layout: "rail", header: "plain", expertise: "chips", services: "checks", journey: "rail", radius: 10 },
-  { id: "tabs-plain", family: "Tabbed profile", name: "Plain top", description: "Your details and the booking card side by side, then a tab bar that stays under the top of the screen.", layout: "tabs", header: "plain", expertise: "chips", services: "bullets", journey: "rows", radius: 14 },
-  { id: "tabs-card", family: "Tabbed profile", name: "Tinted top", description: "Like the plain top, on a tinted band behind your details and the booking card.", layout: "tabs", header: "card", expertise: "chips", services: "checks", journey: "rail", radius: 20 },
-  { id: "tabs-band", family: "Tabbed profile", name: "Colour band top", description: "Like the plain top, on a full colour band.", layout: "tabs", header: "band", tone: "alt", expertise: "tiles", services: "bullets", journey: "rail", radius: 14 },
-  { id: "clinic-split", family: "Practice website", name: "Photo beside text", description: "A site-style menu, a first screen with your photo beside your introduction, then banded sections and a closing call to book.", layout: "clinic", header: "card", expertise: "tiles", services: "cards", journey: "rows", radius: 16 },
-  { id: "clinic-centered", family: "Practice website", name: "Centred", description: "The same sections with the first screen centred: photo, name and introduction stacked.", layout: "clinic", header: "band", expertise: "chips", services: "cards", journey: "rail", radius: 20 },
-  { id: "clinic-compact", family: "Practice website", name: "Quiet introduction", description: "A restrained first screen with a small photo on the left and your next open times in a strip below.", layout: "clinic", header: "plain", expertise: "chips", services: "rows", journey: "rows", radius: 8 },
-  { id: "directory-card", family: "Directory card", name: "Profile card", description: "One compact column for phones: a profile card with key figures, then a card for each way to meet.", layout: "directory", header: "card", expertise: "chips", services: "rows", journey: "rows", radius: 12 },
-  { id: "directory-band", family: "Directory card", name: "Band and photo", description: "The profile card with a band across the top and the photo stepping over its edge.", layout: "directory", header: "band", expertise: "chips", services: "checks", journey: "rows", radius: 16 },
-  { id: "directory-flat", family: "Directory card", name: "Open profile", description: "The same compact column with an open profile at the top instead of a card.", layout: "directory", header: "plain", expertise: "chips", services: "checks", journey: "rows", radius: 12 },
-  { id: "narrative-right", family: "Narrative", name: "Photo right", description: "Your name large, your headline as a pull-quote and your photo on the right, then your story with a booking card beside it.", layout: "narrative", header: "card", expertise: "chips", services: "bullets", journey: "rows", radius: 12 },
-  { id: "narrative-left", family: "Narrative", name: "Photo left", description: "The story page with your photo on the left of your introduction.", layout: "narrative", header: "band", expertise: "cloud", services: "bullets", journey: "rows", radius: 8 },
-  { id: "narrative-centered", family: "Narrative", name: "Centred", description: "The story page with photo, name and pull-quote centred above it.", layout: "narrative", header: "plain", expertise: "chips", services: "bullets", journey: "rows", radius: 10 },
-  { id: "digital-card", family: "Digital card", name: "Link card", description: "One narrow column of big buttons for sharing a link: details, booking buttons, then folding sections.", layout: "card", expertise: "chips", services: "checks", journey: "rows", radius: 24 },
-  { id: "side-panel", family: "Side panel", name: "Side panel", description: "A panel with your photo, details and booking stays in view on one side while the page scrolls beside it.", layout: "panel", tone: "accent", expertise: "chips", services: "bullets", journey: "rail", radius: 12 },
-  { id: "folio", family: "Folio", name: "Folio", description: "A restrained personal page: your photo and details stay fixed on the left, with labelled sections and fine-lined cards scrolling on the right.", layout: "folio", expertise: "chips", services: "rows", journey: "rows", radius: 16 },
+  {
+    id: "link-page",
+    family: "Link page",
+    name: "Link page",
+    description:
+      "A plain personal page: your photo, name and links stay fixed on the left, and a card for each session, service, qualification and contact detail sits on the right. Only what you have filled in is shown.",
+    layout: "linkpage",
+    expertise: "chips",
+    services: "cards",
+    journey: "cards",
+    radius: 20,
+  },
+  {
+    id: "rail-card",
+    family: "Booking rail",
+    name: "Card header",
+    description:
+      "Your details in a card at the top. Sections below, with a booking card that stays in view beside them.",
+    layout: "rail",
+    header: "card",
+    wash: true,
+    expertise: "chips",
+    services: "checks",
+    journey: "rows",
+    radius: 18,
+  },
 ];
 
 export const LAYOUT_IDS = LAYOUTS.map((l) => l.id);
 export const LAYOUT_FAMILIES = [...new Set(LAYOUTS.map((l) => l.family))];
-export const isLayoutId = (value: unknown): value is LayoutId => LAYOUT_IDS.includes(value as LayoutId);
-export const getLayout = (id: LayoutId): LayoutSpec => LAYOUTS.find((l) => l.id === id) ?? LAYOUTS[0];
+export const isLayoutId = (value: unknown): value is LayoutId =>
+  LAYOUT_IDS.includes(value as LayoutId);
+export const getLayout = (id: LayoutId): LayoutSpec =>
+  LAYOUTS.find((l) => l.id === id) ??
+  LAYOUTS.find((l) => l.id === "rail-card")!;
 
 export const DEFAULT_SCHEME: SchemeId = "teal-white";
 export const DEFAULT_FONT: FontPairId = "jakarta";
 export const DEFAULT_SHAPE: PhotoShape = "circle";
+/** The original design's own photo shape. */
+export const ORIGINAL_SHAPE: PhotoShape = "blob";
 
 // ---- What a practitioner chooses ----
 
 export interface ProfileStyle {
   scheme?: SchemeId;
-  /** Replaces the scheme's accent colour (#rrggbb). */
-  accent?: string;
+  /** An older save's pair; headingFont and textFont replace it. */
   font?: FontPairId;
+  headingFont?: FaceId;
+  textFont?: FaceId;
   shape?: PhotoShape;
-  /** Sections switched off. */
-  hidden?: SectionKey[];
+  /** Colours picked for single parts of the page, on top of the scheme. */
+  colors?: ColorChoices;
 }
 
-const isFont = (v: unknown): v is FontPairId => FONT_PAIR_IDS.includes(v as FontPairId);
-const isShape = (v: unknown): v is PhotoShape => PHOTO_SHAPES.some((s) => s.id === v);
-const isSection = (v: unknown): v is SectionKey => SECTION_KEYS.includes(v as SectionKey);
+const isFont = (v: unknown): v is FontPairId =>
+  FONT_PAIR_IDS.includes(v as FontPairId);
+const isShape = (v: unknown): v is PhotoShape =>
+  PHOTO_SHAPES.some((s) => s.id === v);
 
 /** Keeps only valid choices, so a stored or submitted value can never put anything odd into the page's styles. */
-export function cleanStyle(input: { scheme?: unknown; accent?: unknown; font?: unknown; shape?: unknown; hidden?: unknown } | null | undefined): ProfileStyle | undefined {
+export function cleanStyle(
+  input:
+    | {
+        colors?: unknown;
+        scheme?: unknown;
+        font?: unknown;
+        headingFont?: unknown;
+        textFont?: unknown;
+        shape?: unknown;
+      }
+    | null
+    | undefined,
+): ProfileStyle | undefined {
   if (!input) return undefined;
   const style: ProfileStyle = {};
   if (isSchemeId(input.scheme)) style.scheme = input.scheme;
-  if (typeof input.accent === "string" && HEX.test(input.accent.trim())) style.accent = input.accent.trim().toLowerCase();
   if (isFont(input.font)) style.font = input.font;
+  if (isHeadingFace(input.headingFont)) style.headingFont = input.headingFont;
+  if (isTextFace(input.textFont)) style.textFont = input.textFont;
   if (isShape(input.shape)) style.shape = input.shape;
-  if (Array.isArray(input.hidden)) {
-    const hidden = SECTION_KEYS.filter((key) => (input.hidden as unknown[]).includes(key) && isSection(key));
-    if (hidden.length) style.hidden = hidden;
-  }
+  const colors = cleanColors(input.colors);
+  if (colors) style.colors = colors;
   return Object.keys(style).length ? style : undefined;
 }
 
-export function parseStyleJson(raw: string | null | undefined): ProfileStyle | undefined {
+export function parseStyleJson(
+  raw: string | null | undefined,
+): ProfileStyle | undefined {
   if (!raw) return undefined;
   try {
     return cleanStyle(JSON.parse(raw));
@@ -281,45 +642,55 @@ export function parseStyleJson(raw: string | null | undefined): ProfileStyle | u
 /** What each earlier whole template was made of, so a profile that chose one keeps the same look. */
 const PRESETS: Record<string, [LayoutId, SchemeId, FontPairId, PhotoShape]> = {
   clearwater: ["rail-card", "sky-green", "jakarta", "rounded"],
-  harbour: ["rail-band", "sand-petrol", "lexend-source", "circle"],
-  "sage-room": ["rail-plain", "sage", "sourceserif-sans", "rounded"],
+  harbour: ["rail-card", "sand-petrol", "lexend-source", "circle"],
+  "sage-room": ["rail-card", "sage", "sourceserif-sans", "rounded"],
   "evening-calm": ["rail-card", "navy-mint", "jakarta", "circle"],
-  compass: ["tabs-plain", "teal-white", "jakarta", "circle"],
-  "lilac-hour": ["tabs-card", "lavender-indigo", "nunito", "circle"],
-  "meadow-practice": ["tabs-band", "cream-olive", "sourceserif-sans", "rounded"],
-  "bright-practice": ["clinic-split", "clinic-blue", "jakarta", "rounded"],
-  "garden-clinic": ["clinic-centered", "leaf-green", "fraunces-public", "rounded"],
-  "quiet-practice": ["clinic-compact", "stone-slate", "instrument", "rounded"],
-  "primary-care": ["directory-card", "grey-navy", "jakarta", "circle"],
-  "everyday-health": ["directory-flat", "mint-green", "atkinson", "circle"],
-  "warm-reception": ["directory-band", "sand-clay", "fraunces-public", "circle"],
-  letter: ["narrative-right", "white-plum", "newsreader-inter", "rounded"],
-  journal: ["narrative-left", "paper-walnut", "newsreader-inter", "rounded"],
-  "open-window": ["narrative-centered", "sky-blue", "newsreader-inter", "oval"],
-  "pocket-practice": ["digital-card", "soft-teal", "nunito", "circle"],
-  "pocket-evening": ["digital-card", "forest-mint", "jakarta", "circle"],
-  anchor: ["side-panel", "deep-teal", "sourceserif-sans", "circle"],
-  "stone-panel": ["side-panel", "stone-terracotta", "fraunces-public", "rounded"],
+  compass: ["rail-card", "teal-white", "jakarta", "circle"],
+  "lilac-hour": ["rail-card", "lavender-indigo", "nunito", "circle"],
+  "meadow-practice": [
+    "rail-card",
+    "cream-olive",
+    "sourceserif-sans",
+    "rounded",
+  ],
+  "bright-practice": ["rail-card", "clinic-blue", "jakarta", "rounded"],
+  "garden-clinic": ["rail-card", "leaf-green", "fraunces-public", "rounded"],
+  "quiet-practice": ["rail-card", "stone-slate", "instrument", "rounded"],
+  "primary-care": ["rail-card", "grey-navy", "jakarta", "circle"],
+  "everyday-health": ["rail-card", "mint-green", "atkinson", "circle"],
+  "warm-reception": ["rail-card", "sand-clay", "fraunces-public", "circle"],
+  letter: ["rail-card", "white-plum", "newsreader-inter", "rounded"],
+  journal: ["rail-card", "paper-walnut", "newsreader-inter", "rounded"],
+  "open-window": ["rail-card", "sky-blue", "newsreader-inter", "oval"],
+  "pocket-practice": ["rail-card", "soft-teal", "nunito", "circle"],
+  "pocket-evening": ["rail-card", "forest-mint", "jakarta", "circle"],
+  anchor: ["rail-card", "deep-teal", "sourceserif-sans", "circle"],
+  "stone-panel": [
+    "rail-card",
+    "stone-terracotta",
+    "fraunces-public",
+    "rounded",
+  ],
   // The very first set.
-  linen: ["rail-plain", "sage", "sourceserif-sans", "rounded"],
-  atelier: ["clinic-compact", "stone-slate", "instrument", "rounded"],
-  tidepool: ["tabs-plain", "teal-white", "jakarta", "circle"],
+  linen: ["rail-card", "sage", "sourceserif-sans", "rounded"],
+  atelier: ["rail-card", "stone-slate", "instrument", "rounded"],
+  tidepool: ["rail-card", "teal-white", "jakarta", "circle"],
   "midnight-study": ["rail-card", "navy-mint", "jakarta", "circle"],
-  citrine: ["clinic-split", "clinic-blue", "jakarta", "rounded"],
-  orchard: ["clinic-centered", "leaf-green", "fraunces-public", "rounded"],
-  paperback: ["narrative-left", "paper-walnut", "newsreader-inter", "rounded"],
-  dusk: ["tabs-card", "lavender-indigo", "nunito", "circle"],
-  "slate-and-sun": ["directory-card", "grey-navy", "jakarta", "circle"],
-  cedar: ["side-panel", "stone-terracotta", "fraunces-public", "rounded"],
-  "meadow-notes": ["tabs-band", "cream-olive", "sourceserif-sans", "rounded"],
-  "bauhaus-calm": ["clinic-split", "clinic-blue", "jakarta", "rounded"],
-  "quiet-hour": ["narrative-right", "white-plum", "newsreader-inter", "rounded"],
-  "terracotta-arch": ["directory-band", "sand-clay", "fraunces-public", "circle"],
-  harbor: ["rail-band", "sand-petrol", "lexend-source", "circle"],
-  moonlit: ["digital-card", "forest-mint", "jakarta", "circle"],
-  peony: ["tabs-card", "lavender-indigo", "nunito", "circle"],
-  "studio-mono": ["directory-card", "grey-navy", "jakarta", "circle"],
-  saffron: ["directory-band", "sand-clay", "fraunces-public", "circle"],
+  citrine: ["rail-card", "clinic-blue", "jakarta", "rounded"],
+  orchard: ["rail-card", "leaf-green", "fraunces-public", "rounded"],
+  paperback: ["rail-card", "paper-walnut", "newsreader-inter", "rounded"],
+  dusk: ["rail-card", "lavender-indigo", "nunito", "circle"],
+  "slate-and-sun": ["rail-card", "grey-navy", "jakarta", "circle"],
+  cedar: ["rail-card", "stone-terracotta", "fraunces-public", "rounded"],
+  "meadow-notes": ["rail-card", "cream-olive", "sourceserif-sans", "rounded"],
+  "bauhaus-calm": ["rail-card", "clinic-blue", "jakarta", "rounded"],
+  "quiet-hour": ["rail-card", "white-plum", "newsreader-inter", "rounded"],
+  "terracotta-arch": ["rail-card", "sand-clay", "fraunces-public", "circle"],
+  harbor: ["rail-card", "sand-petrol", "lexend-source", "circle"],
+  moonlit: ["rail-card", "forest-mint", "jakarta", "circle"],
+  peony: ["rail-card", "lavender-indigo", "nunito", "circle"],
+  "studio-mono": ["rail-card", "grey-navy", "jakarta", "circle"],
+  saffron: ["rail-card", "sand-clay", "fraunces-public", "circle"],
   daybreak: ["rail-card", "sky-green", "jakarta", "rounded"],
 };
 
@@ -328,10 +699,32 @@ const PRESETS: Record<string, [LayoutId, SchemeId, FontPairId, PhotoShape]> = {
  * its layout, with that template's colours, typeface and photo shape filled in underneath whatever the style already says.
  * Anything unknown is no template, which is the original design.
  */
-export function normalizeSelection(stored: string | null | undefined, style: ProfileStyle | undefined): { template: LayoutId | undefined; style: ProfileStyle | undefined } {
+/** What the original design keeps of a profile's style: its colour scheme and typeface. */
+const originalOnly = (
+  style: ProfileStyle | undefined,
+): ProfileStyle | undefined => {
+  const kept: ProfileStyle = {};
+  if (style?.scheme) kept.scheme = style.scheme;
+  if (style?.font) kept.font = style.font;
+  if (style?.headingFont) kept.headingFont = style.headingFont;
+  if (style?.textFont) kept.textFont = style.textFont;
+  if (style?.shape) kept.shape = style.shape;
+  if (style?.colors) kept.colors = style.colors;
+  return Object.keys(kept).length ? kept : undefined;
+};
+
+export function normalizeSelection(
+  stored: string | null | undefined,
+  style: ProfileStyle | undefined,
+): { template: LayoutId | undefined; style: ProfileStyle | undefined } {
   if (isLayoutId(stored)) return { template: stored, style };
   const preset = stored ? PRESETS[stored] : undefined;
-  if (!preset) return { template: undefined, style: undefined };
+  // No layout is the original design, which keeps only its colour scheme and typeface.
+  if (!preset)
+    return {
+      template: undefined,
+      style: stored ? undefined : originalOnly(style),
+    };
   const [layout, scheme, font, shape] = preset;
   return { template: layout, style: { scheme, font, shape, ...style } };
 }
@@ -341,24 +734,87 @@ export function normalizeSelection(stored: string | null | undefined, style: Pro
 export interface ResolvedDesign {
   spec: LayoutSpec;
   palette: Palette;
-  font: FontPair;
+  font: ResolvedFont;
   shape: PhotoShape;
-  hidden: Set<SectionKey>;
   /** CSS variables for the page root. */
   vars: Record<string, string>;
 }
 
-export function resolvePalette(base: Palette, accentOverride?: string): Palette {
-  if (!accentOverride) return base;
-  // The tint follows the chosen accent, so a recoloured page stays one family instead of keeping a clashing panel.
-  return { ...base, accent: accentOverride, alt: mix(accentOverride, base.bg, base.dark ? 0.3 : 0.14) };
+// ---- Colours for single parts of the page ----
+
+/** A colour for each part of the page that can be set apart from the scheme. Anything left out keeps the scheme's. */
+export interface ColorChoices {
+  /** The page behind everything. */
+  page?: string;
+  /** Panels, tiles and soft highlights. */
+  panels?: string;
+  /** Headings and text. */
+  text?: string;
+  /** Buttons, links and small marks. */
+  accent?: string;
 }
 
-export function resolveDesign(id: LayoutId, style?: ProfileStyle): ResolvedDesign {
+export const COLOR_PARTS = ["page", "panels", "text", "accent"] as const;
+
+/** Keeps only plain #rrggbb colours, so nothing else can reach the page's styles. */
+export function cleanColors(input: unknown): ColorChoices | undefined {
+  if (!input || typeof input !== "object") return undefined;
+  const out: ColorChoices = {};
+  for (const part of COLOR_PARTS) {
+    const value = (input as Record<string, unknown>)[part];
+    if (typeof value === "string" && HEX.test(value.trim()))
+      out[part] = value.trim().toLowerCase();
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/** Moves a colour toward the end that reads on `bg` until it reaches `ratio`, so a choice never disappears into the page. */
+function readable(color: string, bg: string, ratio: number): string {
+  if (contrast(color, bg) >= ratio) return color;
+  const toward = isDark(bg) ? "#ffffff" : "#000000";
+  for (let t = 0.1; t <= 1; t += 0.1) {
+    const next = mix(toward, color, t);
+    if (contrast(next, bg) >= ratio) return next;
+  }
+  return toward;
+}
+
+/**
+ * The scheme's palette with the colours picked for single parts laid over it. A dark or light page that changes the
+ * scheme's mood brings matching text and cards with it, and text and accent are kept readable on whatever page results.
+ */
+export function resolvePalette(base: Palette, choices?: ColorChoices): Palette {
+  if (!choices) return base;
+  const bg = choices.page ?? base.bg;
+  const dark = choices.page ? isDark(bg) : Boolean(base.dark);
+  const flipped = dark !== Boolean(base.dark);
+  const surface = choices.page
+    ? dark
+      ? mix("#ffffff", bg, 0.08)
+      : mix("#ffffff", bg, 0.6)
+    : base.surface;
+  const ink = readable(
+    choices.text ?? (flipped ? (dark ? "#e8eef5" : "#17262c") : base.ink),
+    bg,
+    4.5,
+  );
+  const accent = readable(choices.accent ?? base.accent, bg, 3);
+  const alt =
+    choices.panels ??
+    (choices.accent || choices.page
+      ? mix(accent, bg, dark ? 0.3 : 0.14)
+      : base.alt);
+  return { bg, surface, ink, accent, alt, dark };
+}
+
+export function resolveDesign(
+  id: LayoutId,
+  style?: ProfileStyle,
+): ResolvedDesign {
   const spec = getLayout(id);
   const scheme = getScheme(style?.scheme ?? DEFAULT_SCHEME);
-  const palette = resolvePalette(scheme.palette, style?.accent);
-  const font = getFontPair(style?.font ?? DEFAULT_FONT);
+  const palette = resolvePalette(scheme.palette, style?.colors);
+  const font = resolveFont(style);
   const shape = style?.shape ?? DEFAULT_SHAPE;
   const { bg, surface, ink, accent, alt } = palette;
   const border = mix(ink, bg, palette.dark ? 0.18 : 0.12);
@@ -377,7 +833,8 @@ export function resolveDesign(id: LayoutId, style?: ProfileStyle): ResolvedDesig
     "--pt-accent": accent,
     "--pt-accent-hover": darken(accent, 0.14),
     "--pt-accent-foreground": accentOn,
-    "--pt-accent-text": contrast(accent, bg) >= 4.5 ? accent : readableOn(bg, accent, ink),
+    "--pt-accent-text":
+      contrast(accent, bg) >= 4.5 ? accent : readableOn(bg, accent, ink),
     "--pt-alt": alt,
     "--pt-alt-foreground": altOn,
     "--pt-tone": tone,
@@ -400,8 +857,35 @@ export function resolveDesign(id: LayoutId, style?: ProfileStyle): ResolvedDesig
     "--pt-display-weight": String(font.weight),
     "--pt-display-tracking": font.tracking,
     "--pt-label": `var(${font.body})`,
-    "--pt-page": spec.wash ? `linear-gradient(180deg, ${alt} 0, ${bg} 38rem)` : bg,
+    "--pt-page": spec.wash
+      ? `linear-gradient(180deg, ${alt} 0, ${bg} 38rem)`
+      : bg,
   };
 
-  return { spec, palette, font, shape, hidden: new Set(style?.hidden ?? []), vars };
+  return {
+    spec,
+    palette,
+    font,
+    shape,
+    vars,
+  };
+}
+
+const channels = (hex: string) =>
+  [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+/**
+ * The colour scheme whose page and accent colours are closest to one of the original design's colour themes. A profile
+ * that has no scheme yet is shown, and edited, in this one, so what the picker marks is what the page uses.
+ */
+export function nearestScheme(colorTheme: string | undefined): SchemeId {
+  const theme = COLOR_THEMES.find((t) => t.id === colorTheme);
+  if (!theme) return DEFAULT_SCHEME;
+  const gap = (a: string, b: string) =>
+    channels(a).reduce((sum, v, i) => sum + (v - channels(b)[i]) ** 2, 0);
+  const distance = (s: Scheme) =>
+    gap(s.palette.bg, theme.swatches[0]) +
+    gap(s.palette.accent, theme.swatches[2]);
+  return SCHEMES.reduce((best, s) => (distance(s) < distance(best) ? s : best))
+    .id;
 }
