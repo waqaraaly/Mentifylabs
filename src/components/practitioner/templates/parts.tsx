@@ -48,12 +48,23 @@ export function Verified({ className = "size-[0.5em]" }: { className?: string })
 }
 
 /** The name as the page's main heading, with the verified tick beside it. */
-export function Name({ m, size = "pt-h1", className = "" }: { m: ProfileModel; size?: string; className?: string }) {
+export function Name({
+  m,
+  size = "pt-h1",
+  tick = "text-[0.5em]",
+  className = "",
+}: {
+  m: ProfileModel;
+  size?: string;
+  /** The tick is one em of this text size, as a fraction of the name's size. */
+  tick?: string;
+  className?: string;
+}) {
   return (
     <h1 className={`pt-display ${size} [overflow-wrap:anywhere] ${className}`}>
       {m.practitioner.fullName}
       {m.verified && (
-        <span className="ml-[0.28em] inline-flex align-middle text-[0.5em]">
+        <span className={`ml-[0.28em] inline-flex align-middle ${tick}`}>
           <Verified className="size-[1em]" />
         </span>
       )}
@@ -337,8 +348,8 @@ function JourneyGroup({ label, entries, variant }: { label: string; entries: Ent
 
 export function Journey({ m, variant }: { m: ProfileModel; variant: JourneyStyle }) {
   const groups = [
-    { label: "Education", entries: m.education },
     { label: "Experience", entries: m.experience },
+    { label: "Education", entries: m.education },
   ].filter((g) => g.entries.length > 0);
   if (groups.length === 0) return null;
   const sideBySide = groups.length > 1 && variant !== "rows";

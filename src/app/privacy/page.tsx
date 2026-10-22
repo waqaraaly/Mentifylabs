@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
         </p>
 
         <Section title="1. Information we collect">
-          <p><strong className="text-foreground">From Practitioners:</strong> full name, professional title, email, phone, profile photo, bio, qualifications, and a verification document (e.g. a license or certificate) if you choose to submit one, used only to confirm your credentials.</p>
+          <p><strong className="text-foreground">From Practitioners:</strong> full name, professional title, email, phone, profile photo, introduction, qualifications, and a verification document (e.g. a license or certificate) if you choose to submit one, used only to confirm your credentials.</p>
           <p><strong className="text-foreground">From Clients:</strong> the name, email, and phone number you give us when requesting or booking an appointment, and any notes you choose to include with a booking request.</p>
           <p><strong className="text-foreground">Automatically:</strong> basic technical data (IP address, browser type, pages visited) used for security, fraud prevention, and keeping the service working. We do not use third-party advertising trackers.</p>
         </Section>
@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
         </Section>
 
         <Section title="4. Who can see what">
-          <p>A Practitioner&rsquo;s public profile (name, title, bio, specializations, contact details marked public) is visible to anyone who visits their page.</p>
+          <p>A Practitioner&rsquo;s public profile (name, title, introduction, specializations, contact details marked public) is visible to anyone who visits their page.</p>
           <p>Booking requests, private contact details, and verification documents are visible only to the Practitioner they belong to and to our Super Admin team, and are never published publicly.</p>
         </Section>
 

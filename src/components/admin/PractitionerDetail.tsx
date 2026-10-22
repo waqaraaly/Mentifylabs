@@ -473,7 +473,7 @@ function OverviewTab({ p }: { p: Practitioner }) {
         {p.shortBio ? <div style={{ fontSize: 15, fontWeight: 500, color: "var(--ml-ink)", lineHeight: 1.5 }}>{p.shortBio}</div> : none("Not added")}
       </SheetRow>
 
-      <SheetRow label="Bio">
+      <SheetRow label="Introduction">
         <div style={{ fontSize: 14, color: "var(--ml-ink-2)", lineHeight: 1.7, whiteSpace: "pre-line" }}>{p.bio?.trim() ? p.bio : none("Not added")}</div>
       </SheetRow>
 

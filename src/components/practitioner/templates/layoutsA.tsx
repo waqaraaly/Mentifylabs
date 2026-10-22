@@ -1,11 +1,8 @@
 import type { ProfileModel } from "@/components/practitioner/templates/model";
 import {
-  Badges,
   Card,
   ContactList,
-  Credentials,
   FactList,
-  HowBooking,
   Name,
   Portrait,
   SectionTitle,
@@ -13,7 +10,7 @@ import {
 } from "@/components/practitioner/templates/parts";
 import { BookingCard, WRAP, blocks, toneStyle, type Block, type LayoutProps } from "@/components/practitioner/templates/shared";
 
-/** Photo, name, credentials, trust badges and the headline: the part every health profile opens with. */
+/** Photo, name, title and the headline. Every other detail is shown once, in the information card beside the sections. */
 function Identity({ m, d, photo = "w-28 sm:w-36" }: LayoutProps & { photo?: string }) {
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
@@ -22,8 +19,7 @@ function Identity({ m, d, photo = "w-28 sm:w-36" }: LayoutProps & { photo?: stri
         <div className="pt-rise" style={rise(1)}>
           <Name m={m} />
         </div>
-        <Credentials m={m} className="pt-rise mt-2" />
-        <Badges m={m} className="pt-rise mt-4" />
+        <p className="pt-rise mt-2 text-[1.0625rem] font-semibold text-(--pt-accent-text) [overflow-wrap:anywhere]">{m.title}</p>
         {m.headline && (
           <p className="pt-rise mt-5 max-w-[60ch] text-[1.0625rem] leading-relaxed text-(--pt-tagline) [overflow-wrap:anywhere]" style={rise(3)}>
             {m.headline}
@@ -105,10 +101,6 @@ export function LayoutRail({ m, d }: LayoutProps) {
       <div className={`${WRAP} grid gap-8 pt-8 pb-20 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 ${flat ? "border-t border-(--pt-border) mt-0" : ""}`}>
         <div className="min-w-0 space-y-6">
           <SectionList list={list} flat={flat} />
-          <Card className={flat ? "!bg-transparent !p-0 !shadow-none" : ""}>
-            <h2 className="pt-display pt-h2 mb-5">How booking works</h2>
-            <HowBooking />
-          </Card>
         </div>
         <aside id="contact" className="scroll-mt-24 space-y-6 self-start lg:sticky lg:top-6">
           <BookingCard m={m} />

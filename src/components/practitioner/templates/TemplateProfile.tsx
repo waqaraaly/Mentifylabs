@@ -65,8 +65,8 @@ export function TemplateProfile({
         <Layout m={m} d={design} />
       </div>
 
-      <footer className="relative z-[2] mx-auto w-full max-w-6xl px-5 pb-28 sm:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-(--pt-border) pt-7 text-sm text-(--pt-muted)">
+      <footer className="relative z-[2] mt-20 w-full border-t border-(--pt-border) pb-24">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-6 text-sm text-(--pt-muted) sm:px-8">
           <p>
             Powered by <span className="font-medium text-(--pt-text)">{siteConfig.name}</span>
           </p>

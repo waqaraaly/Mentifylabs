@@ -22,6 +22,17 @@ describe("what the profile editor's form says about the profile", () => {
     expect(p.location).toBeUndefined();
   });
 
+  it("cuts a new headline at 120 characters", () => {
+    expect(PROFILE_LIMITS.shortBio).toBe(120);
+    expect(parse({ shortBio: "h".repeat(400) }).shortBio).toHaveLength(120);
+  });
+
+  it("keeps an older, longer headline while it is unchanged, and cuts it once it is edited", () => {
+    const old = "o".repeat(200);
+    expect(parseProfileForm(form({ shortBio: old }), "PKR", old).shortBio).toHaveLength(200);
+    expect(parseProfileForm(form({ shortBio: old + "!" }), "PKR", old).shortBio).toHaveLength(120);
+  });
+
   it("tidies each list: blanks dropped, entries trimmed and limited, no more than 30", () => {
     const many = Array.from({ length: 40 }, (_, i) => `Area ${i}`);
     const p = parse({ specializations: ["  Anxiety ", "", "   ", "x".repeat(500)], services: many });

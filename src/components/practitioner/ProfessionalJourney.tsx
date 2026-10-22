@@ -4,13 +4,14 @@ import { useState } from "react";
 import type { Practitioner } from "@/types/practitioner";
 import { HighlightMark } from "@/components/ui/HighlightMark";
 import { ArrowScroller } from "@/components/ui/ArrowScroller";
+import { displayYears } from "@/lib/years";
 
 type Entry = { title: string; subtitle: string; years: string; startYear: number };
 
 function parseEntry(raw: string): Entry {
   const [title = "", subtitle = "", years = ""] = raw.split(",").map((part) => part.trim());
   const startYear = Number(years.match(/\d{4}/)?.[0] ?? 0);
-  return { title, subtitle, years, startYear };
+  return { title, subtitle, years: displayYears(years), startYear };
 }
 
 // Oldest first, most recent/advanced last — so the timeline below reads

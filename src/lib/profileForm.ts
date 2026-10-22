@@ -1,4 +1,5 @@
 import { resolveCurrency } from "@/lib/currencies";
+import { cleanEntryYears } from "@/lib/years";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
 import { DEFAULT_COLOR_THEME, isColorThemeId } from "@/lib/themes";
 import { cleanStyle, isLayoutId, type LayoutId, type ProfileStyle } from "@/lib/templates";
@@ -6,9 +7,12 @@ import { safeHttpUrl } from "@/lib/url";
 import type { ContactMethod, Practitioner, SessionType, SocialLink } from "@/types/practitioner";
 
 /** Generous limits that still stop someone storing megabytes in a profile field. */
-export const PROFILE_LIMITS = { name: 120, title: 120, shortBio: 300, bio: 5000, item: 200, items: 30, location: 160, currency: 6, years: 80 };
+export const PROFILE_LIMITS = { name: 120, title: 120, shortBio: 120, bio: 5000, item: 200, items: 30, location: 160, currency: 6, years: 80 };
 
 const SESSION_TYPES: SessionType[] = ["online", "offline", "both"];
+
+/** The most an older headline, saved before the limit was 120, can still hold. */
+const LEGACY_HEADLINE_MAX = 300;
 
 const clip = (value: FormDataEntryValue | null, max: number) => value?.toString().trim().slice(0, max) ?? "";
 
@@ -20,11 +24,16 @@ function stringList(formData: FormData, name: string): string[] {
     .slice(0, PROFILE_LIMITS.items);
 }
 
+/** A timeline list (education, work), with each entry's years made plain: only years, the current year for "Present". */
+function entryList(formData: FormData, name: string): string[] {
+  return stringList(formData, name).map((entry) => cleanEntryYears(entry));
+}
+
 /** The template and the changes made to it, from the Appearance fields. Shared with the private preview, which reads the same fields from the address. */
 export function parseAppearance(get: (name: string) => string | undefined): { template: LayoutId | undefined; style: ProfileStyle | undefined } {
   const requested = get("template");
   const template = isLayoutId(requested) ? requested : undefined;
-  const style = cleanStyle({ scheme: get("scheme"), font: get("font"), headingFont: get("headingFont"), textFont: get("textFont"), shape: get("shape"), colors: { page: get("colorPage"), panels: get("colorPanels"), text: get("colorText"), accent: get("colorAccent") } });
+  const style = cleanStyle({ colorMode: get("colorMode"), scheme: get("scheme"), font: get("font"), headingFont: get("headingFont"), textFont: get("textFont"), shape: get("shape"), colors: { page: get("colorPage"), panels: get("colorPanels"), text: get("colorText"), accent: get("colorAccent"), frame: get("colorFrame"), ring: get("colorRing"), underline: get("colorUnderline"), hi: get("colorHi") } });
   return { template, style };
 }
 
@@ -32,7 +41,10 @@ export function parseAppearance(get: (name: string) => string | undefined): { te
  * What the profile editor's form says about the public profile, tidied and limited the way it is when saved.
  * `currentCurrency` is the one already saved: a missing or odd currency never resets it.
  */
-export function parseProfileForm(formData: FormData, currentCurrency: string): Partial<Omit<Practitioner, "slug">> {
+export function parseProfileForm(formData: FormData, currentCurrency: string, currentHeadline = ""): Partial<Omit<Practitioner, "slug">> {
+  // A headline saved before the limit existed is kept as it is while it is unchanged; a new or edited one is cut at the limit.
+  const headline = formData.get("shortBio")?.toString().trim() ?? "";
+  const keepsOld = headline !== "" && headline === currentHeadline.trim();
   const socialLinks: SocialLink[] = SOCIAL_PLATFORMS.flatMap(({ platform }) => {
     const url = safeHttpUrl(formData.get(`social_${platform}`)?.toString());
     return url ? [{ platform, url }] : [];
@@ -62,14 +74,14 @@ export function parseProfileForm(formData: FormData, currentCurrency: string): P
   return {
     fullName: clip(formData.get("fullName"), PROFILE_LIMITS.name),
     professionalTitle: clip(formData.get("professionalTitle"), PROFILE_LIMITS.title),
-    shortBio: clip(formData.get("shortBio"), PROFILE_LIMITS.shortBio) || undefined,
+    shortBio: (keepsOld ? headline.slice(0, LEGACY_HEADLINE_MAX) : headline.slice(0, PROFILE_LIMITS.shortBio)) || undefined,
     bio: clip(formData.get("bio"), PROFILE_LIMITS.bio),
     specializations: stringList(formData, "specializations"),
     languages: stringList(formData, "languages"),
     services: stringList(formData, "services"),
     experienceYears: Math.min(PROFILE_LIMITS.years, Math.max(0, Math.trunc(Number(formData.get("experienceYears")) || 0))),
-    education: stringList(formData, "education"),
-    workExperience: stringList(formData, "workExperience"),
+    education: entryList(formData, "education"),
+    workExperience: entryList(formData, "workExperience"),
     sessionType: SESSION_TYPES.includes(formData.get("sessionType") as SessionType) ? (formData.get("sessionType") as SessionType) : "both",
     feeRange: {
       currency: resolveCurrency(formData.get("feeCurrency"), currentCurrency),

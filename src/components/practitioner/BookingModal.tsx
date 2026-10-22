@@ -393,34 +393,36 @@ export function BookingModal({
               </div>
             ) : step === 1 ? (
               <div className="space-y-8">
-                {offersOnline && offersOffline && (
+                {(offersOnline || offersOffline) && (
                   <div>
                     <p className="text-xs font-semibold tracking-[0.1em] text-(--pt-muted) uppercase">
                       Session mode
                     </p>
+                    {/* Both modes are always listed. One with no open times cannot be pressed, and the other is selected. */}
                     <div className="mt-3 grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => chooseFormat("online")}
-                        className={`rounded-2xl border-2 py-4 text-center text-base font-semibold transition ${
-                          activeFormat === "online"
-                            ? "border-(--pt-accent) bg-(--pt-accent) text-(--pt-accent-foreground)"
-                            : "border-(--pt-border) text-(--pt-text) hover:border-(--pt-accent)/40"
-                        }`}
-                      >
-                        Online
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => chooseFormat("offline")}
-                        className={`rounded-2xl border-2 py-4 text-center text-base font-semibold transition ${
-                          activeFormat === "offline"
-                            ? "border-(--pt-accent) bg-(--pt-accent) text-(--pt-accent-foreground)"
-                            : "border-(--pt-border) text-(--pt-text) hover:border-(--pt-accent)/40"
-                        }`}
-                      >
-                        On-Site
-                      </button>
+                      {(
+                        [
+                          ["online", "Online", offersOnline],
+                          ["offline", "On-Site", offersOffline],
+                        ] as const
+                      ).map(([value, label, offered]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          disabled={!offered}
+                          aria-pressed={activeFormat === value}
+                          onClick={() => chooseFormat(value)}
+                          className={`rounded-2xl border-2 py-4 text-center text-base font-semibold transition ${
+                            !offered
+                              ? "cursor-not-allowed border-(--pt-border) text-(--pt-muted) opacity-50"
+                              : activeFormat === value
+                                ? "border-(--pt-accent) bg-(--pt-accent) text-(--pt-accent-foreground)"
+                                : "border-(--pt-border) text-(--pt-text) hover:border-(--pt-accent)/40"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}

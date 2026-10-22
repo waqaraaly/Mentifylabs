@@ -29,7 +29,7 @@ export function avatarTone(seed: string): string {
 export function computeProfileGaps(p: Practitioner): string[] {
   const gaps: string[] = [];
   if (!p.photoUrl) gaps.push("Profile photo");
-  if (!p.bio || p.bio.trim().length < 120) gaps.push("Bio (120+ characters)");
+  if (!p.bio || p.bio.trim().length < 120) gaps.push("Introduction (120+ characters)");
   if (!hasFeeRange(p.feeRange)) gaps.push("Fee range");
   if (p.specializations.length === 0) gaps.push("Specializations");
   return gaps;

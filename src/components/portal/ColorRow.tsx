@@ -1,120 +1,139 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { useState } from "react";
+import { RotateCcw } from "lucide-react";
 
-export interface ColorOption {
-  name: string;
-  hex: string;
+/** "#abc", "abc", "#aabbcc" or "AABBCC" as "#aabbcc"; anything else is not a hex code. */
+function parseHex(text: string): string | null {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text.trim());
+  if (!m) return null;
+  const h = m[1].toLowerCase();
+  const full = h.length === 3 ? [...h].map((c) => c + c).join("") : h;
+  return `#${full}`;
 }
 
-const same = (a?: string, b?: string) =>
-  (a ?? "").toLowerCase() === (b ?? "").toLowerCase();
+/**
+ * A hex code, or a CSS colour name such as "teal" or "rebeccapurple", as "#rrggbb". The browser does the naming: a
+ * canvas keeps its previous colour when it is given something it cannot read, so a text that gives the same result
+ * against two different starting colours is a real, opaque colour.
+ */
+function parseColor(text: string): string | null {
+  const hex = parseHex(text);
+  if (hex) return hex;
+  const name = text.trim().toLowerCase();
+  if (!/^[a-z]{3,30}$/.test(name) || typeof document === "undefined")
+    return null;
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx) return null;
+  ctx.fillStyle = "#000000";
+  ctx.fillStyle = name;
+  const first = ctx.fillStyle;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = name;
+  return first === ctx.fillStyle && first.startsWith("#") ? first : null;
+}
 
 /**
- * One part of the page and the colour it takes: the scheme's own colour first, then a few suggestions, then any colour
- * from the picker. Nothing chosen means the scheme's colour is used.
+ * One part of the page and its colour, on a single line: a swatch that opens the colour picker, the part's name, and a
+ * field for any colour code or colour name. Until a colour is entered the part keeps the starting colour.
  */
 export function ColorRow({
   label,
   hint,
-  options,
-  schemeColor,
+  startColor,
   value,
   onChange,
 }: {
   label: string;
   hint: string;
-  options: ColorOption[];
-  /** What this part is in the scheme, shown as the first choice. */
-  schemeColor: string;
+  /** The colour this part has until the person sets one. */
+  startColor: string;
   value: string | undefined;
   onChange: (hex: string | undefined) => void;
 }) {
-  const custom = value && !options.some((o) => same(o.hex, value));
+  /** What is being typed, while it is being typed; null shows the colour in use. */
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const current = value ?? startColor;
+  const invalid = draft !== null && draft.trim() !== "" && !parseColor(draft);
 
   return (
-    <div>
-      <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3">
-        <h4 className="text-sm font-semibold">{label}</h4>
-        <p className="text-sm text-muted">{hint}</p>
-      </div>
-      <div
-        role="radiogroup"
-        aria-label={label}
-        className="flex flex-wrap items-center gap-2.5"
-      >
-        <Dot
-          name="Scheme colour"
-          hex={schemeColor}
-          on={!value}
-          onClick={() => onChange(undefined)}
-        />
-        {options.map((o) => (
-          <Dot
-            key={o.hex}
-            name={o.name}
-            hex={o.hex}
-            on={same(value, o.hex)}
-            onClick={() => onChange(o.hex)}
-          />
-        ))}
+    <div className="px-5 py-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <label
-          className={`relative flex size-9 cursor-pointer items-center justify-center overflow-hidden rounded-full transition hover:scale-105 ${custom ? "ring-2 ring-primary ring-offset-2" : "ring-1 ring-black/[0.15]"}`}
-          title="Choose any colour"
+          className="relative size-10 shrink-0 cursor-pointer overflow-hidden rounded-lg ring-1 ring-black/10 transition focus-within:ring-2 focus-within:ring-primary hover:ring-black/30"
+          title="Pick a colour"
         >
           <span
             aria-hidden
             className="absolute inset-0"
-            style={{
-              background: custom
-                ? value
-                : "conic-gradient(#e0554a, #e9b13a, #7cb35a, #3d9bb5, #6a62c4, #d65a9a, #e0554a)",
-            }}
-          />
-          <span
-            aria-hidden
-            className="relative size-3.5 rounded-full bg-white ring-1 ring-black/20"
+            style={{ background: current }}
           />
           <input
             type="color"
-            aria-label={`Choose any colour for ${label.toLowerCase()}`}
-            value={value ?? schemeColor}
-            onChange={(e) => onChange(e.target.value)}
+            aria-label={`Pick a colour for ${label.toLowerCase()}`}
+            value={current}
+            onChange={(e) => {
+              setDraft(null);
+              onChange(e.target.value);
+            }}
             className="absolute inset-0 size-full cursor-pointer opacity-0"
           />
         </label>
-      </div>
-    </div>
-  );
-}
 
-function Dot({
-  name,
-  hex,
-  on,
-  onClick,
-}: {
-  name: string;
-  hex: string;
-  on: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={on}
-      aria-label={name}
-      title={name}
-      onClick={onClick}
-      className={`flex size-9 cursor-pointer items-center justify-center rounded-full transition hover:scale-105 ${on ? "ring-2 ring-primary ring-offset-2" : "ring-1 ring-black/[0.15]"}`}
-      style={{ background: hex }}
-    >
-      <Check
-        className={`size-4 text-white mix-blend-difference ${on ? "opacity-100" : "opacity-0"}`}
-        strokeWidth={3}
-        aria-hidden
-      />
-    </button>
+        <div className="min-w-44 flex-1">
+          <span className="block text-sm font-medium">{label}</span>
+          <span className="block text-[13px] leading-snug text-muted">
+            {hint}
+          </span>
+        </div>
+
+        <input
+          type="text"
+          spellCheck={false}
+          autoComplete="off"
+          maxLength={30}
+          aria-label={`Colour code or name for ${label.toLowerCase()}`}
+          aria-invalid={invalid}
+          placeholder="#1F6F5C or teal"
+          value={draft ?? current.toUpperCase()}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            const hex = parseColor(e.target.value);
+            if (hex) onChange(hex);
+          }}
+          onBlur={() => setDraft(null)}
+          onKeyDown={(e) => {
+            // This sits inside the profile form; Enter confirms the colour and must not save the page.
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          className={`h-10 w-36 shrink-0 rounded-lg border bg-background px-3 font-mono text-sm focus-visible:ring-2 focus-visible:outline-none ${invalid ? "border-red-500 focus-visible:ring-red-500" : "border-border focus-visible:ring-primary"}`}
+        />
+
+        <button
+          type="button"
+          disabled={!value}
+          aria-label={`Reset ${label.toLowerCase()} to its starting colour`}
+          onClick={() => {
+            setDraft(null);
+            onChange(undefined);
+          }}
+          className="flex h-10 w-14 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-lg text-sm text-muted transition hover:text-foreground disabled:pointer-events-none disabled:opacity-0"
+        >
+          <RotateCcw className="size-3.5" aria-hidden />
+          Reset
+        </button>
+      </div>
+
+      {invalid && (
+        <p className="mt-2 pl-14 text-xs text-red-600" role="alert">
+          Enter a colour code like #1F6F5C, or a colour name like teal.
+        </p>
+      )}
+    </div>
   );
 }

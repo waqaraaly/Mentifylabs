@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { settingsInputClass } from "@/components/portal/SettingsRow";
+import { toYear, yearDigits } from "@/lib/years";
 
 interface Entry {
   id: string;
@@ -24,7 +25,8 @@ function parse(raw: string): Omit<Entry, "id"> {
   const years = hasYears ? last : "";
   const place = parts.slice(1, hasYears ? -1 : undefined).join(" ");
   const [from = "", to = ""] = years.split(/\s*[–—-]\s*/);
-  return { title, place, from, to };
+  // An older "Present" is now the current year.
+  return { title, place, from: toYear(from), to: toYear(to) };
 }
 
 function serialize(e: Entry): string {
@@ -111,8 +113,8 @@ export function EntryListEditor({
                 <input
                   id={`${entry.id}-from`}
                   value={entry.from}
-                  onChange={(e) => update(entry.id, { from: e.target.value })}
-                  placeholder="2018"
+                  onChange={(e) => update(entry.id, { from: yearDigits(e.target.value) })}
+                  placeholder="YYYY"
                   inputMode="numeric"
                   maxLength={4}
                   className={`${settingsInputClass} !bg-surface`}
@@ -125,12 +127,18 @@ export function EntryListEditor({
                 <input
                   id={`${entry.id}-to`}
                   value={entry.to}
-                  onChange={(e) => update(entry.id, { to: e.target.value })}
-                  placeholder="Present"
-                  maxLength={7}
+                  onChange={(e) => update(entry.id, { to: yearDigits(e.target.value) })}
+                  placeholder="YYYY"
+                  inputMode="numeric"
+                  maxLength={4}
                   className={`${settingsInputClass} !bg-surface`}
                 />
               </div>
+              {entry.from.length === 4 && entry.to.length === 4 && entry.to < entry.from && (
+                <p className="pb-2.5 text-xs text-alert" role="alert">
+                  To can&rsquo;t be before From.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => remove(entry.id)}
@@ -147,9 +155,9 @@ export function EntryListEditor({
       <button
         type="button"
         onClick={add}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-black/[0.04] px-4 py-2 text-sm font-medium transition hover:bg-black/[0.07]"
+        className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-primary bg-surface px-3.5 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
       >
-        <Plus className="size-4" aria-hidden />
+        <Plus className="size-3.5" aria-hidden />
         {addLabel}
       </button>
     </div>

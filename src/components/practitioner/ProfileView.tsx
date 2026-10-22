@@ -4,7 +4,12 @@ import { Eye } from "lucide-react";
 import type { Practitioner } from "@/types/practitioner";
 import type { Slot } from "@/types/slot";
 import { DEFAULT_COLOR_THEME } from "@/lib/themes";
-import { chosenFaces, getScheme, resolvePalette } from "@/lib/templates";
+import {
+  activeColors,
+  chosenFaces,
+  effectivePalette,
+  getScheme,
+} from "@/lib/templates";
 import { originalThemeVars } from "@/lib/originalTheme";
 import { TEMPLATE_FONT_CLASSES } from "@/components/practitioner/templates/fonts";
 import { ProfileBody } from "@/components/practitioner/ProfileBody";
@@ -49,14 +54,37 @@ export function ProfileView({
   }
 
   const faces = chosenFaces(practitioner.style);
-  const scheme = practitioner.style?.scheme
-    ? getScheme(practitioner.style.scheme)
-    : null;
+  // A ready-made scheme, or the person's own colours, replaces the colour theme; neither means the theme stays as it was.
+  const picked =
+    practitioner.style?.colorMode !== "custom" && practitioner.style?.scheme
+      ? getScheme(practitioner.style.scheme)
+      : undefined;
+  // A scheme that is one of the original colour themes keeps that theme's own styling here, as it was made.
+  const ownTheme =
+    picked?.originalTheme && !activeColors(practitioner.style)
+      ? picked.originalTheme
+      : undefined;
+  const usesPalette =
+    !ownTheme &&
+    (Boolean(practitioner.style?.scheme) ||
+      practitioner.style?.colorMode === "custom");
+  const own = usesPalette ? activeColors(practitioner.style) : undefined;
   const hasFaces = Boolean(faces.display || faces.body);
   const style = (
-    scheme || hasFaces
+    usesPalette || hasFaces
       ? {
-          ...(scheme ? originalThemeVars(resolvePalette(scheme.palette, practitioner.style?.colors)) : {}),
+          ...(usesPalette
+            ? originalThemeVars(effectivePalette(practitioner.style))
+            : {}),
+          // The border colours picked for this design; the ring follows the frame until it has a colour of its own.
+          ...(own?.frame
+            ? { "--pt-outer": own.frame, "--pt-ring": own.frame }
+            : {}),
+          ...(own?.ring ? { "--pt-ring": own.ring } : {}),
+          // The soft tint behind badges and hovers: any colour picked, otherwise a tint of the button colour.
+          ...(own?.hi ? { "--pt-tint2": own.hi } : {}),
+          // The highlight behind section headings: any colour picked, otherwise a tint of the button colour.
+          ...(own?.underline ? { "--pt-marker": own.underline } : {}),
           ...(faces.body
             ? { fontFamily: `var(${faces.body}), system-ui, sans-serif` }
             : {}),
@@ -69,7 +97,7 @@ export function ProfileView({
 
   return (
     <main
-      data-pt-theme={practitioner.colorTheme ?? DEFAULT_COLOR_THEME}
+      data-pt-theme={ownTheme ?? practitioner.colorTheme ?? DEFAULT_COLOR_THEME}
       // A colour scheme or typeface chosen for the original design replaces its colour theme and its Inter.
       data-pt-headings={faces.display ? "" : undefined}
       style={style}
@@ -107,7 +135,7 @@ export function ProfileView({
 
         {/* The footer follows the last section after a fixed gap, whatever the screen height. The floating booking bar rests
             over the page, so the room for it is inside the page, under the footer, not in the frame. */}
-        <div className={preview ? "" : "pb-20"}>
+        <div className="pb-20">
           <ProfileFooter />
         </div>
       </div>

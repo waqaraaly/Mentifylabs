@@ -12,7 +12,7 @@ export async function updateProfileAction(formData: FormData) {
   const slug = await requireOwnSlug(formData.get("slug")?.toString());
   const me = await getCurrentPractitioner();
   await updatePractitionerProfile(slug, {
-    ...parseProfileForm(formData, me.feeRange.currency),
+    ...parseProfileForm(formData, me.feeRange.currency, me.shortBio),
     ...(me.profileSavedAt ? {} : { profileSavedAt: new Date().toISOString() }),
   });
 

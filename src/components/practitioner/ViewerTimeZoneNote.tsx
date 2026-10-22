@@ -20,7 +20,7 @@ export function ViewerTimeZoneNote({
   if (format === "offline") {
     return (
       <p className="text-sm text-(--pt-muted)">
-        Sessions on-site are at {friendlyZone(practitionerZone)} time ({zoneTag(practitionerZone)}), where the practitioner is.
+        Times shown in {friendlyZone(practitionerZone)} ({zoneTag(practitionerZone)})
       </p>
     );
   }

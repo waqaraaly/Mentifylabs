@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Check, ExternalLink } from "lucide-react";
 import {
   DEFAULT_FONT,
@@ -15,7 +15,10 @@ import {
   nearestScheme,
   pairFaces,
   getScheme,
+  resolvePalette,
+  CUSTOM_BASE,
   type ColorChoices,
+  type ColorMode,
   type FaceId,
   type LayoutId,
   type PhotoShape,
@@ -25,9 +28,14 @@ import {
 import { DEFAULT_COLOR_THEME, type ColorThemeId } from "@/lib/themes";
 import { SHAPE_STYLE } from "@/components/practitioner/templates/parts";
 import { TEMPLATE_FONT_CLASSES } from "@/components/practitioner/templates/fonts";
-import { ColorRow, type ColorOption } from "@/components/portal/ColorRow";
+import { mix } from "@/lib/color";
+import { ColorDialog } from "@/components/portal/ColorDialog";
+import { ColorRow } from "@/components/portal/ColorRow";
 import { FontSelect } from "@/components/portal/FontSelect";
-import { PaletteDots } from "@/components/portal/PaletteDots";
+import {
+  CustomPaletteCard,
+  PaletteDots,
+} from "@/components/portal/PaletteDots";
 import { LivePagePreview } from "@/components/portal/LivePagePreview";
 import { TemplateThumb } from "@/components/portal/TemplateThumb";
 
@@ -36,85 +44,79 @@ const COLOR_FIELDS: [keyof ColorChoices, string][] = [
   ["panels", "colorPanels"],
   ["text", "colorText"],
   ["accent", "colorAccent"],
+  ["frame", "colorFrame"],
+  ["ring", "colorRing"],
+  ["underline", "colorUnderline"],
+  ["hi", "colorHi"],
 ];
 
-/** The parts of the page whose colour can be set, and some good colours to start from for each. */
+/** The layout a colour list is for: the original design is Layout 1, which has no layout id. */
+type Where = "original" | LayoutId;
+
+/**
+ * The parts of the page whose colour a person can set. A part with `on` is shown only on those layouts, in the group
+ * of colours for that layout alone; the rest are shown on every layout. A colour hidden on one layout stays saved.
+ */
 const COLOR_PARTS_UI: {
   id: keyof ColorChoices;
   label: string;
   hint: string;
   /** Which colour of the scheme this part starts as. */
   scheme: "bg" | "alt" | "ink" | "accent";
-  options: ColorOption[];
+  on?: Where[];
 }[] = [
   {
     id: "page",
     label: "Page background",
     hint: "Behind everything.",
     scheme: "bg",
-    options: [
-      { name: "White", hex: "#ffffff" },
-      { name: "Cool grey", hex: "#eef2f7" },
-      { name: "Pale sky", hex: "#eaf2fa" },
-      { name: "Mint", hex: "#eff5f1" },
-      { name: "Cream", hex: "#f6f5ec" },
-      { name: "Warm paper", hex: "#f6efe6" },
-      { name: "Lavender", hex: "#f4f2f9" },
-      { name: "Navy", hex: "#0e1a2b" },
-      { name: "Forest", hex: "#0f211b" },
-      { name: "Charcoal", hex: "#1c1917" },
-    ],
-  },
-  {
-    id: "panels",
-    label: "Panels and tiles",
-    hint: "Cards, tags and soft highlights.",
-    scheme: "alt",
-    options: [
-      { name: "Aqua", hex: "#e3f3f4" },
-      { name: "Sky", hex: "#dce7f3" },
-      { name: "Sage", hex: "#e8f0ea" },
-      { name: "Olive", hex: "#e6ebd3" },
-      { name: "Sand", hex: "#efe0ce" },
-      { name: "Stone", hex: "#e6dfd3" },
-      { name: "Lilac", hex: "#e4dff3" },
-      { name: "Blush", hex: "#f1e7f0" },
-    ],
   },
   {
     id: "text",
     label: "Text",
     hint: "Headings and paragraphs.",
     scheme: "ink",
-    options: [
-      { name: "Deep teal", hex: "#14303a" },
-      { name: "Navy", hex: "#12263d" },
-      { name: "Forest", hex: "#1f2d26" },
-      { name: "Plum", hex: "#231c2a" },
-      { name: "Brown", hex: "#33261e" },
-      { name: "Charcoal", hex: "#1c1917" },
-      { name: "White", hex: "#f5f7f8" },
-    ],
   },
   {
     id: "accent",
-    label: "Buttons and highlights",
+    label: "Buttons and markers",
     hint: "The booking button, links and small marks.",
     scheme: "accent",
-    options: [
-      { name: "Teal", hex: "#0b7285" },
-      { name: "Sea green", hex: "#1e8456" },
-      { name: "Sage", hex: "#4a7a5c" },
-      { name: "Olive", hex: "#66742f" },
-      { name: "Sky blue", hex: "#2b6fa8" },
-      { name: "Navy", hex: "#1f3f6e" },
-      { name: "Indigo", hex: "#4b4c9e" },
-      { name: "Plum", hex: "#6b2f5e" },
-      { name: "Rose", hex: "#a8456b" },
-      { name: "Clay", hex: "#b5543a" },
-      { name: "Walnut", hex: "#7a5436" },
-      { name: "Slate", hex: "#34495a" },
-    ],
+  },
+  {
+    id: "hi",
+    label: "Highlight",
+    hint: "The soft tint behind badges and tags.",
+    scheme: "accent",
+    on: ["rail-card"],
+  },
+  {
+    id: "frame",
+    label: "Outer frame",
+    hint: "The border around the whole page.",
+    scheme: "alt",
+    on: ["original"],
+  },
+  {
+    id: "ring",
+    label: "Photo ring",
+    hint: "The ring around your photo. Follows the frame until you set it.",
+    scheme: "alt",
+    on: ["original"],
+  },
+  {
+    id: "underline",
+    label: "Heading underline",
+    hint: "The highlight behind each section heading.",
+    scheme: "alt",
+    on: ["original"],
+  },
+  {
+    id: "panels",
+    label: "Soft panels",
+    hint: "The soft colour that fades in behind the top of the page.",
+    scheme: "alt",
+    on: ["rail-card"],
   },
 ];
 
@@ -157,14 +159,58 @@ export function AppearanceEditor({
   );
   /** Colours picked for single parts of the page; none means the scheme's. */
   const [colors, setColors] = useState<ColorChoices>(style?.colors ?? {});
+  /** Which way of colouring the page is in use. The two are independent: each keeps its own choices while the other is in use. */
+  const [colorMode, setColorMode] = useState<ColorMode>(
+    style?.colorMode ??
+      (Object.values(style?.colors ?? {}).some(Boolean) ? "custom" : "scheme"),
+  );
+  /** The pop-up where their own colours are set. */
+  const [colorsOpen, setColorsOpen] = useState(false);
+  const customCount = Object.values(colors).filter(Boolean).length;
   const [shape, setShape] = useState<PhotoShape>(
     style?.shape ?? (template ? DEFAULT_SHAPE : ORIGINAL_SHAPE),
   );
 
   const schemeDef = getScheme(scheme);
+  /** The person's own colours start from this, whatever ready-made scheme is picked. */
+  const customBase = CUSTOM_BASE;
+  /** What their own colours come to so far; the frame and ring start from these. */
+  const resolved = resolvePalette(customBase, colors);
+  const startColor = (part: (typeof COLOR_PARTS_UI)[number]) =>
+    part.id === "ring"
+      ? (colors.frame ?? resolved.alt)
+      : part.id === "frame"
+        ? resolved.alt
+        : part.id === "underline"
+          ? mix(resolved.accent, resolved.bg, resolved.dark ? 0.35 : 0.25)
+          : part.id === "hi"
+            ? mix(resolved.accent, resolved.bg, 0.2)
+            : customBase[part.scheme];
   const layoutNumber = layout
     ? LAYOUTS.findIndex((l) => l.id === layout) + 2
     : 0;
+  // The colours this layout can set: the ones every layout has, then the ones only it has.
+  const here: Where = layout ?? "original";
+  const shownParts = COLOR_PARTS_UI.filter((x) => !x.on || x.on.includes(here));
+  const coreParts = shownParts.filter((x) => !x.on);
+  const extraParts = shownParts.filter((x) => x.on);
+  const colorRow = (part: (typeof COLOR_PARTS_UI)[number]) => (
+    <ColorRow
+      key={part.id}
+      label={part.label}
+      hint={part.hint}
+      startColor={startColor(part)}
+      value={colors[part.id]}
+      onChange={(hex) =>
+        setColors((c) => {
+          const next = { ...c };
+          if (hex) next[part.id] = hex;
+          else delete next[part.id];
+          return next;
+        })
+      }
+    />
+  );
 
   const pageUrl = (id: LayoutId | undefined, embed = false) => {
     const q = new URLSearchParams({
@@ -173,6 +219,7 @@ export function AppearanceEditor({
       textFont: text,
     });
     q.set("scheme", scheme);
+    q.set("colorMode", colorMode);
     for (const [part, name] of COLOR_FIELDS) {
       const value = colors[part];
       if (value) q.set(name, value);
@@ -197,6 +244,7 @@ export function AppearanceEditor({
       <input type="hidden" name="textFont" value={text} />
       <input type="hidden" name="shape" value={shape} />
       <input type="hidden" name="scheme" value={scheme} />
+      <input type="hidden" name="colorMode" value={colorMode} />
       {COLOR_FIELDS.map(([part, name]) =>
         colors[part] ? (
           <input key={name} type="hidden" name={name} value={colors[part]} />
@@ -209,13 +257,30 @@ export function AppearanceEditor({
             <LivePagePreview src={pageUrl(layout, true)} />
           </div>
           <dl className="mt-4 space-y-2 text-sm">
-            <Summary
-              label="Layout"
-              value={layout ? `Layout ${layoutNumber}` : "Layout 1"}
-            />
-            <Summary label="Colours" value={schemeDef.name} />
-            <Summary label="Heading font" value={getFace(heading).name} />
-            <Summary label="Text font" value={getFace(text).name} />
+            <SummaryRow label="Layout">
+              {layout ? `Layout ${layoutNumber}` : "Layout 1"}
+            </SummaryRow>
+            <SummaryRow label="Colours">
+              <span className="truncate">
+                {colorMode === "custom" ? "Your own" : schemeDef.name}
+              </span>
+            </SummaryRow>
+            <SummaryRow label="Headings">
+              <span
+                className="truncate"
+                style={{ fontFamily: `var(${getFace(heading).var})` }}
+              >
+                {getFace(heading).name}
+              </span>
+            </SummaryRow>
+            <SummaryRow label="Text">
+              <span
+                className="truncate"
+                style={{ fontFamily: `var(${getFace(text).var})` }}
+              >
+                {getFace(text).name}
+              </span>
+            </SummaryRow>
           </dl>
           <a
             href={previewHref}
@@ -298,36 +363,117 @@ export function AppearanceEditor({
           <section>
             <Heading
               title="Colours"
-              hint="Start from a scheme, then change the colour of any part of the page."
+              hint="Choose a ready-made scheme, or set your own."
             />
-            <div className="space-y-8">
-              <div>
-                <h4 className="mb-3 text-sm font-semibold">Colour scheme</h4>
-                <PaletteDots
-                  label="Colour scheme"
-                  items={SCHEMES.map((x) => ({
+            <div className="space-y-6">
+              <PaletteDots
+                label="Colours"
+                items={SCHEMES.filter((x) => !x.retired || x.id === scheme).map(
+                  (x) => ({
                     id: x.id,
                     name: x.name,
-                    colors: [x.palette.bg, x.palette.alt, x.palette.accent],
-                  }))}
-                  selected={scheme}
-                  onSelect={(id) => {
-                    setScheme(id as SchemeId);
-                    setColors({});
-                  }}
-                />
-              </div>
-              {COLOR_PARTS_UI.map((part) => (
-                <ColorRow
-                  key={part.id}
-                  label={part.label}
-                  hint={part.hint}
-                  options={part.options}
-                  schemeColor={schemeDef.palette[part.scheme]}
-                  value={colors[part.id]}
-                  onChange={(hex) => setColors({ ...colors, [part.id]: hex })}
-                />
-              ))}
+                    colors: [
+                      x.palette.bg,
+                      x.palette.alt,
+                      x.palette.accent,
+                      x.palette.ink,
+                    ],
+                  }),
+                )}
+                selected={colorMode === "scheme" ? scheme : undefined}
+                onSelect={(id) => {
+                  setScheme(id as SchemeId);
+                  setColorMode("scheme");
+                }}
+                leading={
+                  <CustomPaletteCard
+                    colors={
+                      Object.values(colors).some(Boolean)
+                        ? [
+                            resolved.bg,
+                            resolved.alt,
+                            resolved.accent,
+                            resolved.ink,
+                          ]
+                        : null
+                    }
+                    on={colorMode === "custom"}
+                    onClick={() => {
+                      setColorMode("custom");
+                      setColorsOpen(true);
+                    }}
+                  />
+                }
+              />
+
+              {colorMode === "custom" && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-border bg-surface px-5 py-4">
+                  <div className="flex shrink-0 -space-x-1.5">
+                    {[
+                      resolved.bg,
+                      resolved.alt,
+                      resolved.accent,
+                      resolved.ink,
+                    ].map((c, i) => (
+                      <span
+                        key={i}
+                        aria-hidden
+                        className="size-7 rounded-full ring-2 ring-surface"
+                        style={{
+                          background: c,
+                          boxShadow: "inset 0 0 0 1px rgb(0 0 0 / 0.14)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="min-w-40 flex-1">
+                    <p className="text-sm font-medium">Your own colours</p>
+                    <p className="text-sm text-muted">
+                      {customCount > 0
+                        ? `${customCount} ${customCount === 1 ? "colour" : "colours"} set by you`
+                        : "Starting from plain neutrals"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setColorsOpen(true)}
+                    className="cursor-pointer rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:bg-black/5"
+                  >
+                    Edit colours
+                  </button>
+                </div>
+              )}
+
+              <ColorDialog
+                open={colorsOpen}
+                onClose={() => setColorsOpen(false)}
+                title="Your own colours"
+                hint="Enter a colour code (like #1F6F5C) or a colour name (like teal), or click a swatch to pick one."
+                canReset={shownParts.some((x) => colors[x.id])}
+                onReset={() =>
+                  setColors((c) => {
+                    const next = { ...c };
+                    for (const x of shownParts) delete next[x.id];
+                    return next;
+                  })
+                }
+              >
+                <div className="space-y-6">
+                  <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+                    {coreParts.map(colorRow)}
+                  </div>
+                  {extraParts.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
+                        Only on Layout {layout ? layoutNumber : 1}
+                      </p>
+                      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+                        {extraParts.map(colorRow)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ColorDialog>
             </div>
           </section>
 
@@ -419,11 +565,19 @@ function Heading({ title, hint }: { title: string; hint: string }) {
   );
 }
 
-function Summary({ label, value }: { label: string; value: string }) {
+function SummaryRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   return (
-    <div>
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+    <div className="flex items-center justify-between gap-3">
+      <dt className="shrink-0 text-xs text-muted">{label}</dt>
+      <dd className="flex min-w-0 items-center justify-end gap-2 text-right font-medium">
+        {children}
+      </dd>
     </div>
   );
 }

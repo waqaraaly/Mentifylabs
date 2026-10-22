@@ -29,5 +29,33 @@ export function SettingsRow({
   );
 }
 
+/**
+ * A field with its label above it, for sections laid out as a form (Basics) rather than as a settings list. `hint`
+ * sits between the label and the control.
+ */
+export function StackedField({
+  label,
+  htmlFor,
+  hint,
+  className = "",
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  hint?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`min-w-0 ${className}`}>
+      <label htmlFor={htmlFor} className="text-sm font-medium text-foreground">
+        {label}
+      </label>
+      {hint && <p className="mt-0.5 text-[13px] leading-snug text-muted">{hint}</p>}
+      <div className="mt-2.5">{children}</div>
+    </div>
+  );
+}
+
 export const settingsInputClass =
   "w-full rounded-xl bg-black/[0.025] px-3.5 py-2.5 text-sm outline-none ring-1 ring-transparent focus:bg-surface focus:ring-primary/40 transition";

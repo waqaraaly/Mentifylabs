@@ -1,5 +1,5 @@
 import { HEX, contrast, darken, isDark, mix, readableOn } from "@/lib/color";
-import { COLOR_THEMES } from "@/lib/themes";
+import { COLOR_THEMES, type ColorThemeId } from "@/lib/themes";
 
 /**
  * Profile design, as four independent choices (see docs/profile-template-audit.md for why these shapes):
@@ -42,6 +42,7 @@ export interface Palette {
 }
 
 export type SchemeId =
+  | "moss-honey"
   | "sky-green"
   | "sand-petrol"
   | "sage"
@@ -57,6 +58,8 @@ export type SchemeId =
   | "sand-clay"
   | "white-plum"
   | "paper-walnut"
+  | "golden-hour"
+  | "denim-oat"
   | "sky-blue"
   | "soft-teal"
   | "forest-mint"
@@ -68,10 +71,26 @@ export interface Scheme {
   id: SchemeId;
   name: string;
   palette: Palette;
+  /** No longer offered in the picker. Kept so profiles and older presets that use it look the same. */
+  retired?: boolean;
+  /** One of the original colour themes. Layout 1 shows it in that theme's own hand-made styling, not rebuilt from the palette. */
+  originalTheme?: ColorThemeId;
 }
 
 /** Calm, health-appropriate colours: teal, blue, green, sage, plum, warm neutrals, and two dark options. */
 export const SCHEMES: Scheme[] = [
+  {
+    id: "moss-honey",
+    name: "Moss and honey",
+    originalTheme: "moss-honey",
+    palette: {
+      bg: "#F6F4EA",
+      surface: "#FFFFFF",
+      ink: "#2E3522",
+      accent: "#66794F",
+      alt: "#F6E8C8",
+    },
+  },
   {
     id: "teal-white",
     name: "Teal on white",
@@ -96,6 +115,7 @@ export const SCHEMES: Scheme[] = [
   },
   {
     id: "sky-green",
+    retired: true,
     name: "Sky and green",
     palette: {
       bg: "#EAF2FA",
@@ -118,6 +138,7 @@ export const SCHEMES: Scheme[] = [
   },
   {
     id: "grey-navy",
+    retired: true,
     name: "Cool grey and navy",
     palette: {
       bg: "#EEF2F7",
@@ -184,6 +205,7 @@ export const SCHEMES: Scheme[] = [
   },
   {
     id: "mint-green",
+    retired: true,
     name: "Mint grey and green",
     palette: {
       bg: "#EFF5F1",
@@ -206,6 +228,7 @@ export const SCHEMES: Scheme[] = [
   },
   {
     id: "lavender-indigo",
+    retired: true,
     name: "Lavender and indigo",
     palette: {
       bg: "#F4F2F9",
@@ -239,6 +262,7 @@ export const SCHEMES: Scheme[] = [
   },
   {
     id: "sand-clay",
+    retired: true,
     name: "Sand and clay",
     palette: {
       bg: "#F6EFE6",
@@ -268,6 +292,30 @@ export const SCHEMES: Scheme[] = [
       ink: "#3A2B20",
       accent: "#8A5A36",
       alt: "#EFE4CF",
+    },
+  },
+  {
+    id: "golden-hour",
+    name: "Golden hour",
+    originalTheme: "golden-hour",
+    palette: {
+      bg: "#FFFFFF",
+      surface: "#FFFFFF",
+      ink: "#1B2430",
+      accent: "#FFD74D",
+      alt: "#DDEEF6",
+    },
+  },
+  {
+    id: "denim-oat",
+    name: "Denim and oat",
+    originalTheme: "blue-sand",
+    palette: {
+      bg: "#FAF6ED",
+      surface: "#FFFDF8",
+      ink: "#1B2230",
+      accent: "#3F6AA8",
+      alt: "#EFE7D6",
     },
   },
   {
@@ -306,6 +354,9 @@ export const SCHEMES: Scheme[] = [
     },
   },
 ];
+
+/** The schemes the picker offers. */
+export const PICKABLE_SCHEMES = SCHEMES.filter((s) => !s.retired);
 
 export const SCHEME_IDS = SCHEMES.map((s) => s.id);
 export const isSchemeId = (value: unknown): value is SchemeId =>
@@ -576,7 +627,7 @@ export const getLayout = (id: LayoutId): LayoutSpec =>
   LAYOUTS.find((l) => l.id === id) ??
   LAYOUTS.find((l) => l.id === "rail-card")!;
 
-export const DEFAULT_SCHEME: SchemeId = "teal-white";
+export const DEFAULT_SCHEME: SchemeId = "moss-honey";
 export const DEFAULT_FONT: FontPairId = "jakarta";
 export const DEFAULT_SHAPE: PhotoShape = "circle";
 /** The original design's own photo shape. */
@@ -591,9 +642,15 @@ export interface ProfileStyle {
   headingFont?: FaceId;
   textFont?: FaceId;
   shape?: PhotoShape;
-  /** Colours picked for single parts of the page, on top of the scheme. */
+  /** Which of the two ways to colour the page is in use. The other's choices are kept, unused. */
+  colorMode?: ColorMode;
+  /** The person's own colours. Used only in "custom" mode, on top of the neutral base, never on a scheme. */
   colors?: ColorChoices;
 }
+
+export type ColorMode = "scheme" | "custom";
+const isColorMode = (v: unknown): v is ColorMode =>
+  v === "scheme" || v === "custom";
 
 const isFont = (v: unknown): v is FontPairId =>
   FONT_PAIR_IDS.includes(v as FontPairId);
@@ -605,6 +662,7 @@ export function cleanStyle(
   input:
     | {
         colors?: unknown;
+        colorMode?: unknown;
         scheme?: unknown;
         font?: unknown;
         headingFont?: unknown;
@@ -621,6 +679,7 @@ export function cleanStyle(
   if (isHeadingFace(input.headingFont)) style.headingFont = input.headingFont;
   if (isTextFace(input.textFont)) style.textFont = input.textFont;
   if (isShape(input.shape)) style.shape = input.shape;
+  if (isColorMode(input.colorMode)) style.colorMode = input.colorMode;
   const colors = cleanColors(input.colors);
   if (colors) style.colors = colors;
   return Object.keys(style).length ? style : undefined;
@@ -709,6 +768,7 @@ const originalOnly = (
   if (style?.headingFont) kept.headingFont = style.headingFont;
   if (style?.textFont) kept.textFont = style.textFont;
   if (style?.shape) kept.shape = style.shape;
+  if (style?.colorMode) kept.colorMode = style.colorMode;
   if (style?.colors) kept.colors = style.colors;
   return Object.keys(kept).length ? kept : undefined;
 };
@@ -752,9 +812,17 @@ export interface ColorChoices {
   text?: string;
   /** Buttons, links and small marks. */
   accent?: string;
+  /** The border around the whole page. Only the original design has one. */
+  frame?: string;
+  /** The ring around the photo. Follows the frame until set. Only the original design has one. */
+  ring?: string;
+  /** The highlight behind section headings. Only the original design has one. */
+  underline?: string;
+  /** The soft tint behind badges, hovers and the photo. Worked out from the accent until set. */
+  hi?: string;
 }
 
-export const COLOR_PARTS = ["page", "panels", "text", "accent"] as const;
+export const COLOR_PARTS = ["page", "panels", "text", "accent", "frame", "ring", "underline", "hi"] as const;
 
 /** Keeps only plain #rrggbb colours, so nothing else can reach the page's styles. */
 export function cleanColors(input: unknown): ColorChoices | undefined {
@@ -807,18 +875,48 @@ export function resolvePalette(base: Palette, choices?: ColorChoices): Palette {
   return { bg, surface, ink, accent, alt, dark };
 }
 
+/**
+ * Where a person's own colours start: plain white, near-black text, light grey panels and one slate accent, so every
+ * colour on the page is one they chose. Not a scheme, so the picker never offers it, and it has nothing to do with the
+ * ready-made scheme they may have picked.
+ */
+export const CUSTOM_BASE: Palette = {
+  bg: "#FFFFFF",
+  surface: "#FFFFFF",
+  ink: "#1F2933",
+  accent: "#334155",
+  alt: "#F1F3F5",
+};
+
+/**
+ * The person's own colours, if the page is using them. "Ready-made" ignores them (they are kept for later); a page saved
+ * before there were two modes has no mode and uses whatever colours it has on top of its scheme.
+ */
+export function activeColors(style?: ProfileStyle): ColorChoices | undefined {
+  return style?.colorMode === "scheme" ? undefined : style?.colors;
+}
+
+/** The colours a page really has: a ready-made scheme alone, or the person's own colours alone. Never a mix of the two. */
+export function effectivePalette(style?: ProfileStyle): Palette {
+  const base =
+    style?.colorMode === "custom"
+      ? CUSTOM_BASE
+      : getScheme(style?.scheme ?? DEFAULT_SCHEME).palette;
+  return resolvePalette(base, activeColors(style));
+}
+
 export function resolveDesign(
   id: LayoutId,
   style?: ProfileStyle,
 ): ResolvedDesign {
   const spec = getLayout(id);
-  const scheme = getScheme(style?.scheme ?? DEFAULT_SCHEME);
-  const palette = resolvePalette(scheme.palette, style?.colors);
+  const palette = effectivePalette(style);
   const font = resolveFont(style);
   const shape = style?.shape ?? DEFAULT_SHAPE;
   const { bg, surface, ink, accent, alt } = palette;
   const border = mix(ink, bg, palette.dark ? 0.18 : 0.12);
   const accentOn = readableOn(accent);
+  const hi = activeColors(style)?.hi;
   const altOn = contrast(alt, ink) >= contrast(alt, bg) ? ink : bg;
   const tone = spec.tone === "accent" ? accent : alt;
   const toneOn = spec.tone === "accent" ? accentOn : altOn;
@@ -841,8 +939,8 @@ export function resolveDesign(
     "--pt-tone-foreground": toneOn,
     "--pt-tone-muted": mix(toneOn, tone, 0.72),
     "--pt-tone-border": mix(toneOn, tone, 0.24),
-    "--pt-tint": mix(accent, bg, 0.1),
-    "--pt-tint-strong": mix(accent, bg, 0.2),
+    "--pt-tint": hi ? mix(hi, bg, 0.5) : mix(accent, bg, 0.1),
+    "--pt-tint-strong": hi ?? mix(accent, bg, 0.2),
     "--pt-outer": alt,
     "--pt-input-bg": mix(ink, bg, 0.05),
     "--pt-input-border": border,
@@ -886,6 +984,7 @@ export function nearestScheme(colorTheme: string | undefined): SchemeId {
   const distance = (s: Scheme) =>
     gap(s.palette.bg, theme.swatches[0]) +
     gap(s.palette.accent, theme.swatches[2]);
-  return SCHEMES.reduce((best, s) => (distance(s) < distance(best) ? s : best))
-    .id;
+  return PICKABLE_SCHEMES.reduce((best, s) =>
+    distance(s) < distance(best) ? s : best,
+  ).id;
 }

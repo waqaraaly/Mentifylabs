@@ -3,7 +3,10 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2 } from "lucide-react";
-import { removeProfilePhotoAction, uploadProfilePhotoAction } from "@/app/dashboard/profile/actions";
+import {
+  removeProfilePhotoAction,
+  uploadProfilePhotoAction,
+} from "@/app/dashboard/profile/actions";
 
 const MAX_DIMENSION = 480;
 
@@ -30,7 +33,12 @@ async function toSquareJpeg(file: File): Promise<Blob> {
   if (!ctx) throw new Error("Canvas not supported");
   ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, dim, dim);
   return new Promise((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't encode image"))), "image/jpeg", 0.86),
+    canvas.toBlob(
+      (blob) =>
+        blob ? resolve(blob) : reject(new Error("Couldn't encode image")),
+      "image/jpeg",
+      0.86,
+    ),
   );
 }
 
@@ -88,50 +96,72 @@ export function ProfilePhotoUploader({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-5">
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-5">
         <button
           id="profile-photo"
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/[0.1] text-2xl font-semibold text-primary ring-1 ring-black/[0.06] transition hover:ring-primary/40"
+          className="group relative size-40 shrink-0 cursor-pointer rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
           aria-label={preview ? "Change profile photo" : "Upload profile photo"}
         >
-          {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element -- local preview or small stored photo, no optimization needed
-            <img src={preview} alt="" className="h-full w-full object-cover" />
-          ) : (
-            initialsOf(fullName)
-          )}
-          {pending && (
-            <span className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <Loader2 className="size-5 animate-spin text-white" aria-hidden />
+          <span className="relative flex size-full items-center justify-center overflow-hidden rounded-full bg-primary/[0.1] text-5xl font-semibold text-primary shadow-sm ring-1 ring-black/[0.08]">
+            {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element -- local preview or small stored photo, no optimization needed
+              <img
+                src={preview}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              initialsOf(fullName)
+            )}
+            <span
+              aria-hidden
+              className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/50 text-sm font-medium text-white opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              <Camera className="size-5" />
+              {preview ? "Change" : "Upload"}
             </span>
-          )}
+            {pending && (
+              <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Loader2
+                  className="size-8 animate-spin text-white"
+                  aria-hidden
+                />
+              </span>
+            )}
+          </span>
+          <span
+            aria-hidden
+            className="absolute right-1 bottom-1 flex size-10 items-center justify-center rounded-full bg-surface text-foreground shadow-md ring-1 ring-black/10 transition group-hover:bg-primary group-hover:text-primary-foreground"
+          >
+            <Camera className="size-[18px]" />
+          </span>
         </button>
 
-        <div>
+        <div className="min-w-0 flex-1 basis-56">
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={pending}
-              className="inline-flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
             >
               <Camera className="size-4" aria-hidden />
-              {preview ? "Change photo" : "Upload photo"}
+              {preview ? "Upload new photo" : "Upload photo"}
             </button>
             {preview && (
               <button
                 type="button"
                 onClick={handleRemove}
                 disabled={pending}
-                className="rounded-full px-3 py-2 text-sm font-medium text-muted transition hover:bg-alert/[0.08] hover:text-alert disabled:opacity-50"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-alert/[0.08] hover:text-alert disabled:opacity-50"
               >
                 Remove
               </button>
             )}
           </div>
-          <p className="mt-2 text-xs text-muted">JPG, PNG or WebP.</p>
+          <p className="mt-3 text-xs text-muted">JPG, PNG or WebP.</p>
         </div>
       </div>
 

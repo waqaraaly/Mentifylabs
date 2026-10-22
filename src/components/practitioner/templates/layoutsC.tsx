@@ -1,13 +1,19 @@
-import { ArrowUpRight, Banknote, Check, Globe, MapPin } from "lucide-react";
+import {
+  ArrowUpRight,
+  Banknote,
+  Briefcase,
+  Check,
+  Globe,
+  MapPin,
+  Video,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { PLATFORM_ICON_PATH } from "@/components/practitioner/ContactLinks";
 import { Availability } from "@/components/practitioner/templates/Availability";
 import { BookButton } from "@/components/practitioner/templates/BookButton";
+import { ContactIcons } from "@/components/practitioner/templates/ContactIcons";
 import type { ProfileModel } from "@/components/practitioner/templates/model";
 import {
-  Badges,
-  ContactList,
-  Expertise,
   Name,
   Portrait,
   SECTION_COPY,
@@ -56,9 +62,20 @@ const BRAND_FILL: Partial<Record<keyof typeof ICON_PATH, string>> = {
 };
 
 function Links({ m }: { m: ProfileModel }) {
-  if (m.socials.length === 0 && !m.website) return null;
+  // Email and phone, if the practitioner made them public, are icons that open a window with the details.
+  const find = (prefix: string) => {
+    const c = m.contacts.find((x) => x.href?.startsWith(prefix));
+    return c?.href ? { value: c.value, href: c.href } : undefined;
+  };
+  const email = find("mailto:");
+  const phone = find("tel:");
+  if (m.socials.length === 0 && !m.website && !email && !phone) return null;
   return (
-    <nav aria-label="Links" className="-ml-2.5 mt-8 flex flex-wrap gap-2">
+    <nav
+      aria-label="Contact and links"
+      className="-ml-2.5 mt-8 flex flex-wrap gap-2"
+    >
+      <ContactIcons email={email} phone={phone} />
       {m.socials.map((s) => (
         <IconLink key={s.href} href={s.href} label={s.platform}>
           <svg
@@ -97,19 +114,44 @@ function Links({ m }: { m: ProfileModel }) {
   );
 }
 
+/** The icon for each fact in the left column. Anything else gets a tick. */
+const FACT_ICON: Record<string, typeof Check> = {
+  Fee: Banknote,
+  Experience: Briefcase,
+  Sessions: Video,
+};
+
+function Fact({ fact }: { fact: { label: string; value: string } }) {
+  const Icon = FACT_ICON[fact.label] ?? Check;
+  return (
+    <li className="flex items-start gap-3">
+      <Icon
+        className="mt-[0.2em] size-[1.05em] shrink-0 text-(--pt-muted)"
+        strokeWidth={1.75}
+        aria-hidden
+      />
+      <span className="min-w-0 [overflow-wrap:anywhere]">
+        {fact.label === "Experience" ? `${fact.value} experience` : fact.value}
+      </span>
+    </li>
+  );
+}
+
 export function LayoutLinkPage({ m, d }: LayoutProps) {
   const location = m.location?.trim();
-  const facts = m.stats.filter((s) => s.label !== "Fee");
-  if (m.languages.length)
-    facts.push({ label: "Languages", value: m.languages.join(", ") });
+  // The fee leads the list, then experience, how sessions are held and languages.
+  const facts: { label: string; value: string }[] = [
+    ...(m.fee ? [{ label: "Fee", value: m.fee }] : []),
+    ...m.stats.filter((s) => s.label !== "Fee"),
+  ];
   const groups = [
-    { label: "Education", list: m.education },
     { label: "Experience", list: m.experience },
+    { label: "Education", list: m.education },
   ].filter((g) => g.list.length > 0);
 
   return (
     <div className="w-full px-4 sm:px-8 lg:grid lg:grid-cols-[372px_minmax(0,1fr)] lg:gap-32 lg:px-16">
-      <aside className="pt-12 pb-8 lg:sticky lg:top-0 lg:max-h-screen lg:self-start lg:overflow-y-auto lg:[scrollbar-width:none] lg:pt-16 lg:pb-16">
+      <aside className="pt-12 pb-8 lg:sticky lg:top-0 lg:-ml-3 lg:max-h-screen lg:self-start lg:overflow-y-auto lg:pl-3 lg:[scrollbar-width:none] lg:pt-16 lg:pb-16">
         <div className="w-fit">
           <Portrait
             m={m}
@@ -120,73 +162,57 @@ export function LayoutLinkPage({ m, d }: LayoutProps) {
         <div className="pt-rise mt-9" style={rise(1)}>
           <Name
             m={m}
+            tick="text-[0.7em]"
             size="text-[calc(clamp(2rem,3vw,2.5rem)*var(--pt-ds))] leading-[1.1] !tracking-[-0.03em]"
           />
         </div>
-        <p className="mt-3 inline-flex rounded-full bg-(--pt-tint) px-3.5 py-1.5 text-sm font-semibold text-(--pt-accent-text) shadow-[inset_0_0_0_1px_var(--pt-tint-strong)] [overflow-wrap:anywhere]">
+        <p className="mt-3 text-base font-semibold text-(--pt-accent-text) [overflow-wrap:anywhere]">
           {m.title}
         </p>
 
-        {m.verified && <Badges m={m} show={["verified"]} className="mt-3" />}
-
-        {(location || m.fee) && (
-          <ul className="mt-4 flex flex-wrap gap-2 text-sm text-(--pt-muted)">
-            {location && (
-              <li className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 shadow-[inset_0_0_0_1px_var(--pt-border)]">
-                <MapPin className="size-4" aria-hidden />
-                {location}
-              </li>
-            )}
-            {m.fee && (
-              <li className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 shadow-[inset_0_0_0_1px_var(--pt-border)]">
-                <Banknote className="size-4" aria-hidden />
-                {m.fee}
-              </li>
-            )}
-          </ul>
-        )}
-
         {m.headline && (
-          <p className="mt-7 border-l-[3px] border-(--pt-accent) pl-4 text-[1.15rem] leading-snug font-semibold [overflow-wrap:anywhere]">
+          <p className="mt-4 text-base leading-relaxed [overflow-wrap:anywhere]">
             {m.headline}
           </p>
         )}
 
-        {facts.length > 0 && (
-          <dl className="mt-7 border-t border-(--pt-border) text-[0.95rem]">
-            {facts.map((s) => (
-              <div
-                key={s.label}
-                className="flex items-baseline justify-between gap-4 border-b border-(--pt-border) py-3"
-              >
-                <dt className="text-(--pt-muted)">{s.label}</dt>
-                <dd className="text-right font-semibold">{s.value}</dd>
-              </div>
-            ))}
-          </dl>
+        {location && (
+          <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-(--pt-muted)">
+            <MapPin className="size-4" aria-hidden />
+            {location}
+          </p>
         )}
 
-        <div className="mt-7 rounded-2xl bg-(--pt-tint) p-4 shadow-[inset_0_0_0_1px_var(--pt-tint-strong)]">
-          <Availability
-            slots={m.slots}
-            zone={m.practitioner.timezone}
-            accepting={m.accepting}
-            preview={m.preview}
-            variant="line"
-          />
-          <BookButton
-            accepting={m.accepting}
-            preview={m.preview}
-            className="mt-3.5 w-full"
-          >
-            Book a session
-            <ArrowUpRight className="size-4" strokeWidth={2} aria-hidden />
-          </BookButton>
-        </div>
+        {facts.length > 0 && (
+          <ul className="mt-6 space-y-3 text-[0.95rem]">
+            {facts.map((f) => (
+              <Fact key={f.label} fact={f} />
+            ))}
+          </ul>
+        )}
 
-        <div className="mt-8 border-t border-(--pt-border) pt-6 [&>nav]:!mt-0">
+        <div className="mt-6 [&>nav]:!mt-0">
           <Links m={m} />
         </div>
+
+        {/* The soonest open time if there is one, then the button. With no open times the booking window says so. */}
+        <Availability
+          slots={m.slots}
+          zone={m.practitioner.timezone}
+          accepting={m.accepting}
+          preview={m.preview}
+          variant="line"
+          hideEmpty
+          className="mt-6"
+        />
+        <BookButton
+          accepting={m.accepting}
+          preview={m.preview}
+          className="mt-3 !w-4/5 !gap-1.5 !py-3.5 !text-sm"
+        >
+          Book a session
+          <ArrowUpRight className="size-4" strokeWidth={2} aria-hidden />
+        </BookButton>
       </aside>
 
       <div className="min-w-0 max-w-3xl pt-2 pb-20 lg:pt-16">
@@ -207,7 +233,16 @@ export function LayoutLinkPage({ m, d }: LayoutProps) {
 
         {m.expertise.length > 0 && (
           <Row id="link-expertise" label={SECTION_COPY.expertise}>
-            <Expertise items={m.expertise} variant="chips" />
+            <ul className="flex flex-wrap gap-2.5">
+              {m.expertise.map((e) => (
+                <li
+                  key={e}
+                  className="rounded-md border border-[color-mix(in_srgb,var(--pt-text)_28%,transparent)] px-3.5 py-1.5 text-[0.95rem] leading-snug font-medium [overflow-wrap:anywhere]"
+                >
+                  {e}
+                </li>
+              ))}
+            </ul>
           </Row>
         )}
 
@@ -225,6 +260,25 @@ export function LayoutLinkPage({ m, d }: LayoutProps) {
                     aria-hidden
                   />
                   <span className="min-w-0 [overflow-wrap:anywhere]">{s}</span>
+                </li>
+              ))}
+            </ul>
+          </Row>
+        )}
+
+        {m.languages.length > 0 && (
+          <Row id="link-languages" label="Languages">
+            <ul className="grid max-w-[28rem] gap-x-10 gap-y-3 sm:grid-cols-2">
+              {m.languages.map((l) => (
+                <li
+                  key={l}
+                  className="flex items-baseline gap-3 text-[1.0625rem] leading-snug"
+                >
+                  <span
+                    aria-hidden
+                    className="size-[7px] shrink-0 -translate-y-px rounded-full bg-(--pt-accent)"
+                  />
+                  <span className="min-w-0 [overflow-wrap:anywhere]">{l}</span>
                 </li>
               ))}
             </ul>
@@ -254,18 +308,16 @@ export function LayoutLinkPage({ m, d }: LayoutProps) {
             </ol>
           </Row>
         ))}
-
-        {m.contacts.length > 0 && (
-          <Row id="link-contact" label={SECTION_COPY.contact}>
-            <ContactList m={m} socials={false} />
-          </Row>
-        )}
       </div>
     </div>
   );
 }
 
-/** One row of the link page, laid out like a CV: the label in a narrow column, the content beside it, a hairline between rows. */
+/**
+ * One section of the link page: a heading with its underline directly beneath it (a thin line with a short accent
+ * segment at its start), then the content. Sections are separated by space, not by lines, so there is no stray line
+ * above the first one or between two sections.
+ */
 function Row({
   id,
   label,
@@ -276,17 +328,16 @@ function Row({
   children: ReactNode;
 }) {
   return (
-    <section
-      aria-labelledby={id}
-      className="grid gap-3 border-t border-(--pt-border) py-9 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-10"
-    >
-      <h2
-        id={id}
-        className="text-[0.95rem] font-semibold text-(--pt-muted) sm:pt-0.5"
-      >
-        {label}
-      </h2>
-      <div className="min-w-0">{children}</div>
+    <section aria-labelledby={id} className="mt-14 first:mt-0">
+      <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-(--pt-border) pb-4 after:absolute after:-bottom-px after:left-0 after:h-[3px] after:w-14 after:rounded-full after:bg-(--pt-accent) after:content-['']">
+        <h2
+          id={id}
+          className="pt-display pt-h2 flex items-center gap-3 text-(--pt-text) [text-wrap:balance] before:size-[10px] before:shrink-0 before:rounded-[2px] before:bg-(--pt-accent) before:content-['']"
+        >
+          {label}
+        </h2>
+      </div>
+      <div className="mt-6 min-w-0">{children}</div>
     </section>
   );
 }

@@ -10,6 +10,11 @@ import { ProfileNotLive } from "@/components/practitioner/ProfileNotLive";
 // Pre-render every known practitioner at build time (SSG) so pages are
 // served instantly and fully-formed HTML reaches search engine crawlers.
 export async function generateStaticParams() {
+  // The dev server re-collects these on every file change, in a worker process that cannot reach the database, and the
+  // crash it causes shows as "Jest worker encountered 2 child process exceptions". Nothing needs pre-building while
+  // developing, and a build still pre-renders every profile.
+  if (process.env.NODE_ENV === "development") return [];
+
   const slugs = await getPublicPractitionerSlugs();
   return slugs.map((username) => ({ username }));
 }

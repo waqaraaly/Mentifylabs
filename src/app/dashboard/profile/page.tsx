@@ -5,12 +5,14 @@ import { siteConfig } from "@/lib/site";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ProfilePhotoUploader } from "@/components/portal/ProfilePhotoUploader";
 import { EditableList } from "@/components/portal/EditableList";
+import { HeadlineField } from "@/components/portal/HeadlineField";
+import { PROFILE_LIMITS } from "@/lib/profileForm";
 import { EntryListEditor } from "@/components/portal/EntryListEditor";
 import { ContactDetailsEditor } from "@/components/portal/ContactDetailsEditor";
-import { ProfileSections, type ProfileSection } from "@/components/portal/ProfileSections";
+import type { ProfileSection } from "@/components/portal/ProfileSections";
 import { ProfileTabs } from "@/components/portal/ProfileTabs";
 import { SessionModeFields } from "@/components/portal/SessionModeFields";
-import { SettingsRow, settingsInputClass } from "@/components/portal/SettingsRow";
+import { SettingsRow, StackedField, settingsInputClass } from "@/components/portal/SettingsRow";
 import { SlugEditor } from "@/components/portal/SlugEditor";
 import { PublishProfileButton } from "@/components/portal/PublishProfileButton";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
@@ -39,57 +41,56 @@ export default async function PublicProfilePage() {
       title: "Basics",
       content: (
         <>
-          <SettingsRow
-            label="Profile photo"
-            htmlFor="profile-photo"
-          >
-            <ProfilePhotoUploader
-              slug={practitioner.slug}
-              fullName={practitioner.fullName}
-              photoUrl={practitioner.photoUrl}
-            />
-          </SettingsRow>
-          <SettingsRow
-            label="Full name"
-            htmlFor="fullName"
-          >
-            <input
-              id="fullName"
-              name="fullName"
-              defaultValue={practitioner.fullName}
-              required
-              className={settingsInputClass}
-            />
-          </SettingsRow>
-          <SettingsRow label="Professional title" htmlFor="professionalTitle">
-            <input
-              id="professionalTitle"
-              name="professionalTitle"
-              defaultValue={practitioner.professionalTitle}
-              required
-              className={settingsInputClass}
-            />
-          </SettingsRow>
-          <SettingsRow
-            label="Headline"
-            htmlFor="shortBio"
-          >
-            <input
-              id="shortBio"
-              name="shortBio"
-              maxLength={160}
-              placeholder="e.g. Clinical psychologist working with adults and couples."
-              defaultValue={practitioner.shortBio}
-              className={settingsInputClass}
-            />
-          </SettingsRow>
-          <SettingsRow
-            label="Profile link"
-            htmlFor="slug-editor"
-            description="The link clients use to find and book you."
-          >
-            <SlugEditor slug={practitioner.slug} siteUrl={siteConfig.url} chosen={Boolean(practitioner.slugChosenAt)} live={isLive} suggestion={practitioner.slugChosenAt ? "" : await suggestHandle(practitioner.fullName)} />
-          </SettingsRow>
+          <div className="py-7">
+            <StackedField
+              label="Profile photo"
+              htmlFor="profile-photo"
+              hint="Shown at the top of your public page."
+            >
+              <ProfilePhotoUploader
+                slug={practitioner.slug}
+                fullName={practitioner.fullName}
+                photoUrl={practitioner.photoUrl}
+              />
+            </StackedField>
+          </div>
+          <div className="grid gap-x-6 gap-y-6 py-7 sm:grid-cols-2">
+            <StackedField label="Full name" htmlFor="fullName">
+              <input
+                id="fullName"
+                name="fullName"
+                defaultValue={practitioner.fullName}
+                required
+                className={settingsInputClass}
+              />
+            </StackedField>
+            <StackedField label="Professional title" htmlFor="professionalTitle">
+              <input
+                id="professionalTitle"
+                name="professionalTitle"
+                defaultValue={practitioner.professionalTitle}
+                required
+                className={settingsInputClass}
+              />
+            </StackedField>
+            <StackedField
+              label="Headline"
+              htmlFor="shortBio"
+              hint="A one-line summary shown under your name."
+              className="sm:col-span-2"
+            >
+              <HeadlineField initial={practitioner.shortBio ?? ""} max={PROFILE_LIMITS.shortBio} />
+            </StackedField>
+          </div>
+          <div className="py-7">
+            <StackedField
+              label="Profile link"
+              htmlFor="slug-editor"
+              hint="The link clients use to find and book you."
+            >
+              <SlugEditor slug={practitioner.slug} siteUrl={siteConfig.url} chosen={Boolean(practitioner.slugChosenAt)} live={isLive} suggestion={practitioner.slugChosenAt ? "" : await suggestHandle(practitioner.fullName)} />
+            </StackedField>
+          </div>
         </>
       ),
     },
@@ -98,7 +99,7 @@ export default async function PublicProfilePage() {
       title: "About you",
       content: (
         <>
-          <SettingsRow label="Bio" htmlFor="bio">
+          <SettingsRow label="Introduction" htmlFor="bio">
             <textarea id="bio" name="bio" rows={7} defaultValue={practitioner.bio} className={settingsInputClass} />
           </SettingsRow>
           <SettingsRow label="Areas of expertise" htmlFor="specializations">
@@ -341,7 +342,7 @@ export default async function PublicProfilePage() {
         <input type="hidden" name="slug" value={practitioner.slug} />
 
         <ProfileTabs
-          profile={<ProfileSections sections={sections} />}
+          sections={sections}
           appearance={<AppearanceEditor slug={practitioner.slug} template={practitioner.template} style={practitioner.style} colorTheme={practitioner.colorTheme} />}
         />
 

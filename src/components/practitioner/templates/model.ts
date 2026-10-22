@@ -4,6 +4,7 @@ import { FEE_ON_REQUEST, SESSION_MODE_LABEL, bioOf, experienceYearsOf, headlineO
 import { safeHttpUrl } from "@/lib/url";
 import type { Practitioner } from "@/types/practitioner";
 import type { Slot } from "@/types/slot";
+import { displayYears } from "@/lib/years";
 
 export interface Entry {
   title: string;
@@ -53,7 +54,7 @@ export interface ProfileModel {
 
 function parseEntry(raw: string): Entry & { start: number } {
   const [title = "", place = "", years = ""] = raw.split(",").map((part) => part.trim());
-  return { title, place, years, start: Number(years.match(/\d{4}/)?.[0] ?? 0) };
+  return { title, place, years: displayYears(years), start: Number(years.match(/\d{4}/)?.[0] ?? 0) };
 }
 
 /** Most recent first, the way a story of someone's work is usually told. Entries with no year keep the order they were written in. */

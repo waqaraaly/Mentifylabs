@@ -1,6 +1,5 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
 import { BOOKING_MODAL_ID } from "@/components/practitioner/BookingModal";
 import { formatDate, formatTime12h } from "@/lib/format";
 import { useInBrowser } from "@/lib/useInBrowser";
@@ -26,6 +25,7 @@ export function Availability({
   accepting,
   preview,
   variant = "days",
+  hideEmpty = false,
   className = "",
 }: {
   slots: Slot[];
@@ -33,12 +33,15 @@ export function Availability({
   accepting: boolean;
   preview: boolean;
   variant?: Variant;
+  /** Draw nothing, instead of a sentence, when there is no time to show. */
+  hideEmpty?: boolean;
   className?: string;
 }) {
   const inBrowser = useInBrowser();
   const viewer = useViewerTimeZone(zone);
 
   if (!accepting) {
+    if (hideEmpty) return null;
     return <p className={`text-sm text-(--pt-muted) ${className}`}>Not taking new bookings right now.</p>;
   }
 
@@ -46,6 +49,7 @@ export function Availability({
   const shown: ShownTimes[] = open.map((s) => shownIn(s, zone, displayZoneFor(s.sessionType, zone, viewer.zone)));
 
   if (shown.length === 0) {
+    if (hideEmpty) return null;
     return <p className={`text-sm leading-snug text-(--pt-muted) ${className}`}>No open times right now. Check back soon, or get in touch.</p>;
   }
 
@@ -56,7 +60,6 @@ export function Availability({
     const next = shown[0];
     return (
       <p className={`flex items-center gap-2 text-sm ${className}`}>
-        <CalendarDays className="size-4 shrink-0 text-(--pt-accent-text)" aria-hidden />
         <span className="text-(--pt-muted)">Next available</span>
         <span className="font-semibold">
           {formatDate(next.date)}, {formatTime12h(next.startTime)} {next.tag}

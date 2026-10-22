@@ -4,7 +4,7 @@ import type { ResolvedDesign } from "@/lib/templates";
 import { Availability } from "@/components/practitioner/templates/Availability";
 import { BookButton } from "@/components/practitioner/templates/BookButton";
 import type { ProfileModel } from "@/components/practitioner/templates/model";
-import { About, Card, ContactButtons, Expertise, Journey, Services, type SectionId } from "@/components/practitioner/templates/parts";
+import { About, Card, Expertise, Journey, Services, type SectionId } from "@/components/practitioner/templates/parts";
 
 export interface LayoutProps {
   m: ProfileModel;
@@ -66,17 +66,15 @@ export function pageStyle(d: ResolvedDesign): CSSProperties {
   return { color: d.vars["--pt-text"], ...Object.fromEntries(keys.map((k) => [k, d.vars[k]])) } as CSSProperties;
 }
 
-/** The booking card: the soonest real times, the booking button, and the practitioner's own email and phone if shared. */
+/** The booking card: the next open time and the booking button. Fee and contact details are in the information card. */
 export function BookingCard({ m, className = "" }: { m: ProfileModel; className?: string }) {
   return (
     <Card className={`space-y-5 ${className}`}>
       <div>
         <h3 className="pt-display pt-h3">Book with {firstName(m)}</h3>
-        {m.fee && <p className="mt-1 text-[0.95rem] text-(--pt-muted)">Fee {m.fee}</p>}
       </div>
-      <Availability slots={m.slots} zone={m.practitioner.timezone} accepting={m.accepting} preview={m.preview} variant="days" />
+      <Availability slots={m.slots} zone={m.practitioner.timezone} accepting={m.accepting} preview={m.preview} variant="line" hideEmpty />
       <BookButton accepting={m.accepting} preview={m.preview} className="w-full" />
-      <ContactButtons m={m} />
     </Card>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition, type KeyboardEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, ExternalLink, Link2, Pencil, TriangleAlert, X } from "lucide-react";
+import { Check, Link2, Pencil, TriangleAlert, X } from "lucide-react";
 import { checkHandleAction, updateSlugAction } from "@/app/dashboard/profile/actions";
 
 const iconButton =
@@ -47,12 +47,10 @@ export function SlugEditor({
   const [availability, setAvailability] = useState<{ ok: boolean; message: string } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
   const domain = siteUrl.replace(/^https?:\/\//, "");
-  const fullUrl = `${siteUrl.replace(/\/$/, "")}/${currentSlug}`;
   const changed = draft !== currentSlug && draft.length > 0;
 
   // Asks the server whether the link is free, a moment after they stop typing.
@@ -75,16 +73,6 @@ export function SlugEditor({
     setError(null);
     setAvailability(null);
     setEditing(isChosen ? false : true);
-  };
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(fullUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard access can be denied by the browser; fail silently.
-    }
   };
 
   const save = () => {
@@ -176,21 +164,6 @@ export function SlugEditor({
           </>
         ) : (
           <>
-            <ActionButton label={copied ? "Copied" : "Copy link"} onClick={copy}>
-              {copied ? <Check className="size-4 text-success" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-            </ActionButton>
-            {/* Always the real link, the same address that is copied and shown. Until the profile is live, it opens the
-                "not live yet" page clients would see. The private preview has its own button at the top of the page. */}
-            <a
-              href={`/${currentSlug}`}
-              target="_blank"
-              rel="noopener"
-              aria-label={live ? "Open your public page" : "Open your link. It isn't live yet."}
-              title={live ? "Open your public page" : "Open your link. It isn't live yet."}
-              className={iconButton}
-            >
-              <ExternalLink className="size-4" aria-hidden />
-            </a>
             <ActionButton label="Edit link" onClick={startEditing}>
               <Pencil className="size-4" aria-hidden />
             </ActionButton>

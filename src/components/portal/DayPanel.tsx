@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, TriangleAlert } from "lucide-react";
 import {
@@ -267,17 +267,14 @@ function SlotEditView({
         ) : (
           <>
             <div className="flex items-center gap-1">
-              {/* An open slot is blocked, not deleted, so it can be reopened. Only a blocked slot can be deleted for good. */}
-              {blocked && (
-                <button
-                  type="button"
-                  onClick={() => setConfirmingRemove(true)}
-                  disabled={pending}
-                  className="rounded-lg px-3 py-2.5 text-sm font-semibold text-alert transition hover:bg-alert/[0.08] disabled:opacity-60"
-                >
-                  Delete slot
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setConfirmingRemove(true)}
+                disabled={pending}
+                className="rounded-lg px-3 py-2.5 text-sm font-semibold text-alert transition hover:bg-alert/[0.08] disabled:opacity-60"
+              >
+                Delete slot
+              </button>
               {!blocked && (
                 <button
                   type="button"
@@ -348,6 +345,13 @@ export function DayPanel({
     focusSlot?.id ?? null,
   );
   const [confirmingBlock, setConfirmingBlock] = useState(false);
+  const [confirmingRemoveDate, setConfirmingRemoveDate] = useState(false);
+  const addFormRef = useRef<HTMLFormElement>(null);
+
+  // The form opens below the fold of the panel, so bring it into view.
+  useEffect(() => {
+    if (addOpen) addFormRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [addOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -376,6 +380,7 @@ export function DayPanel({
 
   function changeDate(next: string) {
     setConfirmingBlock(false);
+    setConfirmingRemoveDate(false);
     setSelectedSlotId(null);
     setDate(next);
   }
@@ -449,6 +454,13 @@ export function DayPanel({
     await applyWeeklyHoursForDateAction(formData);
     await refresh();
     setTogglingAvailability(false);
+  }
+
+  /** Makes the day follow the weekly hours again: its own slots go, the weekly ones return, and booked sessions stay. */
+  async function handleRemoveDate() {
+    await handleResetToWeekly();
+    setConfirmingRemoveDate(false);
+    onClose();
   }
 
   const statusText = isUnavailable
@@ -656,7 +668,7 @@ export function DayPanel({
             </button>
 
             {addOpen && (
-              <form onSubmit={handleAddSubmit} className="mt-4 space-y-5">
+              <form ref={addFormRef} onSubmit={handleAddSubmit} className="mt-4 space-y-5">
                 <input
                   type="hidden"
                   name="practitionerSlug"
@@ -737,6 +749,31 @@ export function DayPanel({
               </button>
             </div>
           </>
+        ) : confirmingRemoveDate ? (
+          <>
+            <p className="max-w-[16rem] text-sm">
+              Remove this special day? It will follow your weekly hours again
+              {bookedSlots.length > 0 ? ", and booked sessions stay." : "."}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setConfirmingRemoveDate(false)}
+                disabled={togglingAvailability}
+                className={quietButton}
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                onClick={handleRemoveDate}
+                disabled={togglingAvailability}
+                className="rounded-lg bg-alert px-5 py-2.5 text-sm font-semibold text-alert-foreground transition hover:opacity-90 disabled:opacity-60"
+              >
+                {togglingAvailability ? "Removing…" : "Remove"}
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <div className="flex items-center gap-1">
@@ -745,11 +782,11 @@ export function DayPanel({
                   {isCustom && (
                     <button
                       type="button"
-                      onClick={handleResetToWeekly}
+                      onClick={() => setConfirmingRemoveDate(true)}
                       disabled={togglingAvailability}
-                      className="rounded-lg px-3 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/[0.08] disabled:opacity-50"
+                      className="rounded-lg px-3 py-2.5 text-sm font-semibold text-alert transition hover:bg-alert/[0.08] disabled:opacity-50"
                     >
-                      Reset to weekly hours
+                      Remove special day
                     </button>
                   )}
                   {/* Blocking a day belongs to a day's own panel; "Add availability" is for adding hours, and the page has its own button for blocking dates. */}
