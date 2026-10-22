@@ -47,7 +47,7 @@ export default async function SessionsPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
-      <AutoRefresh seconds={60} />
+      <AutoRefresh seconds={300} />
 
       <PageHeader
         icon={CalendarClock}

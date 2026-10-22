@@ -13,6 +13,9 @@ const utcDay = (date: Date) => date.toISOString().slice(0, 10);
 
 /** Today's random salt, created on first use. Older salts are deleted so old visitor hashes can't be linked. */
 async function todaysSalt(day: string): Promise<string> {
+  // The common case is one read. Writing and cleaning up happen only on the first visit of a new day.
+  const existing = await first<{ salt: string }>("SELECT salt FROM analytics_salts WHERE day = ?", day);
+  if (existing) return existing.salt;
   await run("INSERT OR IGNORE INTO analytics_salts (day, salt) VALUES (?, ?)", day, randomToken());
   await run("DELETE FROM analytics_salts WHERE day < ?", day);
   const row = await first<{ salt: string }>("SELECT salt FROM analytics_salts WHERE day = ?", day);
@@ -39,25 +42,21 @@ export async function recordProfileView(input: {
   const day = utcDay(now);
   const visitor = (await sha256Hex(`${await todaysSalt(day)}|${input.slug}|${input.ip}|${input.userAgent}`)).slice(0, 24);
 
-  const repeat = await first(
-    `SELECT 1 FROM profile_views WHERE practitioner_slug = ? AND visitor = ?
-        AND at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)`,
-    input.slug,
-    visitor,
-    `-${REPEAT_WINDOW_MINUTES} minutes`,
-  );
-  if (repeat) return false;
-
-  await run(
-    "INSERT INTO profile_views (practitioner_slug, day, visitor, source, country, device) VALUES (?, ?, ?, ?, ?, ?)",
+  // One statement checks for a repeat visit and records the view, so a visit costs a single write at most.
+  const added = await run(
+    `INSERT INTO profile_views (practitioner_slug, day, visitor, source, country, device)
+     SELECT ?1, ?2, ?3, ?4, ?5, ?6
+      WHERE NOT EXISTS (SELECT 1 FROM profile_views WHERE practitioner_slug = ?1 AND visitor = ?3
+        AND at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?7))`,
     input.slug,
     day,
     visitor,
     input.source,
     input.country,
     input.device,
+    `-${REPEAT_WINDOW_MINUTES} minutes`,
   );
-  return true;
+  return added > 0;
 }
 
 export interface DailyPoint {

@@ -608,7 +608,7 @@ export const LAYOUTS: LayoutSpec[] = [
     family: "Booking rail",
     name: "Card header",
     description:
-      "Your details in a card at the top. Sections below, with a booking card that stays in view beside them.",
+      "Your photo and name centred at the top, then one section after another in a single column, with a booking bar that stays at the bottom of the screen.",
     layout: "rail",
     header: "card",
     wash: true,

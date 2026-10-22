@@ -1,10 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import { mix } from "@/lib/color";
 import type { ResolvedDesign } from "@/lib/templates";
-import { Availability } from "@/components/practitioner/templates/Availability";
-import { BookButton } from "@/components/practitioner/templates/BookButton";
 import type { ProfileModel } from "@/components/practitioner/templates/model";
-import { About, Card, Expertise, Journey, Services, type SectionId } from "@/components/practitioner/templates/parts";
+import { About, Expertise, Journey, Services, type SectionId } from "@/components/practitioner/templates/parts";
 
 export interface LayoutProps {
   m: ProfileModel;
@@ -64,17 +62,4 @@ export function toneStyle(d: ResolvedDesign, which?: "accent"): CSSProperties {
 export function pageStyle(d: ResolvedDesign): CSSProperties {
   const keys = ["--pt-text", "--pt-muted", "--pt-tagline", "--pt-border", "--pt-tint", "--pt-tint-strong", "--pt-accent-text", "--pt-accent", "--pt-accent-hover", "--pt-accent-foreground", "--pt-ok"];
   return { color: d.vars["--pt-text"], ...Object.fromEntries(keys.map((k) => [k, d.vars[k]])) } as CSSProperties;
-}
-
-/** The booking card: the next open time and the booking button. Fee and contact details are in the information card. */
-export function BookingCard({ m, className = "" }: { m: ProfileModel; className?: string }) {
-  return (
-    <Card className={`space-y-5 ${className}`}>
-      <div>
-        <h3 className="pt-display pt-h3">Book with {firstName(m)}</h3>
-      </div>
-      <Availability slots={m.slots} zone={m.practitioner.timezone} accepting={m.accepting} preview={m.preview} variant="line" hideEmpty />
-      <BookButton accepting={m.accepting} preview={m.preview} className="w-full" />
-    </Card>
-  );
 }

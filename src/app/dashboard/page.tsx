@@ -113,7 +113,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
-      <AutoRefresh seconds={60} />
+      <AutoRefresh seconds={300} />
 
       {/* Header — same hairline-bottom rhythm as PageHeader, which every other
           portal page uses; kept bespoke here (greeting + date instead of an

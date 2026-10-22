@@ -61,7 +61,7 @@ const BRAND_FILL: Partial<Record<keyof typeof ICON_PATH, string>> = {
   instagram: "url(#folio-instagram)",
 };
 
-function Links({ m }: { m: ProfileModel }) {
+export function Links({ m, className = "-ml-2.5 mt-8 flex flex-wrap gap-2" }: { m: ProfileModel; className?: string }) {
   // Email and phone, if the practitioner made them public, are icons that open a window with the details.
   const find = (prefix: string) => {
     const c = m.contacts.find((x) => x.href?.startsWith(prefix));
@@ -73,7 +73,7 @@ function Links({ m }: { m: ProfileModel }) {
   return (
     <nav
       aria-label="Contact and links"
-      className="-ml-2.5 mt-8 flex flex-wrap gap-2"
+      className={className}
     >
       <ContactIcons email={email} phone={phone} />
       {m.socials.map((s) => (

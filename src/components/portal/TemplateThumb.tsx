@@ -130,31 +130,19 @@ function Framed() {
   );
 }
 
-/** The second layout: a profile card across the top, content cards below it, and a booking card kept beside them. */
+/** The second layout: a centred introduction, sections in one column, and a booking bar along the bottom. */
 function Rail() {
   return (
     <>
-      <Block
-        x={0}
-        y={0}
-        w={100}
-        h={100}
-        fill={SOFT}
-        round="0"
-        style={{ opacity: 0.55 }}
-      />
-      <Block x={6} y={6} w={88} h={24} fill={PAGE} outline />
-      <Dot x={10} y={10} d={15} />
-      <Block x={29} y={11} w={38} h={3.4} fill={DARK} round="99px" />
-      <Lines x={29} y={18} w={38} n={2} />
-      <Block x={6} y={35} w={54} h={18} fill={PAGE} outline />
-      <Block x={6} y={57} w={54} h={18} fill={PAGE} outline />
-      <Block x={6} y={79} w={54} h={15} fill={PAGE} outline />
-      <Block x={64} y={35} w={30} h={33} fill={PAGE} outline />
-      <Block x={68} y={39} w={22} h={3} fill={MID} round="99px" />
-      <Block x={68} y={46} w={22} h={5} fill={SOFT} />
-      <Block x={68} y={53} w={22} h={5} fill={SOFT} />
-      <Block x={68} y={61} w={22} h={5} fill={ACCENT} />
+      <Block x={0} y={0} w={100} h={100} fill={SOFT} round="0" style={{ opacity: 0.55 }} />
+      <Dot x={42} y={6} d={16} />
+      <Block x={31} y={26} w={38} h={3.4} fill={DARK} round="99px" />
+      <Lines x={31} y={33} w={38} n={2} />
+      <Block x={16} y={46} w={68} h={12} fill={PAGE} outline />
+      <Block x={16} y={61} w={68} h={12} fill={PAGE} outline />
+      <Block x={0} y={84} w={100} h={16} fill={PAGE} round="0" outline />
+      <Block x={6} y={89} w={30} h={3} fill={MID} round="99px" />
+      <Block x={64} y={88} w={30} h={7} fill={ACCENT} />
     </>
   );
 }
