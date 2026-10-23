@@ -46,7 +46,7 @@ export function ProfileTabs({ sections, appearance }: { sections: ProfileSection
           id={`profile-panel-${s.id}`}
           aria-labelledby={`profile-tab-${s.id}`}
           hidden={tab !== s.id}
-          className="mt-8"
+          className="mt-12"
         >
           <ProfileSections sections={[s]} />
         </div>
@@ -56,7 +56,7 @@ export function ProfileTabs({ sections, appearance }: { sections: ProfileSection
         id={`profile-panel-${APPEARANCE}`}
         aria-labelledby={`profile-tab-${APPEARANCE}`}
         hidden={tab !== APPEARANCE}
-        className="mt-2"
+        className="mt-6"
       >
         {appearance}
       </div>

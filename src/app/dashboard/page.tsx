@@ -203,15 +203,15 @@ export default async function DashboardPage() {
         <div className="flex flex-col justify-center">
           {(
             [
-              { label: "Left today", value: upcomingToday.length },
-              { label: "This week", value: weekSessions.length },
+              { label: "Sessions left today", value: upcomingToday.length },
+              { label: "Sessions this week", value: weekSessions.length },
               {
-                label: "Awaiting response",
+                label: "Requests to answer",
                 value: pendingInquiries.length,
                 href: "/dashboard/requests",
                 tone: oldestPendingDays >= 3 ? "text-alert" : pendingInquiries.length > 0 ? "text-accent-strong" : "",
               },
-              { label: "Open slots", value: openSlots.length, href: "/dashboard/slots" },
+              { label: "Open slots this week", value: openSlots.length, href: "/dashboard/slots" },
             ] as const
           ).map((row, i, rows) => {
             const rowClass = `flex items-baseline justify-between gap-4 ${

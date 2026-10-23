@@ -65,7 +65,7 @@ export function TemplateProfile({
         <Layout m={m} d={design} />
       </div>
 
-      <footer className="relative z-[2] mt-20 w-full border-t border-(--pt-border) pb-24">
+      <footer className="relative z-[2] mt-44 w-full border-t border-(--pt-border) pb-24">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-6 text-sm text-(--pt-muted) sm:px-8">
           <p>
             Powered by <span className="font-medium text-(--pt-text)">{siteConfig.name}</span>
@@ -81,8 +81,11 @@ export function TemplateProfile({
         </div>
       </footer>
 
-      {/* Booking is already in view beside the page on a large screen, so the bar is only for the phone layout. */}
-      <StickyBookingBar slots={slots} practitionerZone={practitioner.timezone} accepting={practitioner.acceptingBookings} phoneOnly />
+      {/* Booking is already in view beside the page on a large screen, so the bar is only for the phone layout. The single-column
+          layout has its own bar at the bottom of the screen, so a second floating one would sit on top of it. */}
+      {design.spec.layout !== "rail" && (
+        <StickyBookingBar slots={slots} practitionerZone={practitioner.timezone} accepting={practitioner.acceptingBookings} phoneOnly />
+      )}
     </main>
   );
 }

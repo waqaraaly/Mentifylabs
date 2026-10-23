@@ -11,7 +11,7 @@ function openBooking() {
   (document.getElementById(BOOKING_MODAL_ID) as HTMLDialogElement | null)?.showModal();
 }
 
-type Variant = "days" | "chips" | "line";
+type Variant = "days" | "chips" | "line" | "stack";
 
 /**
  * The practitioner's real open times, the way booking sites lead with them: a few days with their times, a short list
@@ -62,6 +62,18 @@ export function Availability({
       <p className={`flex items-center gap-2 text-sm ${className}`}>
         <span className="text-(--pt-muted)">Next available</span>
         <span className="font-semibold">
+          {formatDate(next.date)}, {formatTime12h(next.startTime)} {next.tag}
+        </span>
+      </p>
+    );
+  }
+
+  if (variant === "stack") {
+    const next = shown[0];
+    return (
+      <p className={`flex flex-col gap-1 ${className}`}>
+        <span className="text-xs text-(--pt-muted)">Next available</span>
+        <span className="text-[15px] leading-tight font-semibold">
           {formatDate(next.date)}, {formatTime12h(next.startTime)} {next.tag}
         </span>
       </p>

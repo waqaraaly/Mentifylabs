@@ -283,7 +283,7 @@ export default async function PublicProfilePage() {
     "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition";
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 px-2 pb-12 sm:px-4">
+    <div className="mx-auto w-full max-w-6xl space-y-12 px-2 pb-12 sm:px-4">
       <PageHeader
         icon={User}
         title="Public profile"
